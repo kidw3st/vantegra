@@ -531,13 +531,27 @@ img { height: auto; }
   box-shadow: inset 0 0 0 1px rgba(16, 20, 19, .1);
   pointer-events: none;
 }
-.portal__video {
+/* кадр покоя: он же запасной вариант, если холст не включится */
+.portal__still {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: 50% 26%;
-  transform: scale(1.02);
+  transition: opacity .35s var(--ease);
 }
+
+/* Позы выдаёт холст: перемотка видео стоит ~90 мс, а нужен мгновенный
+   отклик. Скрипт включает холст, когда разобрал ролик на кадры. */
+.portal__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity .35s var(--ease);
+}
+.portal.is-canvas .portal__canvas { opacity: 1; }
+.portal.is-canvas .portal__still { opacity: 0; }
 .portal__cap {
   position: absolute;
   left: 50%;

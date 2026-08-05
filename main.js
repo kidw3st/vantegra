@@ -287,74 +287,210 @@
     }, { passive: true });
   }
 
-  /* ============ 10. маскот: кадр ролика выбирает курсор ============ */
+  /* ============ 10. маскот: следит за курсором по обеим осям ============ */
 
-  const video = $('#scene');
+  const canvas = $('#sceneCanvas');
   const portal = $('#portal');
   const hero = $('#hero');
   const hint = $('#hint');
 
-  if (hint && matchMedia('(pointer: coarse)').matches) {
-    hint.textContent = 'Проведи пальцем — он смотрит';
-  }
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  if (hint && coarse) hint.textContent = 'Вант · маскот студии';
 
-  if (video && portal && hero) {
-    // перемотка кадра стоит ~40-60 мс, поэтому ведём мягко:
-    // так невысокая частота обновления не бросается в глаза
-    const EASE = 0.1;
-    const MIN_STEP = 0.02;
-    const IDLE_AFTER = 4000;
+  if (canvas && portal && hero) {
+    // Куда маскот смотрит в каждый момент ролика: x — вправо, y — вниз,
+    // длина ~1 на пределе поворота. Клип обходит полный круг направлений:
+    // анфас → вниз → влево → вверх → вправо → анфас. Поэтому под любое
+    // положение курсора в ролике находится подходящая поза.
+    const GAZE = [
+      [0.00,  0.00,  0.00], [0.90,  0.00,  0.00], [1.30,  0.15,  0.25],
+      [1.75,  0.00,  0.75], [2.20, -0.05,  1.00], [2.60, -0.20,  0.95],
+      [3.05, -0.50,  0.80], [3.50, -0.90,  0.25], [3.90, -0.85,  0.00],
+      [4.35, -0.75, -0.10], [4.80, -0.60, -0.35], [5.20, -0.30, -0.55],
+      [5.65,  0.00, -0.65], [6.10,  0.15, -0.55], [6.50,  0.45, -0.50],
+      [6.95,  0.70, -0.40], [7.40,  0.90, -0.20], [7.85,  1.00,  0.00],
+      [8.30,  0.95,  0.10], [8.70,  1.00,  0.15], [8.95,  0.85,  0.30],
+      [9.15,  0.60,  0.10], [9.40,  0.35,  0.05], [9.60,  0.15,  0.00],
+      [9.85,  0.00,  0.00], [10.04, 0.00, 0.00],
+    ];
 
-    let dur = 0, target = 0.5, cur = 0.5;
-    let seeking = false, ready = false, scrubbing = false, visible = true, lastMove = 0;
+    const N = 40;             // поз в памяти
+    const CROP = 0.47;        // какая доля ширины кадра реально видна в арке
+    const BW = 430, BH = 514; // размер кадра в кэше — под размер портала
+    const EASE = 0.16;        // мягкость доводки позы
 
-    const play = () => video.play().catch(() => {});
-    const release = () => { if (scrubbing) { scrubbing = false; if (visible) play(); } };
+    const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+    // слежение только там, где есть настоящий курсор
+    const canTrack = !!ctx && !calm.matches && !coarse;
 
-    video.addEventListener('loadedmetadata', () => { dur = video.duration || 0; });
-    video.addEventListener('seeked', () => { seeking = false; });
-    video.addEventListener('canplay', () => { ready = true; if (!scrubbing) play(); }, { once: true });
+    const frames = [];
+    const gaze = [];
+    let idx = 0, want = 0, rest = 0;
+    let ready = false, visible = true;
+
+    // направление взгляда в момент t — линейно между опорными точками
+    function gazeAt(t) {
+      for (let i = 1; i < GAZE.length; i++) {
+        if (t <= GAZE[i][0]) {
+          const a = GAZE[i - 1], b = GAZE[i];
+          const k = (t - a[0]) / (b[0] - a[0] || 1);
+          return [a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+        }
+      }
+      return [0, 0];
+    }
+
+    // ближайшая поза к нужному направлению
+    function nearest(gx, gy) {
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < gaze.length; i++) {
+        const dx = gaze[i][0] - gx, dy = gaze[i][1] - gy;
+        const d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = i; }
+      }
+      return best;
+    }
+
+    /* ---- разбор ролика на кадры ---- */
+
+    // Ролик нужен только как источник кадров — на странице его нет
+    // и он никогда не проигрывается зрителю. Пока кадры не разобраны,
+    // в портале висит статичный кадр анфас.
+    function buildCache() {
+      const src = document.createElement('video');
+      src.src = 'assets/mascot.mp4';
+      src.muted = true;
+      src.playsInline = true;
+      src.preload = 'auto';
+
+      src.addEventListener('loadeddata', () => {
+        const vw = src.videoWidth, vh = src.videoHeight;
+        const sw = Math.round(vw * CROP), sx = Math.round((vw - sw) / 2);
+        const span = (src.duration || 0) - 0.05;
+        if (!(span > 0)) return;
+
+        const times = [];
+        for (let i = 0; i < N; i++) times.push((i / (N - 1)) * span);
+        let next = 0;
+
+        function grab(t) {
+          const c = document.createElement('canvas');
+          c.width = BW; c.height = BH;
+          c.getContext('2d').drawImage(src, sx, 0, sw, vh, 0, 0, BW, BH);
+          frames.push(c);
+          gaze.push(gazeAt(t));
+        }
+
+        function finish() {
+          while (next < N) { grab(times[next]); next++; }   // добираем хвост
+          src.pause();
+          src.src = '';
+          rest = nearest(0, 0);        // поза покоя — анфас
+          idx = want = rest;
+          ready = true;
+          paintFrame(frames[rest]);
+          portal.classList.add('is-canvas');
+        }
+
+        // Снимаем кадры на проигрывании: перемотка стоит сотни миллисекунд,
+        // а так декодер идёт подряд и отдаёт всё за пару секунд.
+        if (src.requestVideoFrameCallback) {
+          const onFrame = (now, meta) => {
+            while (next < N && meta.mediaTime >= times[next]) { grab(times[next]); next++; }
+            if (next < N) src.requestVideoFrameCallback(onFrame);
+            else finish();
+          };
+          src.addEventListener('ended', () => { if (next < N) finish(); }, { once: true });
+          src.requestVideoFrameCallback(onFrame);
+          src.playbackRate = 4;
+          src.play().catch(bySeeking);
+        } else {
+          bySeeking();
+        }
+
+        // запасной путь для браузеров без requestVideoFrameCallback
+        async function bySeeking() {
+          const seekTo = (t) => new Promise((r) => {
+            const done = () => { src.removeEventListener('seeked', done); r(); };
+            src.addEventListener('seeked', done);
+            src.currentTime = t;
+          });
+          while (next < N) { await seekTo(times[next]); grab(times[next]); next++; }
+          finish();
+        }
+      }, { once: true });
+    }
+
+    /* ---- отрисовка ---- */
+
+    function fit() {
+      const r = portal.getBoundingClientRect();
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    }
+
+    // вписываем по принципу object-fit: cover
+    function cover(sw, sh) {
+      const s = Math.max(canvas.width / sw, canvas.height / sh);
+      const w = sw * s, h = sh * s;
+      return [(canvas.width - w) / 2, (canvas.height - h) / 2, w, h];
+    }
+
+    function paintFrame(bmp) {
+      fit();
+      ctx.drawImage(bmp, ...cover(bmp.width, bmp.height));
+    }
+
+    /* ---- курсор ---- */
+
+    if (canTrack) buildCache();
 
     new IntersectionObserver((entries) => {
       visible = entries[0].isIntersecting;
-      if (!visible) video.pause();
-      else if (!scrubbing) play();
     }, { threshold: 0.05 }).observe(portal);
 
     addEventListener('pointermove', (e) => {
-      // маскот слушается курсора только на первом экране; ниже ролик просто играет
+      if (!ready) return;
+
+      // маскот следит только на первом экране; ниже смотрит вперёд
       const box = hero.getBoundingClientRect();
-      if (e.clientY < box.top || e.clientY > box.bottom) { release(); return; }
+      if (e.clientY < box.top || e.clientY > box.bottom) { want = rest; return; }
 
-      lastMove = performance.now();
-      target = clamp(e.clientX / innerWidth, 0, 1);
+      // направление от головы к курсору
+      const p = portal.getBoundingClientRect();
+      const hx = p.left + p.width * 0.5;
+      const hy = p.top + p.height * 0.42;
+      const reach = Math.max(innerWidth, innerHeight) * 0.42;
+      want = nearest(
+        clamp((e.clientX - hx) / reach, -1, 1),
+        clamp((e.clientY - hy) / reach, -1, 1),
+      );
 
-      if (!scrubbing) {
-        scrubbing = true;
-        video.pause();
-        cur = dur ? video.currentTime / dur : target;
-      }
       if (hint && hint.dataset.done !== '1') {
         hint.dataset.done = '1';
         hint.style.opacity = '0';
       }
     }, { passive: true });
 
-    addEventListener('pointerleave', release, { passive: true });
-    addEventListener('blur', release);
+    const toRest = () => { want = rest; };
+    addEventListener('pointerleave', toRest, { passive: true });
+    addEventListener('blur', toRest);
 
-    (function frame(t) {
-      if (scrubbing && !calm.matches && t - lastMove > IDLE_AFTER) release();
-      if (visible && scrubbing && ready && dur) {
-        cur += (target - cur) * EASE;
-        const want = clamp(cur, 0, 1) * (dur - 0.06);
-        if (!seeking && Math.abs(want - video.currentTime) > MIN_STEP) {
-          seeking = true;
-          video.currentTime = want;
-        }
+    (function loop() {
+      if (ready && visible) {
+        // идём к нужной позе по кратчайшей дуге — голова доворачивается,
+        // а не прыгает, потому что соседние кадры это соседние повороты
+        let d = want - idx;
+        if (d > N / 2) d -= N;
+        if (d < -N / 2) d += N;
+        idx += d * EASE;
+        if (idx < 0) idx += N;
+        if (idx >= N) idx -= N;
+        paintFrame(frames[Math.round(idx) % N]);
       }
-      requestAnimationFrame(frame);
-    })(0);
+      requestAnimationFrame(loop);
+    })();
   }
 
   /* ============ 11. бегущая строка ============ */

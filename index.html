@@ -67,10 +67,12 @@
       <span class="line" style="--i:2"><span>Игры.</span></span>
     </h1>
 
-    <!-- маскот: кадр видео выбирает курсор, пока он на первом экране -->
+    <!-- Маскот. В покое — статичный кадр анфас; когда курсор на первом экране,
+         скрипт подменяет его позой из ролика, подходящей под направление взгляда. -->
     <figure class="portal" id="portal" data-parallax="0.07">
-      <video class="portal__video" id="scene" src="assets/meadow.mp4" poster="assets/meadow.jpg"
-             muted loop playsinline preload="auto" aria-label="Вант — маскот Vantegra, следит за курсором"></video>
+      <img class="portal__still" src="assets/mascot-poster.jpg" width="1280" height="720"
+           alt="Вант — маскот Vantegra: дракончик в кепке смотрит вперёд">
+      <canvas class="portal__canvas" id="sceneCanvas" aria-hidden="true"></canvas>
       <figcaption class="portal__cap" id="hint">Вант следит за курсором</figcaption>
     </figure>
 
