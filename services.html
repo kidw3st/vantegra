@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Услуги — Vantegra</title>
+<meta name="description" content="Сайты, телеграм-боты, веб-приложения и мобильные игры: что входит в работу, какой стек и как считаем сроки.">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}addEventListener('pagereveal',function(e){if(e.viewTransition)e.viewTransition.finished.catch(function(){})})})()</script>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<noscript><style>.reveal,.pop,.fade{opacity:1;transform:none}.line>span,.w>span{transform:none}.acc__body{grid-template-rows:1fr}[data-draw] path{stroke-dashoffset:0}</style></noscript>
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="nav__mark" href="index.html">
+    <img class="nav__logo" src="assets/logo.png" alt="" width="512" height="512">
+    <span>Vantegra</span>
+  </a>
+  <nav class="nav__links" aria-label="Разделы">
+    <a href="services.html" aria-current="page">Услуги</a>
+    <a href="pricing.html">Тарифы</a>
+    <a href="clients.html">Клиенты</a>
+    <a href="about.html">О нас</a>
+    <a href="faq.html">Вопросы</a>
+  </nav>
+  <button class="nav__theme" id="theme" type="button" aria-pressed="false" aria-label="Включить тёмную тему">
+    <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
+    <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
+  </button>
+  <a class="nav__ghost" href="cabinet.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
+    Кабинет
+  </a>
+  <a class="nav__cta" href="contacts.html">Обсудить проект</a>
+  <button class="nav__burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Открыть меню">
+    <i></i><i></i><i></i>
+  </button>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Главная</a>
+  <a href="services.html" aria-current="page">Услуги</a>
+  <a href="pricing.html">Тарифы</a>
+  <a href="clients.html">Клиенты</a>
+  <a href="about.html">О нас</a>
+  <a href="faq.html">Вопросы</a>
+  <a href="contacts.html">Контакты</a>
+  <a href="cabinet.html">Кабинет</a>
+</div>
+
+<main class="page" id="main">
+
+  <section class="phero">
+    <p class="label reveal">Услуги</p>
+    <h1 class="phero__title" data-split>Четыре направления, одна команда</h1>
+    <p class="phero__lead reveal">
+      Раскройте любое, чтобы увидеть, что входит в работу, на чём собираем
+      и сколько это обычно занимает.
+    </p>
+    <svg class="phero__rule" data-draw viewBox="0 0 1200 2" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <path pathLength="1" d="M0 1H1200" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  </section>
+
+  <section class="section section--tight">
+    <div class="acc">
+
+      <div class="acc__item reveal" id="sites">
+        <button class="acc__head" type="button" aria-expanded="true">
+          <b>Сайты</b>
+          <span class="acc__sign" aria-hidden="true"></span>
+        </button>
+        <div class="acc__body"><div><div class="acc__inner">
+          <p>Лендинги, корпоративные сайты и интернет-магазины. Начинаем не с макета, а с вопроса, что должен сделать посетитель — и дальше строим страницу вокруг этого действия.</p>
+          <p><strong>Что входит:</strong> исследование и структура, дизайн всех экранов, адаптив под телефон и планшет, вёрстка, подключение CMS, формы и заявки, аналитика, базовое SEO, перенос на ваш хостинг.</p>
+          <p><strong>Сроки:</strong> лендинг — обычно 1–2 недели, корпоративный сайт — 3–6 недель, магазин — от 6 недель.</p>
+          <ul class="chips">
+            <li>Next.js</li><li>Astro</li><li>Tilda</li><li>WordPress</li><li>1С-Битрикс</li><li>Figma</li>
+          </ul>
+        </div></div></div>
+      </div>
+
+      <div class="acc__item reveal" id="bots">
+        <button class="acc__head" type="button" aria-expanded="false">
+          <b>Телеграм-боты</b>
+          <span class="acc__sign" aria-hidden="true"></span>
+        </button>
+        <div class="acc__body"><div><div class="acc__inner">
+          <p>Бот снимает с людей повторяющуюся работу: принимает заказы, отвечает на типовые вопросы, напоминает и собирает заявки — круглосуточно и без выходных.</p>
+          <p><strong>Что входит:</strong> сценарий диалога, меню и кнопки, приём оплат, личный кабинет внутри Telegram (Mini App), связь с CRM и складом, рассылки по сегментам, админка для правок текстов без программиста.</p>
+          <p><strong>Сроки:</strong> простой бот-приёмщик заявок — от нескольких дней, бот с оплатами и интеграциями — от 2–4 недель.</p>
+          <ul class="chips">
+            <li>Bot API</li><li>Mini Apps</li><li>Python</li><li>Node.js</li><li>PostgreSQL</li><li>Оплаты</li>
+          </ul>
+        </div></div></div>
+      </div>
+
+      <div class="acc__item reveal" id="apps">
+        <button class="acc__head" type="button" aria-expanded="false">
+          <b>Веб-приложения</b>
+          <span class="acc__sign" aria-hidden="true"></span>
+        </button>
+        <div class="acc__body"><div><div class="acc__inner">
+          <p>Личные кабинеты, панели управления, внутренние сервисы и отраслевые системы — то, чем пользуются каждый день, поэтому скорость и понятность важнее украшений.</p>
+          <p><strong>Что входит:</strong> проектирование сценариев, дизайн интерфейса, фронтенд и бэкенд, база данных, роли и доступы, интеграции со сторонними API, выкладка и мониторинг.</p>
+          <p><strong>Сроки:</strong> первая рабочая версия — от 4–8 недель, дальше развиваем итерациями.</p>
+          <ul class="chips">
+            <li>React</li><li>TypeScript</li><li>Node.js</li><li>Python</li><li>PostgreSQL</li><li>Docker</li>
+          </ul>
+        </div></div></div>
+      </div>
+
+      <div class="acc__item reveal" id="games">
+        <button class="acc__head" type="button" aria-expanded="false">
+          <b>Мобильные игры</b>
+          <span class="acc__sign" aria-hidden="true"></span>
+        </button>
+        <div class="acc__body"><div><div class="acc__inner">
+          <p>Игры для iOS и Android — от казуальных аркад до проектов с прогрессом и внутриигровой валютой. Сначала собираем играбельный прототип, чтобы проверить механику, и только потом рисуем финальный арт.</p>
+          <p><strong>Что входит:</strong> механика и баланс, персонажи и окружение, звук, разработка, тестирование на реальных устройствах, подготовка страниц в сторах и публикация, аналитика и обновления.</p>
+          <p><strong>Сроки:</strong> прототип — 2–3 недели, релизная версия — от 3 месяцев.</p>
+          <ul class="chips">
+            <li>Unity</li><li>C#</li><li>Godot</li><li>App Store</li><li>Google Play</li><li>Аналитика</li>
+          </ul>
+        </div></div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ---------- процесс ---------- -->
+  <section class="section section--alt">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Как работаем</p>
+        <h2 class="section__title" data-split>Четыре шага от идеи до запуска</h2>
+      </div>
+    </div>
+
+    <svg class="phero__rule" data-draw viewBox="0 0 1200 2" preserveAspectRatio="none" fill="none" aria-hidden="true" style="margin:0 0 40px">
+      <path pathLength="1" d="M0 1H1200" stroke="currentColor" stroke-width="2"/>
+    </svg>
+
+    <ol class="steps">
+      <li class="steps__item pop">
+        <span class="steps__num">01</span>
+        <h3 class="steps__name">Разбираемся</h3>
+        <p class="steps__desc">Созваниваемся, выясняем задачу и ограничения. Фиксируем объём, сроки и цену — до начала работы.</p>
+      </li>
+      <li class="steps__item pop">
+        <span class="steps__num">02</span>
+        <h3 class="steps__name">Прототип</h3>
+        <p class="steps__desc">Показываем структуру и дизайн раньше, чем пишем код. Правки на этом этапе стоят ноль.</p>
+      </li>
+      <li class="steps__item pop">
+        <span class="steps__num">03</span>
+        <h3 class="steps__name">Разработка</h3>
+        <p class="steps__desc">Собираем продукт короткими итерациями. Каждую неделю есть что показать и потрогать.</p>
+      </li>
+      <li class="steps__item pop">
+        <span class="steps__num">04</span>
+        <h3 class="steps__name">Запуск</h3>
+        <p class="steps__desc">Выкатываем, подключаем аналитику, передаём доступы. Дальше — поддержка и развитие.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="cta">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="cta__in">
+      <h2 class="cta__title" data-split>Не нашли своё направление?</h2>
+      <p class="cta__note reveal">Напишите задачу как есть — скажем честно, беремся мы за такое или нет, и подскажем, к кому идти, если нет.</p>
+      <div class="hero__actions reveal">
+        <a class="btn btn--solid" href="contacts.html" data-magnet>Написать нам</a>
+        <a class="btn btn--plain" href="clients.html">Посмотреть работы</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__top">
+    <p class="foot__mark">
+      <img class="foot__logo" src="assets/logo.png" alt="" width="512" height="512">
+      Vantegra
+    </p>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <strong>Разделы</strong>
+        <a href="services.html">Услуги</a>
+        <a href="pricing.html">Тарифы</a>
+        <a href="clients.html">Клиенты</a>
+        <a href="about.html">О нас</a>
+        <a href="faq.html">Вопросы</a>
+      </div>
+      <div class="foot__col">
+        <strong>Услуги</strong>
+        <a href="services.html#sites">Сайты</a>
+        <a href="services.html#bots">Телеграм-боты</a>
+        <a href="services.html#apps">Веб-приложения</a>
+        <a href="services.html#games">Мобильные игры</a>
+      </div>
+      <div class="foot__col">
+        <strong>Связь</strong>
+        <a href="contacts.html">Контакты</a>
+        <a href="cabinet.html">Кабинет</a>
+        <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+        <a href="https://t.me/vantegra">@vantegra</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot__bottom">
+    <p>© 2026 Vantegra</p>
+    <p>Сайты · боты · веб-приложения · мобильные игры</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

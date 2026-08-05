@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>О нас — Vantegra</title>
+<meta name="description" content="Vantegra — небольшая студия разработки. Как мы работаем, на чём собираем продукты и почему у нас маскот-дракон.">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}addEventListener('pagereveal',function(e){if(e.viewTransition)e.viewTransition.finished.catch(function(){})})})()</script>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<noscript><style>.reveal,.pop,.fade{opacity:1;transform:none}.line>span,.w>span{transform:none}.acc__body{grid-template-rows:1fr}[data-draw] path{stroke-dashoffset:0}</style></noscript>
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="nav__mark" href="index.html">
+    <img class="nav__logo" src="assets/logo.png" alt="" width="512" height="512">
+    <span>Vantegra</span>
+  </a>
+  <nav class="nav__links" aria-label="Разделы">
+    <a href="services.html">Услуги</a>
+    <a href="pricing.html">Тарифы</a>
+    <a href="clients.html">Клиенты</a>
+    <a href="about.html" aria-current="page">О нас</a>
+    <a href="faq.html">Вопросы</a>
+  </nav>
+  <button class="nav__theme" id="theme" type="button" aria-pressed="false" aria-label="Включить тёмную тему">
+    <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
+    <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
+  </button>
+  <a class="nav__ghost" href="cabinet.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
+    Кабинет
+  </a>
+  <a class="nav__cta" href="contacts.html">Обсудить проект</a>
+  <button class="nav__burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Открыть меню">
+    <i></i><i></i><i></i>
+  </button>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Главная</a>
+  <a href="services.html">Услуги</a>
+  <a href="pricing.html">Тарифы</a>
+  <a href="clients.html">Клиенты</a>
+  <a href="about.html" aria-current="page">О нас</a>
+  <a href="faq.html">Вопросы</a>
+  <a href="contacts.html">Контакты</a>
+  <a href="cabinet.html">Кабинет</a>
+</div>
+
+<main class="page" id="main">
+
+  <section class="phero">
+    <p class="label reveal">О нас</p>
+    <h1 class="phero__title" data-split>Небольшая команда, которая доводит до конца</h1>
+    <p class="phero__lead reveal">
+      Vantegra — студия разработки. Делаем сайты, телеграм-ботов,
+      веб-приложения и мобильные игры.
+    </p>
+    <svg class="phero__rule" data-draw viewBox="0 0 1200 2" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <path pathLength="1" d="M0 1H1200" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  </section>
+
+  <section class="section section--tight">
+    <div class="duo">
+      <div class="prose reveal">
+        <p class="lead">Мы собираем продукты целиком, а не отдельные куски, которые потом некому связать.</p>
+        <p>В студии нет отдела продаж, который обещает одно, и разработчиков, которые делают другое. С вами говорят те же люди, что будут писать код: так меньше шансов, что задача потеряется по дороге.</p>
+        <p>Мы намеренно держим небольшой размер команды. Это значит, что мы не возьмём десять проектов разом — зато взятый доводим до запуска и остаёмся рядом после него.</p>
+        <p><strong>Работаем удалённо</strong>, по договору, с фиксированными этапами. Созвоны — по делу и по расписанию, а не «давайте синхронизируемся».</p>
+      </div>
+      <img class="seal-big fade" data-parallax="0.05" src="assets/logo.png" alt="Знак Vantegra: дракончик в кепке" width="512" height="512">
+    </div>
+  </section>
+
+  <!-- ---------- принципы ---------- -->
+  <section class="section section--alt">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Принципы</p>
+        <h2 class="section__title" data-split>Четыре правила, от которых не отступаем</h2>
+      </div>
+    </div>
+
+    <ul class="cards">
+      <li class="card pop">
+        <span class="card__k">Прозрачно</span>
+        <h3>Цена и сроки — до старта</h3>
+        <p>Разбиваем работу на этапы и фиксируем стоимость каждого. Если объём меняется, обсуждаем это до того, как что-то сделано, а не в счёте.</p>
+      </li>
+      <li class="card pop">
+        <span class="card__k">Быстро</span>
+        <h3>Показываем каждую неделю</h3>
+        <p>Работаем итерациями. Вы видите живой продукт, а не отчёт о том, что он почти готов.</p>
+      </li>
+      <li class="card pop">
+        <span class="card__k">Честно</span>
+        <h3>Говорим «нет», когда надо</h3>
+        <p>Если задача решается готовым сервисом за тысячу рублей, мы скажем это, а не продадим разработку с нуля.</p>
+      </li>
+      <li class="card pop">
+        <span class="card__k">Надолго</span>
+        <h3>Всё остаётся у вас</h3>
+        <p>Исходники, домен, сервер, доступы к сервисам — ваши с первого дня. Уйти к другой команде можно в любой момент.</p>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ---------- стек ---------- -->
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Инструменты</p>
+        <h2 class="section__title" data-split>На чём собираем</h2>
+      </div>
+      <a class="more reveal" href="services.html">
+        <u>Подробнее по услугам</u>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <ul class="stack">
+      <li class="stack__row reveal">
+        <h3>Фронтенд</h3>
+        <ul class="chips"><li>React</li><li>Next.js</li><li>Astro</li><li>TypeScript</li><li>CSS</li></ul>
+      </li>
+      <li class="stack__row reveal">
+        <h3>Бэкенд</h3>
+        <ul class="chips"><li>Node.js</li><li>Python</li><li>PostgreSQL</li><li>Redis</li><li>Docker</li></ul>
+      </li>
+      <li class="stack__row reveal">
+        <h3>Боты</h3>
+        <ul class="chips"><li>Telegram Bot API</li><li>Mini Apps</li><li>Оплаты</li><li>CRM</li></ul>
+      </li>
+      <li class="stack__row reveal">
+        <h3>Игры</h3>
+        <ul class="chips"><li>Unity</li><li>C#</li><li>Godot</li><li>App Store</li><li>Google Play</li></ul>
+      </li>
+      <li class="stack__row reveal">
+        <h3>Дизайн</h3>
+        <ul class="chips"><li>Figma</li><li>Прототипы</li><li>Дизайн-система</li><li>Анимация</li></ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ---------- маскот ---------- -->
+  <section class="section section--alt">
+    <div class="duo">
+      <div class="prose reveal">
+        <p class="label">Маскот</p>
+        <h2 class="section__title" data-split>Знакомьтесь, Вант</h2>
+        <p style="margin-top:24px">Дракончик в полевой кепке — наш маскот и заодно проверка на вкус. Он живёт на главной странице и следит за курсором: это маленькая деталь, которую никто не заказывал, но именно такие детали отличают сделанный продукт от собранного.</p>
+        <p>Мы относимся к анимациям так же: они не для того, чтобы удивить, а для того, чтобы объяснить, что происходит на экране. Если движение не помогает — его не будет.</p>
+        <p><a class="more" href="index.html"><u>Посмотреть на него</u> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></p>
+      </div>
+      <img class="seal-big fade" data-parallax="0.06" src="assets/meadow.jpg" alt="Вант — маскот Vantegra, дракончик в кепке на лугу"
+           width="1280" height="720" style="width:min(420px,100%);border-radius:16px;border:1px solid var(--line)">
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="cta__in">
+      <h2 class="cta__title" data-split>Обсудим ваш проект?</h2>
+      <p class="cta__note reveal">Опишите задачу в двух словах — вернёмся с вопросами и оценкой в течение дня.</p>
+      <div class="hero__actions reveal">
+        <a class="btn btn--solid" href="contacts.html" data-magnet>Написать нам</a>
+        <a class="btn btn--plain" href="clients.html">Посмотреть работы</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__top">
+    <p class="foot__mark">
+      <img class="foot__logo" src="assets/logo.png" alt="" width="512" height="512">
+      Vantegra
+    </p>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <strong>Разделы</strong>
+        <a href="services.html">Услуги</a>
+        <a href="pricing.html">Тарифы</a>
+        <a href="clients.html">Клиенты</a>
+        <a href="about.html">О нас</a>
+        <a href="faq.html">Вопросы</a>
+      </div>
+      <div class="foot__col">
+        <strong>Услуги</strong>
+        <a href="services.html#sites">Сайты</a>
+        <a href="services.html#bots">Телеграм-боты</a>
+        <a href="services.html#apps">Веб-приложения</a>
+        <a href="services.html#games">Мобильные игры</a>
+      </div>
+      <div class="foot__col">
+        <strong>Связь</strong>
+        <a href="contacts.html">Контакты</a>
+        <a href="cabinet.html">Кабинет</a>
+        <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+        <a href="https://t.me/vantegra">@vantegra</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot__bottom">
+    <p>© 2026 Vantegra</p>
+    <p>Сайты · боты · веб-приложения · мобильные игры</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

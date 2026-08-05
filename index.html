@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vantegra — сайты, боты, веб-приложения и мобильные игры</title>
+<meta name="description" content="Vantegra — студия разработки. Делаем сайты, телеграм-ботов, веб-приложения и мобильные игры: от прототипа до запуска.">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}addEventListener('pagereveal',function(e){if(e.viewTransition)e.viewTransition.finished.catch(function(){})})})()</script>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<noscript><style>.reveal,.pop,.fade{opacity:1;transform:none}.line>span,.w>span{transform:none}.acc__body{grid-template-rows:1fr}[data-draw] path{stroke-dashoffset:0}</style></noscript>
+</head>
+<body>
+
+<a class="skip" href="#hero">К содержимому</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="nav__mark" href="index.html">
+    <img class="nav__logo" src="assets/logo.png" alt="" width="512" height="512">
+    <span>Vantegra</span>
+  </a>
+  <nav class="nav__links" aria-label="Разделы">
+    <a href="services.html">Услуги</a>
+    <a href="pricing.html">Тарифы</a>
+    <a href="clients.html">Клиенты</a>
+    <a href="about.html">О нас</a>
+    <a href="faq.html">Вопросы</a>
+  </nav>
+  <button class="nav__theme" id="theme" type="button" aria-pressed="false" aria-label="Включить тёмную тему">
+    <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
+    <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
+  </button>
+  <a class="nav__ghost" href="cabinet.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
+    Кабинет
+  </a>
+  <a class="nav__cta" href="contacts.html">Обсудить проект</a>
+  <button class="nav__burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Открыть меню">
+    <i></i><i></i><i></i>
+  </button>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="index.html" aria-current="page">Главная</a>
+  <a href="services.html">Услуги</a>
+  <a href="pricing.html">Тарифы</a>
+  <a href="clients.html">Клиенты</a>
+  <a href="about.html">О нас</a>
+  <a href="faq.html">Вопросы</a>
+  <a href="contacts.html">Контакты</a>
+  <a href="cabinet.html">Кабинет</a>
+</div>
+
+<main>
+
+  <!-- ---------- герой ---------- -->
+  <section class="hero" id="hero">
+    <p class="eyebrow reveal">Студия разработки</p>
+
+    <h1 class="hero__title" data-lines>
+      <span class="line" style="--i:0"><span>Сайты. Боты.</span></span>
+      <span class="line" style="--i:1"><span>Приложения.</span></span>
+      <span class="line" style="--i:2"><span>Игры.</span></span>
+    </h1>
+
+    <!-- маскот: кадр видео выбирает курсор, пока он на первом экране -->
+    <figure class="portal" id="portal" data-parallax="0.07">
+      <video class="portal__video" id="scene" src="assets/meadow.mp4" poster="assets/meadow.jpg"
+             muted loop playsinline preload="auto" aria-label="Вант — маскот Vantegra, следит за курсором"></video>
+      <figcaption class="portal__cap" id="hint">Вант следит за курсором</figcaption>
+    </figure>
+
+    <div class="hero__foot">
+      <p class="hero__text reveal">
+        Собираем цифровые продукты под ключ: от первого прототипа
+        до запуска и поддержки.
+      </p>
+      <div class="hero__actions reveal">
+        <a class="btn btn--solid" href="contacts.html" data-magnet>Обсудить проект</a>
+        <a class="btn btn--plain" href="clients.html">Посмотреть работы</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- бегущая строка ---------- -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker__row" id="tickerRow">
+      <span class="ticker__set">
+        <b>Сайты</b><i></i><b>Телеграм-боты</b><i></i><b>Веб-приложения</b><i></i><b>Мобильные игры</b><i></i>
+      </span>
+    </div>
+  </div>
+
+  <!-- ---------- услуги ---------- -->
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Услуги</p>
+        <h2 class="section__title" data-split>Четыре вещи, которые мы делаем хорошо</h2>
+      </div>
+      <a class="more reveal" href="services.html">
+        <u>Все услуги</u>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <ul class="svc">
+      <li class="svc__item reveal">
+        <a class="svc__link" href="services.html#sites">
+          <h3 class="svc__name">Сайты</h3>
+          <p class="svc__desc">Лендинги, корпоративные сайты, магазины. Дизайн, вёрстка, CMS, аналитика — чтобы сайт не просто был, а приносил заявки.</p>
+          <span class="svc__go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </li>
+      <li class="svc__item reveal">
+        <a class="svc__link" href="services.html#bots">
+          <h3 class="svc__name">Телеграм-боты</h3>
+          <p class="svc__desc">Продажи, поддержка, автоматизация рутины. Оплаты, интеграция с CRM, рассылки, мини-приложения внутри Telegram.</p>
+          <span class="svc__go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </li>
+      <li class="svc__item reveal">
+        <a class="svc__link" href="services.html#apps">
+          <h3 class="svc__name">Веб-приложения</h3>
+          <p class="svc__desc">Личные кабинеты, панели управления, внутренние сервисы. Фронтенд, бэкенд, базы, интеграции со сторонними API.</p>
+          <span class="svc__go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </li>
+      <li class="svc__item reveal">
+        <a class="svc__link" href="services.html#games">
+          <h3 class="svc__name">Мобильные игры</h3>
+          <p class="svc__desc">Игры для iOS и Android: механика, арт, разработка, публикация в сторах. Собственный маскот прилагается.</p>
+          <span class="svc__go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ---------- работы ---------- -->
+  <section class="section section--alt">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Клиенты</p>
+        <h2 class="section__title" data-split>Что уже стоит и работает</h2>
+      </div>
+      <a class="more reveal" href="clients.html">
+        <u>Вся витрина</u>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <ul class="works works--three">
+      <li class="work pop">
+        <a class="work__btn" href="clients.html#w-shop">
+          <div class="work__cover">
+            <span class="work__tag">Сайт</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="40" y="50" width="320" height="200" rx="8"/><path d="M40 90h320"/>
+              <rect x="70" y="120" width="80" height="100" rx="5"/><rect x="170" y="120" width="80" height="100" rx="5"/><rect x="270" y="120" width="60" height="60" rx="5"/>
+              <circle cx="60" cy="70" r="4"/><circle cx="76" cy="70" r="4"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Магазин мебели</h3>
+          <p class="work__sub">Каталог, корзина, оплата</p>
+        </a>
+      </li>
+      <li class="work pop">
+        <a class="work__btn" href="clients.html#w-bot">
+          <div class="work__cover">
+            <span class="work__tag">Бот</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="120" y="60" width="160" height="180" rx="18"/>
+              <rect x="145" y="95" width="90" height="26" rx="13"/><rect x="165" y="140" width="90" height="26" rx="13"/><rect x="145" y="185" width="70" height="26" rx="13"/>
+              <path d="M200 60V36M186 30a14 14 0 1 1 28 0"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Бот доставки</h3>
+          <p class="work__sub">Заказ, оплата, статусы</p>
+        </a>
+      </li>
+      <li class="work pop">
+        <a class="work__btn" href="clients.html#w-game">
+          <div class="work__cover">
+            <span class="work__tag">Игра</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="60" y="105" width="280" height="105" rx="52"/>
+              <path d="M120 140v30M105 155h30"/><circle cx="270" cy="145" r="11"/><circle cx="295" cy="172" r="11"/>
+              <path d="M60 158c40-70 240-70 280 0"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Аркада на телефон</h3>
+          <p class="work__sub">iOS и Android</p>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ---------- о нас ---------- -->
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">О нас</p>
+        <h2 class="section__title" data-split>Небольшая команда, которая доводит до конца</h2>
+      </div>
+      <a class="more reveal" href="about.html">
+        <u>Подробнее о студии</u>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <ul class="cards">
+      <li class="card pop">
+        <span class="card__k">Прозрачно</span>
+        <h3>Цена и сроки — до старта</h3>
+        <p>Разбиваем работу на этапы и фиксируем стоимость каждого. Никаких «выяснилось по ходу».</p>
+      </li>
+      <li class="card pop">
+        <span class="card__k">Быстро</span>
+        <h3>Показываем каждую неделю</h3>
+        <p>Работаем итерациями. Вы видите живой продукт, а не отчёт о том, что он почти готов.</p>
+      </li>
+      <li class="card pop">
+        <span class="card__k">Надолго</span>
+        <h3>Остаёмся после запуска</h3>
+        <p>Передаём доступы и исходники, подключаем аналитику и остаёмся на поддержке.</p>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ---------- вопросы ---------- -->
+  <section class="section section--alt">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Вопросы</p>
+        <h2 class="section__title" data-split>Коротко о главном</h2>
+      </div>
+      <a class="more reveal" href="faq.html">
+        <u>Все вопросы</u>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <div class="acc">
+      <div class="acc__item reveal">
+        <button class="acc__head" type="button" aria-expanded="false">
+          <b>Сколько стоит сайт?</b>
+          <span class="acc__sign" aria-hidden="true"></span>
+        </button>
+        <div class="acc__body"><div><div class="acc__inner">
+          <p>Зависит от объёма. Лендинг — от нескольких дней работы, магазин с каталогом и оплатой — от нескольких недель. Точную цифру называем после короткого созвона, когда понятен список экранов и интеграций.</p>
+        </div></div></div>
+      </div>
+      <div class="acc__item reveal">
+        <button class="acc__head" type="button" aria-expanded="false">
+          <b>Кому принадлежит результат?</b>
+          <span class="acc__sign" aria-hidden="true"></span>
+        </button>
+        <div class="acc__body"><div><div class="acc__inner">
+          <p>Вам. Передаём исходный код, доступы к серверу, домену и всем сервисам. Уйти к другим подрядчикам можно в любой момент — ничего не заблокировано на нашей стороне.</p>
+        </div></div></div>
+      </div>
+      <div class="acc__item reveal">
+        <button class="acc__head" type="button" aria-expanded="false">
+          <b>Что нужно от меня на старте?</b>
+          <span class="acc__sign" aria-hidden="true"></span>
+        </button>
+        <div class="acc__body"><div><div class="acc__inner">
+          <p>Достаточно объяснить задачу своими словами: что за продукт, для кого и зачем. Техническое задание составим сами и покажем на согласование.</p>
+        </div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- призыв ---------- -->
+  <section class="cta">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="cta__in">
+      <h2 class="cta__title" data-split>Расскажите, что нужно сделать</h2>
+      <p class="cta__note reveal">Опишите задачу в двух словах — вернёмся с вопросами и оценкой в течение дня.</p>
+      <div class="hero__actions reveal">
+        <a class="btn btn--solid" href="contacts.html" data-magnet>Написать нам</a>
+        <a class="btn btn--plain" href="faq.html">Сначала вопросы</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__top">
+    <p class="foot__mark">
+      <img class="foot__logo" src="assets/logo.png" alt="" width="512" height="512">
+      Vantegra
+    </p>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <strong>Разделы</strong>
+        <a href="services.html">Услуги</a>
+        <a href="pricing.html">Тарифы</a>
+        <a href="clients.html">Клиенты</a>
+        <a href="about.html">О нас</a>
+        <a href="faq.html">Вопросы</a>
+      </div>
+      <div class="foot__col">
+        <strong>Услуги</strong>
+        <a href="services.html#sites">Сайты</a>
+        <a href="services.html#bots">Телеграм-боты</a>
+        <a href="services.html#apps">Веб-приложения</a>
+        <a href="services.html#games">Мобильные игры</a>
+      </div>
+      <div class="foot__col">
+        <strong>Связь</strong>
+        <a href="contacts.html">Контакты</a>
+        <a href="cabinet.html">Кабинет</a>
+        <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+        <a href="https://t.me/vantegra">@vantegra</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot__bottom">
+    <p>© 2026 Vantegra</p>
+    <p>Сайты · боты · веб-приложения · мобильные игры</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

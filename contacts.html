@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Контакты — Vantegra</title>
+<meta name="description" content="Напишите Vantegra: почта, Telegram и короткая форма заявки. Отвечаем в течение дня.">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}addEventListener('pagereveal',function(e){if(e.viewTransition)e.viewTransition.finished.catch(function(){})})})()</script>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<noscript><style>.reveal,.pop,.fade{opacity:1;transform:none}.line>span,.w>span{transform:none}.acc__body{grid-template-rows:1fr}[data-draw] path{stroke-dashoffset:0}</style></noscript>
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="nav__mark" href="index.html">
+    <img class="nav__logo" src="assets/logo.png" alt="" width="512" height="512">
+    <span>Vantegra</span>
+  </a>
+  <nav class="nav__links" aria-label="Разделы">
+    <a href="services.html">Услуги</a>
+    <a href="pricing.html">Тарифы</a>
+    <a href="clients.html">Клиенты</a>
+    <a href="about.html">О нас</a>
+    <a href="faq.html">Вопросы</a>
+  </nav>
+  <button class="nav__theme" id="theme" type="button" aria-pressed="false" aria-label="Включить тёмную тему">
+    <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
+    <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
+  </button>
+  <a class="nav__ghost" href="cabinet.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
+    Кабинет
+  </a>
+  <a class="nav__cta" href="contacts.html" aria-current="page">Обсудить проект</a>
+  <button class="nav__burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Открыть меню">
+    <i></i><i></i><i></i>
+  </button>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Главная</a>
+  <a href="services.html">Услуги</a>
+  <a href="pricing.html">Тарифы</a>
+  <a href="clients.html">Клиенты</a>
+  <a href="about.html">О нас</a>
+  <a href="faq.html">Вопросы</a>
+  <a href="contacts.html" aria-current="page">Контакты</a>
+  <a href="cabinet.html">Кабинет</a>
+</div>
+
+<main class="page" id="main">
+
+  <section class="phero contact">
+    <img class="contact__seal reveal" src="assets/logo.png" alt="" width="512" height="512">
+    <p class="label reveal">Контакты</p>
+    <h1 class="phero__title" data-split>Расскажите, что нужно сделать</h1>
+    <p class="phero__lead reveal">
+      Опишите задачу в двух словах — вернёмся с вопросами и оценкой
+      в течение дня. Это ни к чему не обязывает.
+    </p>
+    <svg class="phero__rule" data-draw viewBox="0 0 1200 2" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <path pathLength="1" d="M0 1H1200" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  </section>
+
+  <section class="section section--tight">
+    <ul class="contact__links">
+      <li class="pop">
+        <a class="contact__link" href="mailto:hello@vantegra.ru">
+          <span class="contact__kind">Почта</span>
+          <span class="contact__value">hello@vantegra.ru</span>
+        </a>
+      </li>
+      <li class="pop">
+        <a class="contact__link" href="https://t.me/vantegra">
+          <span class="contact__kind">Телеграм</span>
+          <span class="contact__value">@vantegra</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ---------- форма ---------- -->
+  <section class="section section--alt">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Заявка</p>
+        <h2 class="section__title" data-split>Или заполните короткую форму</h2>
+      </div>
+    </div>
+
+    <form class="form" id="brief" novalidate>
+      <div class="field reveal">
+        <label for="f-name">Как к вам обращаться</label>
+        <input id="f-name" name="name" type="text" autocomplete="name" required placeholder="Имя">
+      </div>
+
+      <div class="field reveal">
+        <label for="f-contact">Куда ответить</label>
+        <input id="f-contact" name="contact" type="text" autocomplete="email" required placeholder="Почта или @ник в Telegram">
+      </div>
+
+      <div class="field reveal">
+        <label for="f-kind">Что нужно сделать</label>
+        <select id="f-kind" name="kind">
+          <option>Сайт</option>
+          <option>Телеграм-бот</option>
+          <option>Веб-приложение</option>
+          <option>Мобильная игра</option>
+          <option>Пока не знаю</option>
+        </select>
+      </div>
+
+      <div class="field reveal">
+        <label for="f-task">Задача</label>
+        <textarea id="f-task" name="task" required placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
+        <small>Кнопка откроет ваш почтовый клиент с уже заполненным письмом — останется нажать «Отправить».</small>
+      </div>
+
+      <div class="hero__actions reveal">
+        <button class="btn btn--solid" type="submit" data-magnet>Отправить заявку</button>
+        <a class="btn btn--plain" href="faq.html">Сначала вопросы</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="cta">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="cta__in">
+      <h2 class="cta__title" data-split>Пока просто смотрите?</h2>
+      <p class="cta__note reveal">Загляните в витрину работ или почитайте, как мы ведём проекты. Вернуться сюда можно в любой момент.</p>
+      <div class="hero__actions reveal">
+        <a class="btn btn--solid" href="clients.html" data-magnet>Витрина работ</a>
+        <a class="btn btn--plain" href="about.html">О студии</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__top">
+    <p class="foot__mark">
+      <img class="foot__logo" src="assets/logo.png" alt="" width="512" height="512">
+      Vantegra
+    </p>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <strong>Разделы</strong>
+        <a href="services.html">Услуги</a>
+        <a href="pricing.html">Тарифы</a>
+        <a href="clients.html">Клиенты</a>
+        <a href="about.html">О нас</a>
+        <a href="faq.html">Вопросы</a>
+      </div>
+      <div class="foot__col">
+        <strong>Услуги</strong>
+        <a href="services.html#sites">Сайты</a>
+        <a href="services.html#bots">Телеграм-боты</a>
+        <a href="services.html#apps">Веб-приложения</a>
+        <a href="services.html#games">Мобильные игры</a>
+      </div>
+      <div class="foot__col">
+        <strong>Связь</strong>
+        <a href="contacts.html">Контакты</a>
+        <a href="cabinet.html">Кабинет</a>
+        <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+        <a href="https://t.me/vantegra">@vantegra</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot__bottom">
+    <p>© 2026 Vantegra</p>
+    <p>Сайты · боты · веб-приложения · мобильные игры</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

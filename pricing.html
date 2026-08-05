@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тарифы — Vantegra</title>
+<meta name="description" content="Тарифы Vantegra: три формата работы — от лендинга до продукта с поддержкой. Что входит, как считаем и на что уходит бюджет.">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}addEventListener('pagereveal',function(e){if(e.viewTransition)e.viewTransition.finished.catch(function(){})})})()</script>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<noscript><style>.reveal,.pop,.fade{opacity:1;transform:none}.line>span,.w>span{transform:none}.acc__body{grid-template-rows:1fr}[data-draw] path{stroke-dashoffset:0}</style></noscript>
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="nav__mark" href="index.html">
+    <img class="nav__logo" src="assets/logo.png" alt="" width="512" height="512">
+    <span>Vantegra</span>
+  </a>
+  <nav class="nav__links" aria-label="Разделы">
+    <a href="services.html">Услуги</a>
+    <a href="pricing.html" aria-current="page">Тарифы</a>
+    <a href="clients.html">Клиенты</a>
+    <a href="about.html">О нас</a>
+    <a href="faq.html">Вопросы</a>
+  </nav>
+  <button class="nav__theme" id="theme" type="button" aria-pressed="false" aria-label="Включить тёмную тему">
+    <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
+    <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
+  </button>
+  <a class="nav__ghost" href="cabinet.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
+    Кабинет
+  </a>
+  <a class="nav__cta" href="contacts.html">Обсудить проект</a>
+  <button class="nav__burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Открыть меню">
+    <i></i><i></i><i></i>
+  </button>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Главная</a>
+  <a href="services.html">Услуги</a>
+  <a href="pricing.html" aria-current="page">Тарифы</a>
+  <a href="clients.html">Клиенты</a>
+  <a href="about.html">О нас</a>
+  <a href="faq.html">Вопросы</a>
+  <a href="contacts.html">Контакты</a>
+  <a href="cabinet.html">Кабинет</a>
+</div>
+
+<main class="page" id="main">
+
+  <section class="phero">
+    <p class="label reveal">Тарифы</p>
+    <h1 class="phero__title" data-split>Три формата работы</h1>
+    <p class="phero__lead reveal">
+      Цена зависит от объёма, а не от типа продукта. Ниже — рамки,
+      в которые обычно попадают проекты. Точную смету считаем после созвона.
+    </p>
+    <svg class="phero__rule" data-draw viewBox="0 0 1200 2" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <path pathLength="1" d="M0 1H1200" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  </section>
+
+  <!-- ЦЕНЫ — ЗАГЛУШКИ. Подставьте свои значения в .tier__price. -->
+  <section class="section section--tight">
+    <ul class="tiers">
+
+      <li class="tier pop">
+        <p class="tier__k">Старт</p>
+        <h2 class="tier__name">Запуск</h2>
+        <p class="tier__for">Когда нужно быстро появиться в сети и начать собирать заявки.</p>
+        <p class="tier__price"><small>от</small>90 000 ₽</p>
+        <ul class="tier__list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Лендинг или простой бот</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Дизайн и вёрстка под все экраны</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Форма заявки, аналитика</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Запуск на вашем домене</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Срок — 1–2 недели</span></li>
+        </ul>
+        <a class="btn btn--plain" href="contacts.html">Обсудить</a>
+      </li>
+
+      <li class="tier tier--pick pop">
+        <p class="tier__k">Основной <em>Чаще всего</em></p>
+        <h2 class="tier__name">Продукт</h2>
+        <p class="tier__for">Когда сайт или сервис — рабочий инструмент, а не визитка.</p>
+        <p class="tier__price"><small>от</small>350 000 ₽</p>
+        <ul class="tier__list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Магазин, веб-приложение или бот с оплатами</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Исследование и прототип до кода</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Бэкенд, база, роли и доступы</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Интеграции: CRM, оплаты, склад, календарь</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Админка, чтобы менять контент самим</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Срок — от 6 недель</span></li>
+        </ul>
+        <a class="btn btn--solid" href="contacts.html" data-magnet>Обсудить проект</a>
+      </li>
+
+      <li class="tier pop">
+        <p class="tier__k">Долгий</p>
+        <h2 class="tier__name">Команда</h2>
+        <p class="tier__for">Когда продукт живёт и развивается, и нужны руки на постоянно.</p>
+        <p class="tier__price"><small>от</small>180 000 ₽ / мес</p>
+        <ul class="tier__list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Выделенные часы разработки и дизайна</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>План на месяц, отчёт по задачам</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Присмотр за сервером и обновлениями</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Срочные правки вне очереди</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12.5 9.5 18 20 7"/></svg><span>Можно приостановить в любой месяц</span></li>
+        </ul>
+        <a class="btn btn--plain" href="contacts.html">Обсудить</a>
+      </li>
+
+    </ul>
+  </section>
+
+  <!-- ---------- условия ---------- -->
+  <section class="section section--alt">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Условия</p>
+        <h2 class="section__title" data-split>Одинаково для всех тарифов</h2>
+      </div>
+    </div>
+
+    <ul class="terms">
+      <li class="terms__row reveal">
+        <h3>Оплата по этапам</h3>
+        <p>Предоплата за этап, приёмка, следующий этап. Вы не платите вперёд за всю работу, мы не делаем всю работу в кредит.</p>
+      </li>
+      <li class="terms__row reveal">
+        <h3>Цена не растёт сама</h3>
+        <p>Стоимость согласованных этапов зафиксирована. Меняется она только если вы добавляете новое — и мы показываем добавку до того, как начнём её делать.</p>
+      </li>
+      <li class="terms__row reveal">
+        <h3>Правки внутри задачи бесплатны</h3>
+        <p>Правим, пока результат не устроит. Именно поэтому прототип показываем до кода: на этом этапе поменять что угодно стоит ноль.</p>
+      </li>
+      <li class="terms__row reveal">
+        <h3>Месяц поддержки в подарок</h3>
+        <p>После запуска месяц бесплатно правим всё, что всплыло по нашей вине. Дальше — по тарифу «Команда» или разово.</p>
+      </li>
+      <li class="terms__row reveal">
+        <h3>Всё остаётся у вас</h3>
+        <p>Исходники, домен, сервер и доступы оформляем на вас с первого дня. Уйти к другой команде можно в любой момент.</p>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ---------- что влияет на цену ---------- -->
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <p class="label reveal">Из чего складывается</p>
+        <h2 class="section__title" data-split>Что двигает цену вверх</h2>
+      </div>
+      <a class="more reveal" href="faq.html">
+        <u>Вопросы про деньги</u>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+    <ul class="cards">
+      <li class="card pop">
+        <span class="card__k">Экраны</span>
+        <h3>Сколько разных страниц</h3>
+        <p>Десять однотипных карточек товара — один экран. Десять непохожих разделов — десять. Считаем именно по различиям.</p>
+      </li>
+      <li class="card pop">
+        <span class="card__k">Интеграции</span>
+        <h3>С чем нужно связать</h3>
+        <p>Оплаты, CRM, склад, доставка, календарь. Каждая связка — отдельная работа с чужим API, который ведёт себя по-своему.</p>
+      </li>
+      <li class="card pop">
+        <span class="card__k">Контент</span>
+        <h3>Кто пишет и снимает</h3>
+        <p>Если тексты и фотографии на вас — дешевле и быстрее. Если на нас — закладываем копирайтера и съёмку.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="cta">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="cta__in">
+      <h2 class="cta__title" data-split>Посчитаем ваш проект?</h2>
+      <p class="cta__note reveal">Опишите задачу — вернёмся со сметой по этапам и сроками. Это бесплатно и ни к чему не обязывает.</p>
+      <div class="hero__actions reveal">
+        <a class="btn btn--solid" href="contacts.html" data-magnet>Запросить смету</a>
+        <a class="btn btn--plain" href="clients.html">Посмотреть работы</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__top">
+    <p class="foot__mark">
+      <img class="foot__logo" src="assets/logo.png" alt="" width="512" height="512">
+      Vantegra
+    </p>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <strong>Разделы</strong>
+        <a href="services.html">Услуги</a>
+        <a href="pricing.html">Тарифы</a>
+        <a href="clients.html">Клиенты</a>
+        <a href="about.html">О нас</a>
+        <a href="faq.html">Вопросы</a>
+      </div>
+      <div class="foot__col">
+        <strong>Услуги</strong>
+        <a href="services.html#sites">Сайты</a>
+        <a href="services.html#bots">Телеграм-боты</a>
+        <a href="services.html#apps">Веб-приложения</a>
+        <a href="services.html#games">Мобильные игры</a>
+      </div>
+      <div class="foot__col">
+        <strong>Связь</strong>
+        <a href="contacts.html">Контакты</a>
+        <a href="cabinet.html">Кабинет</a>
+        <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+        <a href="https://t.me/vantegra">@vantegra</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot__bottom">
+    <p>© 2026 Vantegra</p>
+    <p>Сайты · боты · веб-приложения · мобильные игры</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

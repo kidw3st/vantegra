@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Клиенты и работы — Vantegra</title>
+<meta name="description" content="Витрина работ Vantegra: сайты, телеграм-боты, веб-приложения и мобильные игры. Откройте карточку, чтобы увидеть детали проекта.">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}addEventListener('pagereveal',function(e){if(e.viewTransition)e.viewTransition.finished.catch(function(){})})})()</script>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<noscript><style>.reveal,.pop,.fade{opacity:1;transform:none}.line>span,.w>span{transform:none}.acc__body{grid-template-rows:1fr}[data-draw] path{stroke-dashoffset:0}</style></noscript>
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="nav__mark" href="index.html">
+    <img class="nav__logo" src="assets/logo.png" alt="" width="512" height="512">
+    <span>Vantegra</span>
+  </a>
+  <nav class="nav__links" aria-label="Разделы">
+    <a href="services.html">Услуги</a>
+    <a href="pricing.html">Тарифы</a>
+    <a href="clients.html" aria-current="page">Клиенты</a>
+    <a href="about.html">О нас</a>
+    <a href="faq.html">Вопросы</a>
+  </nav>
+  <button class="nav__theme" id="theme" type="button" aria-pressed="false" aria-label="Включить тёмную тему">
+    <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
+    <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
+  </button>
+  <a class="nav__ghost" href="cabinet.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
+    Кабинет
+  </a>
+  <a class="nav__cta" href="contacts.html">Обсудить проект</a>
+  <button class="nav__burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Открыть меню">
+    <i></i><i></i><i></i>
+  </button>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Главная</a>
+  <a href="services.html">Услуги</a>
+  <a href="pricing.html">Тарифы</a>
+  <a href="clients.html" aria-current="page">Клиенты</a>
+  <a href="about.html">О нас</a>
+  <a href="faq.html">Вопросы</a>
+  <a href="contacts.html">Контакты</a>
+  <a href="cabinet.html">Кабинет</a>
+</div>
+
+<main class="page" id="main">
+
+  <section class="phero">
+    <p class="label reveal">Клиенты</p>
+    <h1 class="phero__title" data-split>Витрина работ</h1>
+    <p class="phero__lead reveal">
+      Отберите нужное направление и откройте карточку — внутри задача,
+      что именно сделали, сроки и на чём собрано.
+    </p>
+    <svg class="phero__rule" data-draw viewBox="0 0 1200 2" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <path pathLength="1" d="M0 1H1200" stroke="currentColor" stroke-width="2"/>
+    </svg>
+  </section>
+
+  <section class="section section--tight">
+
+    <ul class="filters reveal" id="filters">
+      <li><button type="button" data-filter="all" aria-pressed="true">Все</button></li>
+      <li><button type="button" data-filter="site" aria-pressed="false">Сайты</button></li>
+      <li><button type="button" data-filter="bot" aria-pressed="false">Боты</button></li>
+      <li><button type="button" data-filter="app" aria-pressed="false">Приложения</button></li>
+      <li><button type="button" data-filter="game" aria-pressed="false">Игры</button></li>
+    </ul>
+
+    <!-- ДЕМО-ДАННЫЕ. Названия и описания — шаблон под реальные кейсы:
+         замените текст в .work__name / .work__sub / .work__detail. -->
+    <ul class="works" id="works">
+
+      <li class="work pop" data-cat="site" id="w-shop">
+        <button class="work__btn" type="button">
+          <div class="work__cover">
+            <span class="work__tag">Сайт</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="40" y="50" width="320" height="200" rx="8"/><path d="M40 90h320"/>
+              <rect x="70" y="120" width="80" height="100" rx="5"/><rect x="170" y="120" width="80" height="100" rx="5"/><rect x="270" y="120" width="60" height="60" rx="5"/>
+              <circle cx="60" cy="70" r="4"/><circle cx="76" cy="70" r="4"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Магазин мебели</h3>
+          <p class="work__sub">Каталог, корзина, оплата</p>
+        </button>
+        <div class="work__detail">
+          <h3>Магазин мебели</h3>
+          <p>Каталог на несколько сотен позиций с фильтрами по размеру, материалу и цене. Отдельно продумали карточку товара: варианты обивки переключаются без перезагрузки, а размеры показываются на схеме.</p>
+          <p>Заказы уходят в CRM, оплата — на стороне банка, доставка считается по адресу. Контент-менеджер редактирует каталог сам, без разработчика.</p>
+          <dl>
+            <div><dt>Что делали</dt><dd>Сайт под ключ</dd></div>
+            <div><dt>Объём</dt><dd>Дизайн, вёрстка, CMS, интеграции</dd></div>
+          </dl>
+          <ul class="chips"><li>Next.js</li><li>PostgreSQL</li><li>CRM</li><li>Онлайн-оплата</li></ul>
+        </div>
+      </li>
+
+      <li class="work pop" data-cat="bot" id="w-bot">
+        <button class="work__btn" type="button">
+          <div class="work__cover">
+            <span class="work__tag">Бот</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="120" y="60" width="160" height="180" rx="18"/>
+              <rect x="145" y="95" width="90" height="26" rx="13"/><rect x="165" y="140" width="90" height="26" rx="13"/><rect x="145" y="185" width="70" height="26" rx="13"/>
+              <path d="M200 60V36M186 30a14 14 0 1 1 28 0"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Бот доставки</h3>
+          <p class="work__sub">Заказ, оплата, статусы</p>
+        </button>
+        <div class="work__detail">
+          <h3>Бот доставки</h3>
+          <p>Меню, корзина и оплата целиком внутри Telegram — приложение ставить не нужно. Бот подтягивает актуальные позиции со склада и прячет то, что закончилось.</p>
+          <p>После оплаты клиент получает статусы: принят, готовится, курьер выехал. Операторам собрали отдельную панель, где видно очередь заказов.</p>
+          <dl>
+            <div><dt>Что делали</dt><dd>Бот и панель операторов</dd></div>
+            <div><dt>Объём</dt><dd>Сценарии, оплаты, склад, рассылки</dd></div>
+          </dl>
+          <ul class="chips"><li>Bot API</li><li>Mini App</li><li>Python</li><li>PostgreSQL</li></ul>
+        </div>
+      </li>
+
+      <li class="work pop" data-cat="game" id="w-game">
+        <button class="work__btn" type="button">
+          <div class="work__cover">
+            <span class="work__tag">Игра</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="60" y="105" width="280" height="105" rx="52"/>
+              <path d="M120 140v30M105 155h30"/><circle cx="270" cy="145" r="11"/><circle cx="295" cy="172" r="11"/>
+              <path d="M60 158c40-70 240-70 280 0"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Аркада на телефон</h3>
+          <p class="work__sub">iOS и Android</p>
+        </button>
+        <div class="work__detail">
+          <h3>Аркада на телефон</h3>
+          <p>Казуальная игра с управлением одним пальцем: короткие забеги, растущая сложность, ежедневные задания. Механику проверили на прототипе до того, как рисовать финальный арт.</p>
+          <p>Собрали под обе платформы из одного проекта, подготовили страницы в сторах и подключили аналитику, чтобы видеть, на каком уровне игроки отваливаются.</p>
+          <dl>
+            <div><dt>Что делали</dt><dd>Игра от прототипа до релиза</dd></div>
+            <div><dt>Объём</dt><dd>Механика, арт, звук, публикация</dd></div>
+          </dl>
+          <ul class="chips"><li>Unity</li><li>C#</li><li>App Store</li><li>Google Play</li></ul>
+        </div>
+      </li>
+
+      <li class="work pop" data-cat="app" id="w-cabinet">
+        <button class="work__btn" type="button">
+          <div class="work__cover">
+            <span class="work__tag">Приложение</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="40" y="55" width="320" height="190" rx="8"/><path d="M130 55v190"/>
+              <path d="M60 95h48M60 125h48M60 155h48"/>
+              <rect x="155" y="90" width="80" height="55" rx="6"/><rect x="250" y="90" width="80" height="55" rx="6"/>
+              <path d="M155 185h175M155 210h120"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Кабинет клиента</h3>
+          <p class="work__sub">Договоры, счета, заявки</p>
+        </button>
+        <div class="work__detail">
+          <h3>Кабинет клиента</h3>
+          <p>Личный кабинет вместо переписки в почте: клиент видит свои договоры и счета, скачивает закрывающие документы и оставляет заявки, не дёргая менеджера.</p>
+          <p>Роли разделены — клиент, менеджер, бухгалтер видят разное. Данные приезжают из учётной системы, поэтому дублировать их руками не нужно.</p>
+          <dl>
+            <div><dt>Что делали</dt><dd>Веб-приложение</dd></div>
+            <div><dt>Объём</dt><dd>Сценарии, интерфейс, бэкенд, роли</dd></div>
+          </dl>
+          <ul class="chips"><li>React</li><li>TypeScript</li><li>Node.js</li><li>Docker</li></ul>
+        </div>
+      </li>
+
+      <li class="work pop" data-cat="site" id="w-clinic">
+        <button class="work__btn" type="button">
+          <div class="work__cover">
+            <span class="work__tag">Сайт</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="70" y="60" width="260" height="180" rx="10"/>
+              <path d="M200 100v70M165 135h70"/>
+              <path d="M70 205h260"/><circle cx="110" cy="222" r="6"/><circle cx="140" cy="222" r="6"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Сайт клиники</h3>
+          <p class="work__sub">Врачи, услуги, запись</p>
+        </button>
+        <div class="work__detail">
+          <h3>Сайт клиники</h3>
+          <p>Понятная структура вокруг главного действия — записаться. Услуги, цены и врачи связаны между собой: со страницы врача можно сразу выбрать время, а из услуги — увидеть, кто её ведёт.</p>
+          <p>Отдельно проработали мобильную версию: большинство заходит с телефона по дороге, поэтому форма записи занимает один экран.</p>
+          <dl>
+            <div><dt>Что делали</dt><dd>Сайт под ключ</dd></div>
+            <div><dt>Объём</dt><dd>Структура, дизайн, CMS, запись</dd></div>
+          </dl>
+          <ul class="chips"><li>Astro</li><li>CMS</li><li>Онлайн-запись</li><li>Аналитика</li></ul>
+        </div>
+      </li>
+
+      <li class="work pop" data-cat="bot" id="w-booking">
+        <button class="work__btn" type="button">
+          <div class="work__cover">
+            <span class="work__tag">Бот</span>
+            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="90" y="70" width="220" height="170" rx="12"/><path d="M90 115h220"/>
+              <path d="M130 70V52M270 70V52"/>
+              <rect x="120" y="140" width="34" height="28" rx="4"/><rect x="183" y="140" width="34" height="28" rx="4"/><rect x="246" y="140" width="34" height="28" rx="4"/>
+              <rect x="120" y="185" width="34" height="28" rx="4"/><rect x="183" y="185" width="34" height="28" rx="4"/>
+            </svg>
+          </div>
+          <h3 class="work__name">Бот записи</h3>
+          <p class="work__sub">Слоты, напоминания</p>
+        </button>
+        <div class="work__detail">
+          <h3>Бот записи</h3>
+          <p>Клиент выбирает мастера и свободное время прямо в чате, бот держит расписание и не даёт занять один слот дважды. За несколько часов до визита приходит напоминание.</p>
+          <p>Расписание синхронизировано с календарём сотрудников, поэтому отпуск или перенос сразу закрывают слоты в боте.</p>
+          <dl>
+            <div><dt>Что делали</dt><dd>Бот записи</dd></div>
+            <div><dt>Объём</dt><dd>Расписание, напоминания, календарь</dd></div>
+          </dl>
+          <ul class="chips"><li>Bot API</li><li>Node.js</li><li>Календарь</li><li>Напоминания</li></ul>
+        </div>
+      </li>
+
+    </ul>
+
+    <p class="works__empty" id="worksEmpty" hidden>В этом направлении пока нечего показать. Загляните в другие или напишите нам.</p>
+  </section>
+
+  <section class="cta">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="cta__in">
+      <h2 class="cta__title" data-split>Хотите такой же — или лучше?</h2>
+      <p class="cta__note reveal">Расскажите, что за продукт и для кого. Вернёмся с вопросами, оценкой и планом работ.</p>
+      <div class="hero__actions reveal">
+        <a class="btn btn--solid" href="contacts.html" data-magnet>Обсудить проект</a>
+        <a class="btn btn--plain" href="services.html">Что мы делаем</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<dialog class="modal" id="caseModal" aria-label="Детали проекта">
+  <button class="modal__close" id="caseClose" type="button">Закрыть</button>
+  <div class="modal__body"></div>
+</dialog>
+
+<footer class="foot">
+  <div class="foot__top">
+    <p class="foot__mark">
+      <img class="foot__logo" src="assets/logo.png" alt="" width="512" height="512">
+      Vantegra
+    </p>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <strong>Разделы</strong>
+        <a href="services.html">Услуги</a>
+        <a href="pricing.html">Тарифы</a>
+        <a href="clients.html">Клиенты</a>
+        <a href="about.html">О нас</a>
+        <a href="faq.html">Вопросы</a>
+      </div>
+      <div class="foot__col">
+        <strong>Услуги</strong>
+        <a href="services.html#sites">Сайты</a>
+        <a href="services.html#bots">Телеграм-боты</a>
+        <a href="services.html#apps">Веб-приложения</a>
+        <a href="services.html#games">Мобильные игры</a>
+      </div>
+      <div class="foot__col">
+        <strong>Связь</strong>
+        <a href="contacts.html">Контакты</a>
+        <a href="cabinet.html">Кабинет</a>
+        <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+        <a href="https://t.me/vantegra">@vantegra</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot__bottom">
+    <p>© 2026 Vantegra</p>
+    <p>Сайты · боты · веб-приложения · мобильные игры</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
