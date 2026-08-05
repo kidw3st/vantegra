@@ -25,18 +25,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # enablement: true включает Pages сам, без захода в настройки репозитория
+      # Если в настройках репозитория источник Pages — «GitHub Actions»,
+      # шаг проходит и деплой едет дальше. Если выбран «Deploy from a branch»
+      # или Pages ещё не включён — шаг падает, но весь прогон не валим:
+      # при ветковом источнике GitHub публикует корень сам, воркфлоу не нужен.
       - name: Configure Pages
+        id: cfg
+        continue-on-error: true
         uses: actions/configure-pages@v5
         with:
           enablement: true
 
       # сайт статический, собирать нечего — выкладываем корень как есть
       - name: Upload site
+        if: steps.cfg.outcome == 'success'
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
 
       - name: Deploy
         id: deployment
+        if: steps.cfg.outcome == 'success'
         uses: actions/deploy-pages@v4
+
+      - name: Pages не настроен на Actions
+        if: steps.cfg.outcome != 'success'
+        run: |
+          echo "::notice::Источник Pages не выставлен на GitHub Actions."
+          echo "Settings -> Pages -> Build and deployment -> Source: GitHub Actions,"
+          echo "затем перезапустите этот прогон. Если выбран источник"
+          echo "'Deploy from a branch', этот воркфлоу не нужен — удалите файл."
