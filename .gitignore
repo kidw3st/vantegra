@@ -8,3 +8,10 @@ desktop.ini
 
 # зависимости, если появятся
 node_modules/
+
+# папка под заливку на сервер — собирается заново
+dist/
+vantegra-site.zip
+
+# доступы к базе. В репозитории лежит только config.sample.php
+inc/config.php

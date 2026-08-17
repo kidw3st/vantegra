@@ -183,7 +183,19 @@
 
   for (const head of $$('.acc__head')) {
     head.addEventListener('click', () => {
-      head.setAttribute('aria-expanded', head.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+      const open = head.getAttribute('aria-expanded') === 'true';
+
+      // Внутри одной группы открыт только один блок: на длинном списке
+      // вопросов иначе приходится много скроллить, чтобы вернуться назад.
+      if (!open) {
+        const group = head.closest('.acc');
+        if (group) {
+          for (const other of $$('.acc__head', group)) {
+            if (other !== head) other.setAttribute('aria-expanded', 'false');
+          }
+        }
+      }
+      head.setAttribute('aria-expanded', open ? 'false' : 'true');
     });
   }
 
@@ -533,17 +545,137 @@
 
   const form = $('#brief');
   if (form) {
-    form.addEventListener('submit', (e) => {
+    const btn = $('button[type="submit"]', form);
+
+    // Свои подсказки вместо браузерных пузырей: они не переводятся
+    // и исчезают, стоит отвести взгляд.
+    function errorBox(field) {
+      let p = $('.field__err', field);
+      if (!p) {
+        p = document.createElement('p');
+        p.className = 'field__err';
+        field.append(p);
+      }
+      return p;
+    }
+
+    function showError(input, text) {
+      const field = input.closest('.field');
+      if (!field) return;
+      field.classList.add('is-bad');
+      input.setAttribute('aria-invalid', 'true');
+      const p = errorBox(field);
+      p.textContent = text;
+      if (!input.getAttribute('aria-describedby')) {
+        p.id = p.id || 'err-' + (input.id || Math.random().toString(36).slice(2));
+        input.setAttribute('aria-describedby', p.id);
+      }
+    }
+
+    function clearError(input) {
+      const field = input.closest('.field');
+      if (!field) return;
+      field.classList.remove('is-bad');
+      input.removeAttribute('aria-invalid');
+      const p = $('.field__err', field);
+      if (p) p.textContent = '';
+    }
+
+    // Текст под конкретное нарушение, а не общее «заполните поле».
+    function complain(input) {
+      const v = input.validity;
+      if (v.valueMissing) {
+        return input.name === 'task'
+          ? 'Опишите задачу — хотя бы одним предложением.'
+          : 'Это поле нужно заполнить.';
+      }
+      if (v.tooShort) return `Слишком коротко: нужно хотя бы ${input.minLength} символов.`;
+      if (v.tooLong)  return `Слишком длинно: не больше ${input.maxLength} символов.`;
+      return 'Проверьте значение.';
+    }
+
+    function validate() {
+      let first = null;
+      for (const el of form.elements) {
+        if (!el.name || el.type === 'submit' || el.name === 'website') continue;
+        if (el.checkValidity()) {
+          clearError(el);
+        } else {
+          showError(el, complain(el));
+          if (!first) first = el;
+        }
+      }
+      if (first) {
+        first.focus();
+        first.scrollIntoView({ block: 'center', behavior: calm.matches ? 'auto' : 'smooth' });
+      }
+      return !first;
+    }
+
+    // Как только человек начал править поле — убираем красноту.
+    form.addEventListener('input', (e) => {
+      if (e.target.name && e.target.checkValidity()) clearError(e.target);
+    });
+
+    function say(kind, text) {
+      let box = $('.form__note', form);
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'form__note';
+        box.setAttribute('role', 'status');
+        form.append(box);
+      }
+      box.className = 'form__note note note--' + kind;
+      box.innerHTML = '<p></p>';
+      box.firstChild.textContent = text;
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const f = new FormData(form);
-      const body = [
-        `Имя: ${f.get('name') || '—'}`,
-        `Связь: ${f.get('contact') || '—'}`,
-        `Задача: ${f.get('kind') || '—'}`,
-        '',
-        String(f.get('task') || ''),
-      ].join('\n');
-      location.href = `mailto:hello@vantegra.ru?subject=${encodeURIComponent('Заявка с сайта — ' + (f.get('kind') || 'проект'))}&body=${encodeURIComponent(body)}`;
+      if (!validate()) {
+        say('bad', 'Не все поля заполнены — посмотрите подсказки выше.');
+        return;
+      }
+
+      const label = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Отправляем…'; }
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { Accept: 'application/json' },
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          form.reset();
+          say('ok', 'Заявка отправлена. Вернёмся с вопросами и оценкой в течение дня.');
+        } else {
+          for (const [name, text] of Object.entries(data.errors || {})) {
+            const el = form.elements[name];
+            if (el) showError(el, text);
+          }
+          say('bad', data.errors?.form || 'Проверьте отмеченные поля.');
+        }
+      } catch (err) {
+        // Обработчик недоступен (не залит, нет PHP) — не теряем заявку,
+        // отдаём человеку запасной путь через почтовый клиент.
+        const f = new FormData(form);
+        const body = [
+          `Имя: ${f.get('name')}`,
+          `Связь: ${f.get('contact')}`,
+          `Задача: ${f.get('kind')}`,
+          '',
+          String(f.get('task') || ''),
+        ].join('\n');
+        say('bad', 'Не получилось отправить с сайта — открываем почтовый клиент.');
+        location.href = 'mailto:hello@vantegra.ru'
+          + `?subject=${encodeURIComponent('Заявка с сайта — ' + f.get('kind'))}`
+          + `&body=${encodeURIComponent(body)}`;
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = label; }
+      }
     });
   }
 })();

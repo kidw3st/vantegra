@@ -1,0 +1,46 @@
+# robots.txt — vantegracode.ru
+# Формат: RFC 9309. Строка Content-Signal — предложение contentsignals.org,
+# роботы, которые его не знают, просто игнорируют её.
+#
+# Политика студии:
+#   search=yes    — индексировать в поиске можно
+#   ai-input=yes  — использовать страницы как источник для ответов ИИ можно
+#   ai-train=no   — обучать модели на содержимом сайта нельзя
+
+# ---------- все роботы ----------
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+Disallow: /cabinet.php
+Disallow: /login.php
+Disallow: /logout.php
+
+# ---------- сбор данных для обучения моделей: запрещаем ----------
+# Роботу, попавшему в свою группу, правила из User-agent: * уже не применяются,
+# поэтому здесь запрет прописан полностью.
+User-agent: GPTBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: meta-externalagent
+User-agent: Amazonbot
+Disallow: /
+
+# ---------- поиск и ответы на запрос пользователя: разрешаем ----------
+# Это витрина студии: чем чаще нас находят, тем лучше.
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+Allow: /
+Disallow: /cabinet.php
+Disallow: /login.php
+Disallow: /logout.php
+
+Sitemap: https://vantegracode.ru/sitemap.xml

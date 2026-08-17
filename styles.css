@@ -312,7 +312,7 @@ img { height: auto; }
 .drawer a[aria-current="page"] { color: var(--accent-ink); }
 
 /* «Кабинет» и в меню остаётся кнопкой, а не пунктом наравне с разделами */
-.drawer a[href="cabinet.html"] {
+.drawer a[href="cabinet.php"] {
   justify-self: start;
   margin-top: var(--s-3);
   padding: 12px 24px;
@@ -326,7 +326,7 @@ img { height: auto; }
   transition: border-color .3s var(--ease), color .3s var(--ease),
               opacity .5s var(--ease-out), transform .5s var(--ease-out);
 }
-.drawer a[href="cabinet.html"]:hover { border-color: var(--ink); color: var(--ink); }
+.drawer a[href="cabinet.php"]:hover { border-color: var(--ink); color: var(--ink); }
 
 /* ---------- общие детали ---------- */
 
@@ -1093,6 +1093,97 @@ img { height: auto; }
 }
 .terms__row p { margin: 0; color: var(--ink-70); font-size: 15px; line-height: 1.65; }
 
+/* ---------- страница 404 ---------- */
+
+.lost {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(240px, 26vw, 360px);
+  align-items: center;
+  gap: var(--s-5) var(--s-6);
+  width: var(--shell);
+  margin: 0 auto;
+  padding-bottom: var(--s-6);
+}
+.lost__text { min-width: 0; }
+.lost__mascot { margin: 0; }
+.lost__mascot img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: 50% 26%;
+  border-radius: 999px 999px 20px 20px;
+  box-shadow: 0 30px 70px -40px var(--shadow);
+}
+
+@media (max-width: 900px) {
+  .lost { grid-template-columns: minmax(0, 1fr); }
+  .lost__mascot { width: min(260px, 60%); order: -1; }
+}
+
+/* ---------- вход и установка ---------- */
+
+.gate {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: var(--s-4) var(--s-3);
+}
+
+.gate__card {
+  width: min(420px, 100%);
+  padding: var(--s-4) var(--s-4) var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper-2);
+}
+
+.gate__mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--s-4);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.gate__mark img { width: 30px; height: 30px; }
+
+.gate__title {
+  margin: 0 0 var(--s-4);
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: clamp(28px, 5vw, 38px);
+  letter-spacing: -.04em;
+}
+
+.gate .form { max-width: none; }
+.gate .btn { width: 100%; justify-content: center; margin-top: var(--s-1); }
+.gate .btn[disabled] { opacity: .5; pointer-events: none; }
+
+.gate__foot {
+  margin: var(--s-4) 0 0;
+  font-size: 14px;
+  color: var(--ink-45);
+}
+.gate__foot a { color: var(--ink-70); }
+
+/* сообщения формы */
+.note {
+  margin: 0 0 var(--s-3);
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: 10px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.note p { margin: 0 0 8px; }
+.note p:last-child { margin-bottom: 0; }
+.note--bad { border-left-color: #c0392b; color: var(--ink); }
+.note--ok  { border-left-color: var(--accent); }
+
 /* ---------- личный кабинет (прототип) ---------- */
 
 .lk {
@@ -1171,6 +1262,8 @@ img { height: auto; }
 .lk__who { min-width: 0; }
 .lk__who b { display: block; font-size: 14px; font-weight: 500; }
 .lk__mail { display: block; font-size: 12px; color: var(--ink-45); overflow-wrap: anywhere; }
+
+.lk__exit { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 
 .lk__back {
   padding: 10px 12px;
@@ -1405,6 +1498,36 @@ img { height: auto; }
   background: var(--input-focus);
 }
 .field small { color: var(--ink-45); font-size: 13px; }
+
+/* незаполненное поле: рамка и подпись под ним */
+.field.is-bad input,
+.field.is-bad textarea,
+.field.is-bad select { border-color: #c0392b; }
+
+.field__err {
+  margin: 0;
+  color: #c0392b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.field__err:empty { display: none; }
+
+:root[data-theme="dark"] .field.is-bad input,
+:root[data-theme="dark"] .field.is-bad textarea,
+:root[data-theme="dark"] .field.is-bad select { border-color: #e6705f; }
+:root[data-theme="dark"] .field__err { color: #e6705f; }
+
+.form__note { margin: 0; }
+
+/* ловушка для ботов: убрана из потока, но не display:none —
+   иначе часть ботов её распознаёт и пропускает */
+.trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
 
 /* ---------- подвал ---------- */
 

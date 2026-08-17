@@ -1,3 +1,14 @@
+<?php
+/** Личный кабинет. Без входа сюда не попасть. */
+require __DIR__ . '/inc/boot.php';
+$me = require_login();
+
+// Инициалы для кружка: первые буквы имени и фамилии, иначе первая буква почты.
+$parts = preg_split('/\s+/u', trim((string) $me['name']), -1, PREG_SPLIT_NO_EMPTY);
+$ava = $parts
+    ? mb_strtoupper(mb_substr($parts[0], 0, 1) . (isset($parts[1]) ? mb_substr($parts[1], 0, 1) : ''))
+    : mb_strtoupper(mb_substr($me['email'], 0, 1));
+?>
 <!doctype html>
 <html lang="ru">
 <head>
@@ -56,13 +67,16 @@
 
     <div class="lk__foot">
       <div class="lk__user">
-        <span class="lk__ava" aria-hidden="true">ИК</span>
+        <span class="lk__ava" aria-hidden="true"><?= e($ava) ?></span>
         <span class="lk__who">
-          <b>Имя Клиента</b>
-          <span class="lk__mail">client@example.com</span>
+          <b><?= e($me['name'] !== '' ? $me['name'] : 'Без имени') ?></b>
+          <span class="lk__mail"><?= e($me['email']) ?></span>
         </span>
       </div>
-      <a class="lk__back" href="index.html">← Вернуться на сайт</a>
+      <div class="lk__exit">
+        <a class="lk__back" href="index.html">← На сайт</a>
+        <a class="lk__back" href="logout.php">Выйти</a>
+      </div>
     </div>
   </aside>
 

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Страница не найдена — Vantegra</title>
+<meta name="robots" content="noindex">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}addEventListener('pagereveal',function(e){if(e.viewTransition)e.viewTransition.finished.catch(function(){})})})()</script>
+<link rel="icon" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<noscript><style>.reveal,.pop,.fade{opacity:1;transform:none}.line>span,.w>span{transform:none}</style></noscript>
+</head>
+<body>
+
+<!-- Все пути абсолютные: страница отдаётся с любого несуществующего адреса,
+     в том числе из вложенных папок, и относительные ссылки бы поехали. -->
+
+<a class="skip" href="#main">К содержимому</a>
+
+<header class="nav" id="nav">
+  <a class="nav__mark" href="/index.html">
+    <img class="nav__logo" src="/assets/logo.png" alt="" width="512" height="512">
+    <span>Vantegra</span>
+  </a>
+  <nav class="nav__links" aria-label="Разделы">
+    <a href="/services.html">Услуги</a>
+    <a href="/pricing.html">Тарифы</a>
+    <a href="/clients.html">Клиенты</a>
+    <a href="/about.html">О нас</a>
+    <a href="/faq.html">Вопросы</a>
+  </nav>
+  <button class="nav__theme" id="theme" type="button" aria-pressed="false" aria-label="Включить тёмную тему">
+    <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
+    <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
+  </button>
+  <a class="nav__ghost" href="/cabinet.php">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
+    Кабинет
+  </a>
+  <a class="nav__cta" href="/contacts.html">Обсудить проект</a>
+  <button class="nav__burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Открыть меню">
+    <i></i><i></i><i></i>
+  </button>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="/index.html">Главная</a>
+  <a href="/services.html">Услуги</a>
+  <a href="/pricing.html">Тарифы</a>
+  <a href="/clients.html">Клиенты</a>
+  <a href="/about.html">О нас</a>
+  <a href="/faq.html">Вопросы</a>
+  <a href="/contacts.html">Контакты</a>
+  <a href="/cabinet.php">Кабинет</a>
+</div>
+
+<main class="page" id="main">
+  <section class="lost">
+    <div class="lost__text">
+      <p class="label reveal">Ошибка 404</p>
+      <h1 class="phero__title" data-split>Такой страницы нет</h1>
+      <p class="phero__lead reveal">
+        Возможно, адрес набран с опечаткой или страницу переименовали.
+        Вант тоже её не нашёл, а он смотрит внимательно.
+      </p>
+      <div class="hero__actions reveal" style="margin-top:32px">
+        <a class="btn btn--solid" href="/index.html" data-magnet>На главную</a>
+        <a class="btn btn--plain" href="/contacts.html">Написать нам</a>
+      </div>
+    </div>
+
+    <figure class="lost__mascot reveal">
+      <img src="/assets/mascot-poster.jpg" width="1280" height="720"
+           alt="Вант — маскот Vantegra: дракончик в кепке смотрит вперёд">
+    </figure>
+  </section>
+
+  <section class="section section--tight">
+    <p class="label reveal">Куда можно пойти</p>
+    <ul class="svc">
+      <li class="svc__item reveal">
+        <a class="svc__link" href="/services.html">
+          <h2 class="svc__name">Услуги</h2>
+          <p class="svc__desc">Сайты, телеграм-боты, веб-приложения и мобильные игры — что входит в работу и сколько занимает.</p>
+          <span class="svc__go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </li>
+      <li class="svc__item reveal">
+        <a class="svc__link" href="/clients.html">
+          <h2 class="svc__name">Работы</h2>
+          <p class="svc__desc">Витрина проектов с фильтрами по направлению.</p>
+          <span class="svc__go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </li>
+      <li class="svc__item reveal">
+        <a class="svc__link" href="/faq.html">
+          <h2 class="svc__name">Вопросы</h2>
+          <p class="svc__desc">Цены, сроки, права на результат и поддержка после запуска.</p>
+          <span class="svc__go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </li>
+    </ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot__top">
+    <p class="foot__mark">
+      <img class="foot__logo" src="/assets/logo.png" alt="" width="512" height="512">
+      Vantegra
+    </p>
+    <div class="foot__cols">
+      <div class="foot__col">
+        <strong>Разделы</strong>
+        <a href="/services.html">Услуги</a>
+        <a href="/pricing.html">Тарифы</a>
+        <a href="/clients.html">Клиенты</a>
+        <a href="/about.html">О нас</a>
+        <a href="/faq.html">Вопросы</a>
+      </div>
+      <div class="foot__col">
+        <strong>Связь</strong>
+        <a href="/contacts.html">Контакты</a>
+        <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+        <a href="https://t.me/vantegra">@vantegra</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot__bottom">
+    <p>© 2026 Vantegra</p>
+    <p>Сайты · боты · веб-приложения · мобильные игры</p>
+  </div>
+</footer>
+
+<script src="/main.js"></script>
+</body>
+</html>

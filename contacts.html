@@ -34,7 +34,7 @@
     <svg class="ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.6A8.5 8.5 0 1 1 9.4 4a6.7 6.7 0 0 0 10.6 10.6Z"/></svg>
     <svg class="ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"/></svg>
   </button>
-  <a class="nav__ghost" href="cabinet.html">
+  <a class="nav__ghost" href="cabinet.php">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.9 20a7.2 7.2 0 0 1 14.2 0"/></svg>
     Кабинет
   </a>
@@ -52,7 +52,7 @@
   <a href="about.html">О нас</a>
   <a href="faq.html">Вопросы</a>
   <a href="contacts.html" aria-current="page">Контакты</a>
-  <a href="cabinet.html">Кабинет</a>
+  <a href="cabinet.php">Кабинет</a>
 </div>
 
 <main class="page" id="main">
@@ -96,15 +96,15 @@
       </div>
     </div>
 
-    <form class="form" id="brief" novalidate>
+    <form class="form" id="brief" action="send.php" method="post" novalidate>
       <div class="field reveal">
         <label for="f-name">Как к вам обращаться</label>
-        <input id="f-name" name="name" type="text" autocomplete="name" required placeholder="Имя">
+        <input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120" placeholder="Имя">
       </div>
 
       <div class="field reveal">
         <label for="f-contact">Куда ответить</label>
-        <input id="f-contact" name="contact" type="text" autocomplete="email" required placeholder="Почта или @ник в Telegram">
+        <input id="f-contact" name="contact" type="text" autocomplete="email" required maxlength="190" placeholder="Почта или @ник в Telegram">
       </div>
 
       <div class="field reveal">
@@ -119,9 +119,16 @@
       </div>
 
       <div class="field reveal">
-        <label for="f-task">Задача</label>
-        <textarea id="f-task" name="task" required placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
-        <small>Кнопка откроет ваш почтовый клиент с уже заполненным письмом — останется нажать «Отправить».</small>
+        <label for="f-task">Опишите задачу</label>
+        <textarea id="f-task" name="task" required minlength="10" maxlength="5000"
+                  placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
+        <small>Отправим прямо отсюда. Ответим на почту или в Telegram — куда вам удобнее.</small>
+      </div>
+
+      <!-- Ловушка для ботов: человек это поле не видит и не заполняет. -->
+      <div class="trap" aria-hidden="true">
+        <label for="f-site">Не заполняйте это поле</label>
+        <input id="f-site" name="website" type="text" tabindex="-1" autocomplete="off">
       </div>
 
       <div class="hero__actions reveal">
@@ -170,7 +177,7 @@
       <div class="foot__col">
         <strong>Связь</strong>
         <a href="contacts.html">Контакты</a>
-        <a href="cabinet.html">Кабинет</a>
+        <a href="cabinet.php">Кабинет</a>
         <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
         <a href="https://t.me/vantegra">@vantegra</a>
       </div>
