@@ -102,7 +102,6 @@ if ($exists) {
 
 <main class="gate">
   <div class="gate__card">
-    <p class="label">Установка</p>
     <h1 class="gate__title">Первый администратор</h1>
 
     <?php if ($done): ?>

@@ -163,22 +163,6 @@
   addEventListener('resize', onScroll, { passive: true });
   onScroll();
 
-  /* ============ 6. магнитные кнопки ============ */
-
-  if (!calm.matches && matchMedia('(pointer: fine)').matches) {
-    for (const el of $$('[data-magnet]')) {
-      el.addEventListener('pointermove', (e) => {
-        const r = el.getBoundingClientRect();
-        el.style.setProperty('--mx', clamp((e.clientX - r.left - r.width / 2) * 0.25, -14, 14).toFixed(1) + 'px');
-        el.style.setProperty('--my', clamp((e.clientY - r.top - r.height / 2) * 0.3, -10, 10).toFixed(1) + 'px');
-      });
-      el.addEventListener('pointerleave', () => {
-        el.style.setProperty('--mx', '0px');
-        el.style.setProperty('--my', '0px');
-      });
-    }
-  }
-
   /* ============ 7. раскрывающиеся блоки ============ */
 
   for (const head of $$('.acc__head')) {
@@ -251,54 +235,6 @@
     });
   }
 
-  /* ============ 9. поле точек: волна от курсора ============ */
-
-  const dots = $('#dots');
-  if (dots && !calm.matches) {
-    const COLS = 26, ROWS = 8;
-    dots.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
-    dots.style.gridTemplateRows = `repeat(${ROWS}, 1fr)`;
-    const cells = [];
-    for (let i = 0; i < COLS * ROWS; i++) {
-      const d = document.createElement('i');
-      dots.append(d);
-      cells.push(d);
-    }
-
-    // при первом появлении волна расходится от центра — задержка по расстоянию
-    const centre = { x: (COLS - 1) / 2, y: (ROWS - 1) / 2 };
-    cells.forEach((d, i) => {
-      const dx = (i % COLS) - centre.x, dy = ((i / COLS) | 0) - centre.y;
-      d.style.transitionDelay = Math.hypot(dx, dy) * 22 + 'ms';
-    });
-    new IntersectionObserver((entries, obs) => {
-      if (!entries[0].isIntersecting) return;
-      cells.forEach((d) => d.style.setProperty('--k', '1'));
-      setTimeout(() => cells.forEach((d) => { d.style.transitionDelay = ''; d.style.setProperty('--k', '.35'); }), 900);
-      obs.disconnect();
-    }, { threshold: 0.2 }).observe(dots);
-
-    let pending = false;
-    dots.parentElement.addEventListener('pointermove', (e) => {
-      if (pending) return;
-      pending = true;
-      requestAnimationFrame(() => {
-        const r = dots.getBoundingClientRect();
-        const cw = r.width / COLS, ch = r.height / ROWS;
-        cells.forEach((d, i) => {
-          const x = r.left + ((i % COLS) + 0.5) * cw;
-          const y = r.top + (((i / COLS) | 0) + 0.5) * ch;
-          const dist = Math.hypot(e.clientX - x, e.clientY - y);
-          d.style.setProperty('--k', (0.35 + clamp(1 - dist / 220, 0, 1) * 1.5).toFixed(2));
-        });
-        pending = false;
-      });
-    }, { passive: true });
-    dots.parentElement.addEventListener('pointerleave', () => {
-      cells.forEach((d) => d.style.setProperty('--k', '.35'));
-    }, { passive: true });
-  }
-
   /* ============ 10. маскот: следит за курсором по обеим осям ============ */
 
   const canvas = $('#sceneCanvas');
@@ -326,7 +262,7 @@
       [9.85,  0.00,  0.00], [10.04, 0.00, 0.00],
     ];
 
-    const N = 40;             // поз в памяти
+    const N = 120;            // поз в памяти: шаг ~0.08 c видео, доворот почти сплошной
     const CROP = 0.47;        // какая доля ширины кадра реально видна в арке
     const BW = 430, BH = 514; // размер кадра в кэше — под размер портала
     const EASE = 0.16;        // мягкость доводки позы

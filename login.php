@@ -79,7 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <span>Vantegra</span>
     </a>
 
-    <p class="label">Личный кабинет</p>
     <h1 class="gate__title">Вход</h1>
 
     <?php if ($err): ?>

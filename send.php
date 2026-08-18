@@ -154,14 +154,12 @@ if ($wantsJson) {
     </a>
 
     <?php if ($ok): ?>
-      <p class="label">Готово</p>
       <h1 class="gate__title">Заявка принята</h1>
       <div class="note note--ok">
         <p>Спасибо, <?= e($name) ?>. Вернёмся с вопросами и оценкой в течение дня.</p>
       </div>
       <a class="btn btn--solid" href="index.html">На главную</a>
     <?php else: ?>
-      <p class="label">Не отправилось</p>
       <h1 class="gate__title">Проверьте форму</h1>
       <div class="note note--bad">
         <?php foreach ($errors as $msg): ?><p><?= e($msg) ?></p><?php endforeach; ?>
