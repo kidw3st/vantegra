@@ -741,9 +741,7 @@ img { height: auto; }
   list-style: none;
 }
 
-.works--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 1180px) { .works--four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 520px) { .works--four { grid-template-columns: minmax(0, 1fr); } }
+.works--one { grid-template-columns: minmax(0, 640px); }
 
 .work { position: relative; }
 .work__btn {

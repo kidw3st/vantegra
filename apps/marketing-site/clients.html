@@ -60,8 +60,8 @@
   <section class="phero">
     <h1 class="phero__title" data-split>Витрина работ</h1>
     <p class="phero__lead reveal">
-      Отберите нужное направление и откройте карточку: внутри задача,
-      что именно сделали, сроки и на чём собрано.
+      Откройте карточку: внутри задача, что именно сделали
+      и на чём собрано. Витрина пополняется по мере запусков.
     </p>
     <svg class="phero__rule" data-draw viewBox="0 0 1200 2" preserveAspectRatio="none" fill="none" aria-hidden="true">
       <path pathLength="1" d="M0 1H1200" stroke="currentColor" stroke-width="2"/>
@@ -70,17 +70,7 @@
 
   <section class="section section--tight">
 
-    <ul class="filters reveal" id="filters">
-      <li><button type="button" data-filter="all" aria-pressed="true">Все</button></li>
-      <li><button type="button" data-filter="site" aria-pressed="false">Сайты</button></li>
-      <li><button type="button" data-filter="bot" aria-pressed="false">Боты</button></li>
-      <li><button type="button" data-filter="app" aria-pressed="false">Приложения</button></li>
-      <li><button type="button" data-filter="game" aria-pressed="false">Игры</button></li>
-    </ul>
-
-    <!-- ДЕМО-ДАННЫЕ. Названия и описания: шаблон под реальные кейсы:
-         замените текст в .work__name / .work__sub / .work__detail. -->
-    <ul class="works" id="works">
+    <ul class="works works--one" id="works">
 
       <li class="work pop" data-cat="site" id="w-dopemusic">
         <button class="work__btn" type="button">
@@ -105,161 +95,8 @@
         </div>
       </li>
 
-      <li class="work pop" data-cat="site" id="w-shop">
-        <button class="work__btn" type="button">
-          <div class="work__cover">
-            <span class="work__tag">Сайт</span>
-            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-              <rect x="40" y="50" width="320" height="200" rx="8"/><path d="M40 90h320"/>
-              <rect x="70" y="120" width="80" height="100" rx="5"/><rect x="170" y="120" width="80" height="100" rx="5"/><rect x="270" y="120" width="60" height="60" rx="5"/>
-              <circle cx="60" cy="70" r="4"/><circle cx="76" cy="70" r="4"/>
-            </svg>
-          </div>
-          <h3 class="work__name">Магазин мебели</h3>
-          <p class="work__sub">Каталог, корзина, оплата</p>
-        </button>
-        <div class="work__detail">
-          <h3>Магазин мебели</h3>
-          <p>Каталог на несколько сотен позиций с фильтрами по размеру, материалу и цене. Отдельно продумали карточку товара: варианты обивки переключаются без перезагрузки, а размеры показываются на схеме.</p>
-          <p>Заказы уходят в CRM, оплата на стороне банка, доставка считается по адресу. Контент-менеджер редактирует каталог сам, без разработчика.</p>
-          <dl>
-            <div><dt>Что делали</dt><dd>Сайт под ключ</dd></div>
-            <div><dt>Объём</dt><dd>Дизайн, вёрстка, CMS, интеграции</dd></div>
-          </dl>
-          <ul class="chips"><li>Next.js</li><li>PostgreSQL</li><li>CRM</li><li>Онлайн-оплата</li></ul>
-        </div>
-      </li>
-
-      <li class="work pop" data-cat="bot" id="w-bot">
-        <button class="work__btn" type="button">
-          <div class="work__cover">
-            <span class="work__tag">Бот</span>
-            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-              <rect x="120" y="60" width="160" height="180" rx="18"/>
-              <rect x="145" y="95" width="90" height="26" rx="13"/><rect x="165" y="140" width="90" height="26" rx="13"/><rect x="145" y="185" width="70" height="26" rx="13"/>
-              <path d="M200 60V36M186 30a14 14 0 1 1 28 0"/>
-            </svg>
-          </div>
-          <h3 class="work__name">Бот доставки</h3>
-          <p class="work__sub">Заказ, оплата, статусы</p>
-        </button>
-        <div class="work__detail">
-          <h3>Бот доставки</h3>
-          <p>Меню, корзина и оплата целиком внутри Telegram, приложение ставить не нужно. Бот подтягивает актуальные позиции со склада и прячет то, что закончилось.</p>
-          <p>После оплаты клиент получает статусы: принят, готовится, курьер выехал. Операторам собрали отдельную панель, где видно очередь заказов.</p>
-          <dl>
-            <div><dt>Что делали</dt><dd>Бот и панель операторов</dd></div>
-            <div><dt>Объём</dt><dd>Сценарии, оплаты, склад, рассылки</dd></div>
-          </dl>
-          <ul class="chips"><li>Bot API</li><li>Mini App</li><li>Python</li><li>PostgreSQL</li></ul>
-        </div>
-      </li>
-
-      <li class="work pop" data-cat="game" id="w-game">
-        <button class="work__btn" type="button">
-          <div class="work__cover">
-            <span class="work__tag">Игра</span>
-            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-              <rect x="60" y="105" width="280" height="105" rx="52"/>
-              <path d="M120 140v30M105 155h30"/><circle cx="270" cy="145" r="11"/><circle cx="295" cy="172" r="11"/>
-              <path d="M60 158c40-70 240-70 280 0"/>
-            </svg>
-          </div>
-          <h3 class="work__name">Аркада на телефон</h3>
-          <p class="work__sub">iOS и Android</p>
-        </button>
-        <div class="work__detail">
-          <h3>Аркада на телефон</h3>
-          <p>Казуальная игра с управлением одним пальцем: короткие забеги, растущая сложность, ежедневные задания. Механику проверили на прототипе до того, как рисовать финальный арт.</p>
-          <p>Собрали под обе платформы из одного проекта, подготовили страницы в сторах и подключили аналитику, чтобы видеть, на каком уровне игроки отваливаются.</p>
-          <dl>
-            <div><dt>Что делали</dt><dd>Игра от прототипа до релиза</dd></div>
-            <div><dt>Объём</dt><dd>Механика, арт, звук, публикация</dd></div>
-          </dl>
-          <ul class="chips"><li>Unity</li><li>C#</li><li>App Store</li><li>Google Play</li></ul>
-        </div>
-      </li>
-
-      <li class="work pop" data-cat="app" id="w-cabinet">
-        <button class="work__btn" type="button">
-          <div class="work__cover">
-            <span class="work__tag">Приложение</span>
-            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-              <rect x="40" y="55" width="320" height="190" rx="8"/><path d="M130 55v190"/>
-              <path d="M60 95h48M60 125h48M60 155h48"/>
-              <rect x="155" y="90" width="80" height="55" rx="6"/><rect x="250" y="90" width="80" height="55" rx="6"/>
-              <path d="M155 185h175M155 210h120"/>
-            </svg>
-          </div>
-          <h3 class="work__name">Кабинет клиента</h3>
-          <p class="work__sub">Договоры, счета, заявки</p>
-        </button>
-        <div class="work__detail">
-          <h3>Кабинет клиента</h3>
-          <p>Личный кабинет вместо переписки в почте: клиент видит свои договоры и счета, скачивает закрывающие документы и оставляет заявки, не дёргая менеджера.</p>
-          <p>Роли разделены: клиент, менеджер и бухгалтер видят разное. Данные приезжают из учётной системы, поэтому дублировать их руками не нужно.</p>
-          <dl>
-            <div><dt>Что делали</dt><dd>Веб-приложение</dd></div>
-            <div><dt>Объём</dt><dd>Сценарии, интерфейс, бэкенд, роли</dd></div>
-          </dl>
-          <ul class="chips"><li>React</li><li>TypeScript</li><li>Node.js</li><li>Docker</li></ul>
-        </div>
-      </li>
-
-      <li class="work pop" data-cat="site" id="w-clinic">
-        <button class="work__btn" type="button">
-          <div class="work__cover">
-            <span class="work__tag">Сайт</span>
-            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-              <rect x="70" y="60" width="260" height="180" rx="10"/>
-              <path d="M200 100v70M165 135h70"/>
-              <path d="M70 205h260"/><circle cx="110" cy="222" r="6"/><circle cx="140" cy="222" r="6"/>
-            </svg>
-          </div>
-          <h3 class="work__name">Сайт клиники</h3>
-          <p class="work__sub">Врачи, услуги, запись</p>
-        </button>
-        <div class="work__detail">
-          <h3>Сайт клиники</h3>
-          <p>Понятная структура вокруг главного действия: записаться. Услуги, цены и врачи связаны между собой: со страницы врача можно сразу выбрать время, а из услуги увидеть, кто её ведёт.</p>
-          <p>Отдельно проработали мобильную версию: большинство заходит с телефона по дороге, поэтому форма записи занимает один экран.</p>
-          <dl>
-            <div><dt>Что делали</dt><dd>Сайт под ключ</dd></div>
-            <div><dt>Объём</dt><dd>Структура, дизайн, CMS, запись</dd></div>
-          </dl>
-          <ul class="chips"><li>Astro</li><li>CMS</li><li>Онлайн-запись</li><li>Аналитика</li></ul>
-        </div>
-      </li>
-
-      <li class="work pop" data-cat="bot" id="w-booking">
-        <button class="work__btn" type="button">
-          <div class="work__cover">
-            <span class="work__tag">Бот</span>
-            <svg viewBox="0 0 400 300" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-              <rect x="90" y="70" width="220" height="170" rx="12"/><path d="M90 115h220"/>
-              <path d="M130 70V52M270 70V52"/>
-              <rect x="120" y="140" width="34" height="28" rx="4"/><rect x="183" y="140" width="34" height="28" rx="4"/><rect x="246" y="140" width="34" height="28" rx="4"/>
-              <rect x="120" y="185" width="34" height="28" rx="4"/><rect x="183" y="185" width="34" height="28" rx="4"/>
-            </svg>
-          </div>
-          <h3 class="work__name">Бот записи</h3>
-          <p class="work__sub">Слоты, напоминания</p>
-        </button>
-        <div class="work__detail">
-          <h3>Бот записи</h3>
-          <p>Клиент выбирает мастера и свободное время прямо в чате, бот держит расписание и не даёт занять один слот дважды. За несколько часов до визита приходит напоминание.</p>
-          <p>Расписание синхронизировано с календарём сотрудников, поэтому отпуск или перенос сразу закрывают слоты в боте.</p>
-          <dl>
-            <div><dt>Что делали</dt><dd>Бот записи</dd></div>
-            <div><dt>Объём</dt><dd>Расписание, напоминания, календарь</dd></div>
-          </dl>
-          <ul class="chips"><li>Bot API</li><li>Node.js</li><li>Календарь</li><li>Напоминания</li></ul>
-        </div>
-      </li>
-
     </ul>
 
-    <p class="works__empty" id="worksEmpty" hidden>В этом направлении пока нечего показать. Загляните в другие или напишите нам.</p>
   </section>
 
   <section class="cta">
