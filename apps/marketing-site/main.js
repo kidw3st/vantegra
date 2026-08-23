@@ -268,14 +268,14 @@
       [ 9.03,  0.50,  0.45], [ 9.24,  0.50,  0.60], [ 9.45,  0.40,  0.75],
       [ 9.66,  0.20,  0.90], [ 9.86,  0.00,  1.00], [ 9.99,  0.00,  1.00],
     ];
-    // Моменты с закрытыми глазами (моргание, прищур, улыбка): как поза
-    // не выбираются, но проходятся при довороте, поэтому моргание остаётся.
-    const BLINK = [[0.77, 0.94], [3.78, 4.03], [6.25, 6.50], [8.80, 8.97]];
+    // Моменты с закрытыми глазами и склейки между поворотами: как поза
+    // не выбираются, но могут мелькнуть при переходе, поэтому моргание остаётся.
+    const BLINK = [[0.77, 0.94], [1.15, 1.23], [2.49, 2.57], [3.78, 4.12], [6.25, 6.50], [8.80, 8.97]];
 
     const N = 240;            // поз в памяти: шаг ~0.04 c видео, практически каждый кадр ролика
     const CROP = 0.5;         // какая доля ширины кадра реально видна в арке
     const BW = 360, BH = 432; // размер кадра в кэше: 240 кадров × 0.6 МБ
-    const EASE = 0.18;        // мягкость доводки позы
+    const EASE = 0.14;        // мягкость доводки направления взгляда
 
     const ctx = canvas.getContext ? canvas.getContext('2d') : null;
     // слежение только там, где есть настоящий курсор
@@ -283,28 +283,34 @@
 
     const frames = [];
     const gaze = [];
-    let idx = 0, want = 0, rest = 0;
+    // Цель и текущее направление взгляда (в пространстве направлений, не
+    // кадров): сглаживаем именно их, а кадр подбираем под сглаженное.
+    let tx = 0, ty = 0, gx = 0, gy = 0;
+    let cur = 0, prev = -1, mix = 1;   // показываемый кадр, предыдущий, доля перехода
+    let rest = 0;
     let ready = false, visible = true;
 
     // направление взгляда в момент t — линейно между опорными точками
     function gazeAt(t) {
       for (const [a, b] of BLINK) if (t >= a && t <= b) return [9, 9];
-      for (let i = 1; i < GAZE.length; i++) {
-        if (t <= GAZE[i][0]) {
-          const a = GAZE[i - 1], b = GAZE[i];
-          const k = (t - a[0]) / (b[0] - a[0] || 1);
-          return [a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-        }
-      }
-      return [0, 0];
+      // ступенями, без интерполяции: на склейках ролика промежуточных
+      // направлений нет, а «среднее» между «влево» и «вправо» было бы ложным анфасом
+      let z = GAZE[0];
+      for (const g of GAZE) { if (g[0] <= t) z = g; else break; }
+      return [z[1], z[2]];
     }
 
     // ближайшая поза к нужному направлению
-    function nearest(gx, gy) {
+    // Ближайшая поза к направлению. Ролик не раскладывает позы по кругу,
+    // одно и то же направление встречается в разных местах таймлайна,
+    // поэтому при прочих равных держимся кадров рядом с текущим: меньше
+    // перескоков между далёкими кусками ролика.
+    function nearest(x, y, from) {
       let best = 0, bd = Infinity;
       for (let i = 0; i < gaze.length; i++) {
-        const dx = gaze[i][0] - gx, dy = gaze[i][1] - gy;
-        const d = dx * dx + dy * dy;
+        const dx = gaze[i][0] - x, dy = gaze[i][1] - y;
+        let d = dx * dx + dy * dy;
+        if (from >= 0) d += 0.08 * Math.abs(i - from) / N;
         if (d < bd) { bd = d; best = i; }
       }
       return best;
@@ -351,7 +357,7 @@
           src.src = '';
           src.remove();
           rest = Math.round(0.4 / span * (N - 1));   // поза покоя: спокойный анфас в начале ролика
-          idx = want = rest;
+          cur = rest; prev = -1; mix = 1;
           ready = true;
           paintFrame(frames[rest]);
           portal.classList.add('is-canvas');
@@ -420,21 +426,6 @@
       ctx.drawImage(bmp, ...cover(bmp.width, bmp.height));
     }
 
-    // дробная поза: кадр i целиком, поверх него кадр i+1 с весом доли.
-    // Так доворот идёт плавнее шага между кадрами и не зависит от герц экрана.
-    function paintAt(pos) {
-      const i = Math.floor(pos), f = pos - i;
-      const a = frames[((i % N) + N) % N], b = frames[(((i + 1) % N) + N) % N];
-      fit();
-      const box = cover(a.width, a.height);
-      ctx.globalAlpha = 1;
-      ctx.drawImage(a, ...box);
-      if (f > 0.02) {
-        ctx.globalAlpha = f;
-        ctx.drawImage(b, ...box);
-        ctx.globalAlpha = 1;
-      }
-    }
 
     /* ---- курсор ---- */
 
@@ -449,17 +440,15 @@
 
       // маскот следит только на первом экране; ниже смотрит вперёд
       const box = hero.getBoundingClientRect();
-      if (e.clientY < box.top || e.clientY > box.bottom) { want = rest; return; }
+      if (e.clientY < box.top || e.clientY > box.bottom) { tx = 0; ty = 0; return; }
 
       // направление от головы к курсору
       const p = portal.getBoundingClientRect();
       const hx = p.left + p.width * 0.5;
       const hy = p.top + p.height * 0.42;
       const reach = Math.max(innerWidth, innerHeight) * 0.42;
-      want = nearest(
-        clamp((e.clientX - hx) / reach, -1, 1),
-        clamp((e.clientY - hy) / reach, -1, 1),
-      );
+      tx = clamp((e.clientX - hx) / reach, -1, 1);
+      ty = clamp((e.clientY - hy) / reach, -1, 1);
 
       if (hint && hint.dataset.done !== '1') {
         hint.dataset.done = '1';
@@ -467,24 +456,44 @@
       }
     }, { passive: true });
 
-    const toRest = () => { want = rest; };
+    const toRest = () => { tx = 0; ty = 0; };
     addEventListener('pointerleave', toRest, { passive: true });
     addEventListener('blur', toRest);
 
-    (function loop() {
+    const FADE = 0.22;   // скорость кроссфейда между кадрами, доля за кадр экрана
+    let last = 0;
+
+    (function loop(now) {
       if (ready && visible) {
-        // идём к нужной позе по кратчайшей дуге — голова доворачивается,
-        // а не прыгает, потому что соседние кадры это соседние повороты
-        let d = want - idx;
-        if (d > N / 2) d -= N;
-        if (d < -N / 2) d += N;
-        idx += d * EASE;
-        if (idx < 0) idx += N;
-        if (idx >= N) idx -= N;
-        paintAt(idx);
+        // шаг нормируем на 60 Гц, чтобы на 144/240 Гц скорость была той же
+        const k = Math.min((now - last) / (1000 / 60), 3) || 1;
+        last = now;
+
+        // 1. направление взгляда плавно идёт к цели
+        gx += (tx - gx) * EASE * k;
+        gy += (ty - gy) * EASE * k;
+
+        // 2. под сглаженное направление подбираем кадр; при смене кадра
+        //    начинаем кроссфейд от того, что показывали
+        const next = nearest(gx, gy, cur);
+        if (next !== cur) {
+          prev = cur; cur = next; mix = 0;
+        }
+        if (mix < 1) mix = Math.min(1, mix + FADE * k);
+
+        // 3. рисуем: старый кадр целиком, новый с долей
+        fit();
+        const box = cover(frames[cur].width, frames[cur].height);
+        ctx.globalAlpha = 1;
+        if (prev >= 0 && mix < 1) {
+          ctx.drawImage(frames[prev], ...box);
+          ctx.globalAlpha = mix;
+        }
+        ctx.drawImage(frames[cur], ...box);
+        ctx.globalAlpha = 1;
       }
       requestAnimationFrame(loop);
-    })();
+    })(performance.now());
   }
 
   /* ============ 11. бегущая строка ============ */
