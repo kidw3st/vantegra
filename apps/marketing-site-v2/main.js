@@ -4,11 +4,14 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
-  /* шапка: линия появляется после прокрутки */
-  const top = $('#top');
-  addEventListener('scroll', () => {
-    top.classList.toggle('is-stuck', scrollY > 8);
-  }, { passive: true });
+  /* бегущая строка: добираем копий до бесшовного цикла */
+  const row = $('#marqueeRow');
+  if (row && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const set = row.firstElementChild;
+    let guard = 0;
+    while (row.scrollWidth < innerWidth * 2 && guard++ < 20) row.append(set.cloneNode(true));
+    [...row.children].forEach((n) => row.append(n.cloneNode(true)));
+  }
 
   /* мобильное меню */
   const burger = $('.top__burger');
@@ -28,7 +31,7 @@
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) closeDrawer(); });
 
   /* активный раздел в навигации */
-  const links = $$('.top__nav a');
+  const links = $$('.top__pill a');
   const byId = Object.fromEntries(links.map((a) => [a.hash.slice(1), a]));
   const spy = new IntersectionObserver((entries) => {
     for (const en of entries) {

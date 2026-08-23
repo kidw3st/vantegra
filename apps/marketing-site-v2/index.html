@@ -5,30 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vantegra — студия разработки: сайты, боты, приложения, игры</title>
 <meta name="description" content="Vantegra собирает цифровые продукты целиком: сайты, телеграм-боты, веб-приложения и мобильные игры. Цена и сроки фиксируются до старта.">
-<meta name="theme-color" content="#f4f1ea">
+<meta name="theme-color" content="#e5e5e5">
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@200;300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Golos+Text:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <a class="skip" href="#main">К содержимому</a>
 
-<header class="top" id="top">
+<header class="top">
   <a class="top__brand" href="#" aria-label="Vantegra, на главную">
     <img src="assets/logo.png" alt="" width="512" height="512">
     <span>Vantegra</span>
   </a>
-  <nav class="top__nav" aria-label="Разделы">
+  <nav class="top__pill" aria-label="Разделы">
     <a href="#services">Что делаем</a>
-    <a href="#process">Как работаем</a>
+    <a href="#process">Процесс</a>
     <a href="#work">Работы</a>
     <a href="#pricing">Цены</a>
     <a href="#faq">Вопросы</a>
   </nav>
-  <a class="top__cta" href="#contact">Обсудить проект</a>
+  <a class="btn btn--dark top__cta" href="#contact">Обсудить проект</a>
   <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
     <span></span><span></span>
   </button>
@@ -36,7 +36,7 @@
 
 <nav class="drawer" id="drawer" aria-label="Разделы" hidden>
   <a href="#services">Что делаем</a>
-  <a href="#process">Как работаем</a>
+  <a href="#process">Процесс</a>
   <a href="#work">Работы</a>
   <a href="#pricing">Цены</a>
   <a href="#faq">Вопросы</a>
@@ -45,203 +45,202 @@
 
 <main id="main">
 
-  <!-- ========== хиро ========== -->
+  <!-- ================= хиро ================= -->
   <section class="hero">
     <div class="hero__text">
+      <p class="tag">Студия разработки · Пермь и удалённо</p>
       <h1 class="hero__title">
-        <span class="hero__line"><span>Сайты, боты,</span></span>
-        <span class="hero__line"><span>приложения, игры.</span></span>
-        <span class="hero__line hero__line--em"><span><em>Целиком,</em> а не по кускам.</span></span>
+        <span class="hero__row">Сайты.</span>
+        <span class="hero__row">Боты.</span>
+        <span class="hero__row">Приложения.</span>
+        <span class="hero__row">Игры.</span>
       </h1>
       <p class="hero__lead">
-        Небольшая студия, которая берёт задачу от первого созвона до запуска
-        и остаётся рядом после. Цена и сроки фиксируются до старта.
+        Собираем цифровые продукты целиком, а не по кускам: от первого
+        созвона до запуска и поддержки. Цена и сроки фиксируются до старта.
       </p>
       <div class="hero__actions">
-        <a class="btn btn--ink" href="#contact">Обсудить проект</a>
-        <a class="btn btn--line" href="#work">Смотреть работы</a>
+        <a class="btn btn--dark" href="#contact">Обсудить проект</a>
+        <a class="btn btn--ghost" href="#work">Смотреть работы</a>
       </div>
     </div>
 
-    <figure class="hero__art" aria-label="Вант, маскот студии Vantegra">
-      <div class="hero__frame">
-        <img src="assets/mascot-meadow.jpg" alt="Вант, дракончик в полевой кепке, сидит в луговой траве" width="1280" height="720" fetchpriority="high">
-      </div>
-      <figcaption class="hero__cap">
-        <span>Вант</span>
-        <span>маскот и первый критик каждого продукта</span>
-      </figcaption>
+    <figure class="hero__render">
+      <img src="assets/mascot-laptop.jpg" alt="Вант, маскот Vantegra: 3D-рендер дракончика в кепке за ноутбуком" width="1792" height="1008" fetchpriority="high">
+      <figcaption class="mono">Вант уже в работе · рендер 01</figcaption>
     </figure>
-
-    <p class="hero__foot">
-      <span>Пермь и удалённо</span>
-      <span>Работаем с 2022 года</span>
-      <span>По договору, с фиксированными этапами</span>
-    </p>
   </section>
 
-  <!-- ========== что делаем ========== -->
+  <p class="marquee" aria-hidden="true">
+    <span class="marquee__row" id="marqueeRow"><span>
+      Сайты&nbsp;&nbsp;·&nbsp;&nbsp;Телеграм-боты&nbsp;&nbsp;·&nbsp;&nbsp;Веб-приложения&nbsp;&nbsp;·&nbsp;&nbsp;Мобильные&nbsp;игры&nbsp;&nbsp;·&nbsp;&nbsp;
+    </span></span>
+  </p>
+
+  <!-- ================= что делаем ================= -->
   <section class="section" id="services">
     <div class="section__head">
-      <h2 class="h2">Четыре направления, <em>одна</em> команда</h2>
-      <p class="section__note">Каждое ведём от идеи до релиза. Дизайн, код, интеграции, запуск и поддержка остаются в одних руках.</p>
+      <p class="tag">Что делаем</p>
+      <h2 class="display">Четыре направления</h2>
     </div>
 
-    <ol class="dirs">
-      <li class="dir">
-        <a class="dir__link" href="#contact">
-          <span class="dir__name">Сайты</span>
-          <span class="dir__desc">Лендинги, корпоративные сайты, магазины. Начинаем с вопроса, что должен сделать посетитель, и строим страницу вокруг этого действия.</span>
-          <span class="dir__meta">от 1–2 недель</span>
-        </a>
+    <ul class="cards">
+      <li class="card">
+        <p class="mono card__idx">01</p>
+        <h3 class="card__name">Сайты</h3>
+        <p class="card__desc">Лендинги, корпоративные сайты, магазины. Начинаем с вопроса, что должен сделать посетитель, и строим страницу вокруг этого действия.</p>
+        <p class="mono card__meta">от 1–2 недель</p>
       </li>
-      <li class="dir">
-        <a class="dir__link" href="#contact">
-          <span class="dir__name">Телеграм-боты</span>
-          <span class="dir__desc">Заказы, записи, оплаты, мини-приложения внутри Telegram. Бот снимает с людей повторяющуюся работу круглосуточно.</span>
-          <span class="dir__meta">от нескольких дней</span>
-        </a>
+      <li class="card">
+        <p class="mono card__idx">02</p>
+        <h3 class="card__name">Телеграм-боты</h3>
+        <p class="card__desc">Заказы, записи, оплаты, мини-приложения внутри Telegram. Бот снимает с людей повторяющуюся работу круглосуточно.</p>
+        <p class="mono card__meta">от нескольких дней</p>
       </li>
-      <li class="dir">
-        <a class="dir__link" href="#contact">
-          <span class="dir__name">Веб-приложения</span>
-          <span class="dir__desc">Личные кабинеты, панели управления, внутренние сервисы. То, чем пользуются каждый день, поэтому скорость важнее украшений.</span>
-          <span class="dir__meta">первая версия от 4 недель</span>
-        </a>
+      <li class="card">
+        <p class="mono card__idx">03</p>
+        <h3 class="card__name">Веб-приложения</h3>
+        <p class="card__desc">Личные кабинеты, панели управления, внутренние сервисы. То, чем пользуются каждый день, поэтому скорость важнее украшений.</p>
+        <p class="mono card__meta">первая версия от 4 недель</p>
       </li>
-      <li class="dir">
-        <a class="dir__link" href="#contact">
-          <span class="dir__name">Мобильные игры</span>
-          <span class="dir__desc">iOS и Android, от казуальных аркад до проектов с прогрессом. Сначала играбельный прототип, потом финальный арт.</span>
-          <span class="dir__meta">прототип за 2–3 недели</span>
-        </a>
+      <li class="card">
+        <p class="mono card__idx">04</p>
+        <h3 class="card__name">Мобильные игры</h3>
+        <p class="card__desc">iOS и Android, от казуальных аркад до проектов с прогрессом. Сначала играбельный прототип, потом финальный арт.</p>
+        <p class="mono card__meta">прототип за 2–3 недели</p>
       </li>
-    </ol>
+    </ul>
   </section>
 
-  <!-- ========== манифест + маскот ========== -->
+  <!-- ================= манифест: Вант держит табличку ================= -->
   <section class="creed">
-    <figure class="creed__pose creed__pose--a">
-      <img src="assets/pose-side.jpg" alt="Вант в профиль, лист персонажа" width="320" height="720" loading="lazy">
-      <figcaption>Лист персонажа · профиль</figcaption>
-    </figure>
-    <blockquote class="creed__text">
-      <p>Мы не обещаем одно, а делаем другое: с вами говорят те же люди, что будут писать код.</p>
-      <p class="creed__small">Исходники, домен и доступы ваши с первого дня. Уйти к другой команде можно в любой момент, ничего не заблокировано.</p>
-    </blockquote>
-    <figure class="creed__pose creed__pose--b">
-      <img src="assets/pose-side2.jpg" alt="" width="320" height="720" loading="lazy">
-      <figcaption>Три четверти · зеркально</figcaption>
-    </figure>
+    <div class="creed__inner">
+      <figure class="sign" aria-label="Вант держит табличку с манифестом студии">
+        <img src="assets/mascot-sign.jpg" alt="" width="1792" height="1008" loading="lazy">
+        <p class="sign__text" aria-hidden="false">
+          <span class="sign__title">С вами говорят те же люди, что пишут код</span>
+          <span class="sign__sub">Никакого отдела продаж между вами и командой</span>
+        </p>
+      </figure>
+      <p class="creed__body">
+        Исходники, домен и доступы ваши с первого дня: уйти к другой команде
+        можно в любой момент, ничего не заблокировано на нашей стороне.
+      </p>
+    </div>
   </section>
 
-  <!-- ========== как работаем ========== -->
+  <!-- ================= процесс ================= -->
   <section class="section" id="process">
     <div class="section__head">
-      <h2 class="h2">Четыре шага <em>от идеи</em> до запуска</h2>
-      <p class="section__note">Каждый этап сдаём отдельно и показываем вживую. Правки внутри согласованного объёма не ограничены.</p>
+      <p class="tag">Процесс</p>
+      <h2 class="display">От идеи до запуска</h2>
     </div>
 
     <ol class="steps">
       <li class="step">
-        <span class="step__n">1</span>
+        <p class="mono step__n">Шаг 1</p>
         <h3 class="step__name">Разбираемся</h3>
         <p class="step__desc">Созваниваемся, выясняем задачу и ограничения. Фиксируем объём, сроки и цену до начала работы.</p>
       </li>
       <li class="step">
-        <span class="step__n">2</span>
+        <p class="mono step__n">Шаг 2</p>
         <h3 class="step__name">Прототип</h3>
         <p class="step__desc">Показываем структуру и дизайн раньше, чем пишем код. Правки на этом этапе стоят ноль.</p>
       </li>
       <li class="step">
-        <span class="step__n">3</span>
+        <p class="mono step__n">Шаг 3</p>
         <h3 class="step__name">Разработка</h3>
         <p class="step__desc">Собираем продукт короткими итерациями. Каждую неделю есть что показать и потрогать.</p>
       </li>
       <li class="step">
-        <span class="step__n">4</span>
+        <p class="mono step__n">Шаг 4</p>
         <h3 class="step__name">Запуск</h3>
         <p class="step__desc">Выкатываем, подключаем аналитику, передаём доступы. Дальше поддержка и развитие.</p>
       </li>
     </ol>
   </section>
 
-  <!-- ========== работы ========== -->
-  <section class="section section--dark" id="work">
-    <div class="section__head">
-      <h2 class="h2">Что уже <em>стоит</em> и работает</h2>
-      <p class="section__note">Витрина пополняется по мере запусков. Каждую работу можно открыть и потрогать.</p>
-    </div>
-
-    <article class="case">
-      <a class="case__shot" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">
-        <img src="assets/work-dopemusic.jpg" alt="Главная страница сайта студии звукозаписи Dope Music" width="1440" height="900" loading="lazy">
-      </a>
-      <div class="case__body">
-        <h3 class="case__name">Dope Music</h3>
-        <p class="case__kind">Сайт студии звукозаписи и лейбла, Пермь</p>
-        <p class="case__desc">
-          Главная ведёт к одному действию, бронированию сессии. Три службы студии
-          показаны как путь трека от записи до релиза. Типографика и бегущие строки
-          задают характер без единой фотографии.
-        </p>
-        <dl class="case__facts">
-          <div><dt>Что делали</dt><dd>Сайт под ключ</dd></div>
-          <div><dt>Объём</dt><dd>Дизайн, вёрстка, контент, прайс</dd></div>
-        </dl>
-        <a class="btn btn--paper" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">Открыть сайт</a>
+  <!-- ================= работы: инвертированный блок ================= -->
+  <section class="dark" id="work">
+    <div class="dark__inner">
+      <div class="section__head">
+        <p class="tag tag--ondark">Работы</p>
+        <h2 class="display">Уже стоит и работает</h2>
       </div>
-    </article>
+
+      <article class="case">
+        <a class="case__shot" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">
+          <img src="assets/work-dopemusic.jpg" alt="Главная страница сайта студии звукозаписи Dope Music" width="1440" height="900" loading="lazy">
+        </a>
+        <div class="case__body">
+          <p class="tag">Сайт под ключ</p>
+          <h3 class="case__name">Dope Music</h3>
+          <p class="case__kind">Студия звукозаписи и лейбл, Пермь</p>
+          <p class="case__desc">
+            Главная ведёт к одному действию, бронированию сессии. Три службы
+            студии показаны как путь трека от записи до релиза. Типографика
+            и бегущие строки задают характер без единой фотографии.
+          </p>
+          <a class="btn btn--paper" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">Открыть сайт</a>
+        </div>
+      </article>
+
+      <p class="dark__note mono">Витрина пополняется по мере запусков</p>
+    </div>
   </section>
 
-  <!-- ========== цены ========== -->
+  <!-- ================= цены ================= -->
   <section class="section" id="pricing">
     <div class="section__head">
-      <h2 class="h2">Цена зависит от объёма, <em>а не</em> от типа продукта</h2>
-      <p class="section__note">Ниже рамки, от которых считаем. Точную смету по этапам присылаем после короткого созвона.</p>
+      <p class="tag">Цены</p>
+      <h2 class="display">Считаем по объёму</h2>
+      <p class="section__note">Цена зависит от объёма, а не от типа продукта. Точную смету по этапам присылаем после короткого созвона.</p>
     </div>
 
     <ul class="plans">
       <li class="plan">
         <h3 class="plan__name">Запуск</h3>
-        <p class="plan__sum"><small>от</small> 90 000 ₽</p>
-        <p class="plan__for">Когда нужно быстро появиться в сети и начать собирать заявки.</p>
+        <p class="plan__sum">от 90 000 ₽</p>
+        <p class="plan__for">Быстро появиться в сети и начать собирать заявки.</p>
         <p class="plan__inc">Лендинг или простой бот: структура, дизайн, до пяти экранов, форма заявки и аналитика, запуск на вашем домене. Срок одна-две недели.</p>
-        <a class="plan__act" href="#contact">Обсудить</a>
+        <a class="btn btn--ghost plan__act" href="#contact">Обсудить</a>
       </li>
       <li class="plan plan--main">
-        <h3 class="plan__name">Продукт <i>чаще всего</i></h3>
-        <p class="plan__sum"><small>от</small> 350 000 ₽</p>
-        <p class="plan__for">Когда сайт или сервис не визитка, а рабочий инструмент.</p>
+        <p class="tag plan__flag">Чаще всего</p>
+        <h3 class="plan__name">Продукт</h3>
+        <p class="plan__sum">от 350 000 ₽</p>
+        <p class="plan__for">Сайт или сервис как рабочий инструмент, а не визитка.</p>
         <p class="plan__inc">Магазин, кабинет, веб-приложение или игра: исследование и прототип до кода; бэкенд, база, роли и доступы; интеграции: оплаты, CRM, склад; тесты и запуск. Срок от шести недель.</p>
-        <a class="plan__act" href="#contact">Обсудить</a>
+        <a class="btn btn--dark plan__act" href="#contact">Обсудить</a>
       </li>
       <li class="plan">
         <h3 class="plan__name">Поддержка</h3>
-        <p class="plan__sum"><small>от</small> 25 000 ₽ / мес</p>
-        <p class="plan__for">Когда продукт уже запущен и нужно, чтобы он просто работал.</p>
-        <p class="plan__inc">Мониторинг и резервные копии, обновления зависимостей и сертификатов, до восьми часов мелких правок в месяц, ответ на сбой в рабочее время в течение двух часов.</p>
-        <a class="plan__act" href="#contact">Подключить</a>
+        <p class="plan__sum">от 25 000 ₽ / мес</p>
+        <p class="plan__for">Продукт запущен, и нужно, чтобы он просто работал.</p>
+        <p class="plan__inc">Мониторинг и резервные копии, обновления зависимостей и сертификатов, до восьми часов мелких правок в месяц, ответ на сбой в течение двух часов.</p>
+        <a class="btn btn--ghost plan__act" href="#contact">Подключить</a>
       </li>
       <li class="plan">
         <h3 class="plan__name">Команда</h3>
-        <p class="plan__sum"><small>от</small> 180 000 ₽ / мес</p>
-        <p class="plan__for">Когда продукт живёт и развивается, и нужны руки на постоянно.</p>
+        <p class="plan__sum">от 180 000 ₽ / мес</p>
+        <p class="plan__for">Продукт живёт и развивается, нужны руки на постоянно.</p>
         <p class="plan__inc">Выделенные часы разработки и дизайна, план на месяц и отчёт по задачам, присмотр за сервером, срочные правки вне очереди. Приостановить можно в любой месяц.</p>
-        <a class="plan__act" href="#contact">Обсудить</a>
+        <a class="btn btn--ghost plan__act" href="#contact">Обсудить</a>
       </li>
     </ul>
 
     <p class="pricing__terms">
-      Стоимость согласованных этапов зафиксирована и по ходу не растёт. Аванс только за первый этап,
-      остальное по факту приёмки. Месяц после запуска правим всё по нашей вине бесплатно.
+      Стоимость согласованных этапов зафиксирована и по ходу не растёт. Аванс только
+      за первый этап, остальное по факту приёмки. Месяц после запуска правим всё
+      по нашей вине бесплатно.
     </p>
   </section>
 
-  <!-- ========== вопросы ========== -->
+  <!-- ================= вопросы ================= -->
   <section class="section" id="faq">
     <div class="section__head">
-      <h2 class="h2">Вопросы, которые задают <em>до</em> первого созвона</h2>
+      <p class="tag">Вопросы</p>
+      <h2 class="display">До первого созвона</h2>
     </div>
 
     <div class="faq">
@@ -249,13 +248,13 @@
         <summary>Сколько стоит проект?</summary>
         <div class="qa__body">
           <p>Зависит от объёма, а не от типа продукта. Лендинг из одного экрана и лендинг с калькулятором, оплатой и личным кабинетом: разные работы, хотя оба «сайт».</p>
-          <p>Чтобы назвать цифру, нам хватает короткого созвона: выясняем список экранов, интеграции и кто будет наполнять контентом. После этого присылаем смету по этапам, и вы видите, за что платите на каждом.</p>
+          <p>Чтобы назвать цифру, нам хватает короткого созвона: выясняем список экранов, интеграции и кто будет наполнять контентом. После этого присылаем смету по этапам.</p>
         </div>
       </details>
       <details class="qa" name="faq">
         <summary>Нужно ли техническое задание?</summary>
         <div class="qa__body">
-          <p>Нет. Достаточно объяснить задачу своими словами: что за продукт, для кого и зачем. Техническое задание составим сами и покажем на согласование, вам останется прочитать и поправить.</p>
+          <p>Нет. Достаточно объяснить задачу своими словами: что за продукт, для кого и зачем. Техническое задание составим сами и покажем на согласование.</p>
         </div>
       </details>
       <details class="qa" name="faq">
@@ -280,49 +279,54 @@
     </div>
   </section>
 
-  <!-- ========== контакт ========== -->
-  <section class="contact" id="contact">
-    <div class="contact__intro">
-      <h2 class="h2 h2--big">Обсудим <em>ваш</em> проект?</h2>
-      <p class="section__note">Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
-      <ul class="contact__links">
-        <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
-        <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra в Telegram</a></li>
-      </ul>
-      <div class="contact__pose"><img src="assets/pose-front.jpg" alt="" width="320" height="720" loading="lazy"></div>
-    </div>
+  <!-- ================= передышка: рассвет ================= -->
+  <figure class="vista">
+    <img src="assets/mascot-sunrise.jpg" alt="Вант смотрит на рассвет над холмами" width="1792" height="1008" loading="lazy">
+    <figcaption class="mono">Рендер 05 · Вант ждёт следующий проект</figcaption>
+  </figure>
 
-    <form class="form" id="form" action="../marketing-site/send.php" method="post" novalidate>
-      <label class="field">
-        <span class="field__label">Как к вам обращаться</span>
-        <input class="field__input" type="text" name="name" autocomplete="name" required maxlength="80">
-        <span class="field__err" aria-live="polite"></span>
-      </label>
-      <label class="field">
-        <span class="field__label">Куда ответить</span>
-        <input class="field__input" type="text" name="contact" autocomplete="email" placeholder="почта или @ник в Telegram" required maxlength="120">
-        <span class="field__err" aria-live="polite"></span>
-      </label>
-      <label class="field">
-        <span class="field__label">Что нужно сделать</span>
-        <select class="field__input" name="kind">
-          <option value="site">Сайт</option>
-          <option value="bot">Телеграм-бот</option>
-          <option value="app">Веб-приложение</option>
-          <option value="game">Мобильная игра</option>
-          <option value="other">Не знаю, нужно обсудить</option>
-        </select>
-      </label>
-      <label class="field">
-        <span class="field__label">Опишите задачу</span>
-        <textarea class="field__input" name="task" rows="4" required maxlength="2000" placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
-        <span class="field__err" aria-live="polite"></span>
-      </label>
-      <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
-      <button class="btn btn--ink btn--wide" type="submit">Отправить</button>
-      <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="../marketing-site/privacy.html">политикой конфиденциальности</a>.</p>
-      <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
-    </form>
+  <!-- ================= контакт: купол ================= -->
+  <section class="arc" id="contact">
+    <div class="arc__inner">
+      <div class="arc__intro">
+        <h2 class="display display--onarc">Обсудим проект?</h2>
+        <p class="arc__note">Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
+        <p class="arc__mail"><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></p>
+        <p class="arc__tg"><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra в Telegram</a></p>
+      </div>
+
+      <form class="form" id="form" action="../marketing-site/send.php" method="post" novalidate>
+        <label class="field">
+          <span class="field__label">Как к вам обращаться</span>
+          <input class="field__input" type="text" name="name" autocomplete="name" required maxlength="80">
+          <span class="field__err" aria-live="polite"></span>
+        </label>
+        <label class="field">
+          <span class="field__label">Куда ответить</span>
+          <input class="field__input" type="text" name="contact" autocomplete="email" placeholder="почта или @ник в Telegram" required maxlength="120">
+          <span class="field__err" aria-live="polite"></span>
+        </label>
+        <label class="field">
+          <span class="field__label">Что нужно сделать</span>
+          <select class="field__input" name="kind">
+            <option value="site">Сайт</option>
+            <option value="bot">Телеграм-бот</option>
+            <option value="app">Веб-приложение</option>
+            <option value="game">Мобильная игра</option>
+            <option value="other">Не знаю, нужно обсудить</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Опишите задачу</span>
+          <textarea class="field__input" name="task" rows="4" required maxlength="2000" placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
+          <span class="field__err" aria-live="polite"></span>
+        </label>
+        <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
+        <button class="btn btn--paper btn--wide" type="submit">Отправить</button>
+        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="../marketing-site/privacy.html">политикой конфиденциальности</a>.</p>
+        <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
+      </form>
+    </div>
   </section>
 
 </main>
@@ -339,7 +343,7 @@
       <a href="../marketing-site/cabinet.php">Кабинет клиента</a>
     </nav>
   </div>
-  <p class="foot__fine">© 2026 Vantegra. Сайты, боты, веб-приложения, мобильные игры.</p>
+  <p class="foot__fine mono">© 2026 Vantegra · Сайты · Боты · Веб-приложения · Мобильные игры</p>
 </footer>
 
 <script src="main.js" defer></script>
