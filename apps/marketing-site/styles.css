@@ -360,7 +360,7 @@ img { height: auto; }
 .phero {
   width: var(--shell);
   margin: 0 auto;
-  padding-bottom: var(--s-6);
+  padding-bottom: var(--s-5);
 }
 .phero__title {
   margin: 0 0 var(--s-4);
@@ -393,7 +393,7 @@ img { height: auto; }
   padding-inline: clamp(24px, 6vw, 120px);
   background: var(--paper-2);
 }
-.section--alt > * { max-width: 1320px; margin-inline: auto; }
+.section--alt > * { max-width: 1320px; margin-inline: auto !important; }
 .section--tight { padding-block: var(--s-6); }
 
 /* после заголовка страницы список начинается сразу: его верхняя линия —
@@ -750,12 +750,15 @@ img { height: auto; }
 
 .works {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--s-4) var(--s-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
+
+.works--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .works--three { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); } }
 
 .work { position: relative; }
 .work__btn {
