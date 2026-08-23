@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=18"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+        
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('calendar') + renderHeader() + `
+            <div class="page-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <h1 class="page-title">Календарь</h1>
+                    <button class="btn btn-ghost btn-icon" onclick="showCalStatusConfigModal()" title="Настройки статусов" aria-label="Настройки статусов" style="width:32px;height:32px;color:var(--gray-400);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+                <div class="page-actions">
+                    <div class="cal-nav">
+                        <button class="btn btn-secondary btn-sm" onclick="calPrev()" aria-label="Предыдущий месяц"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></button>
+                        <span class="cal-month-label" id="calMonthLabel"></span>
+                        <button class="btn btn-secondary btn-sm" onclick="calNext()" aria-label="Следующий месяц"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg></button>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="calToday()">Сегодня</button>
+                </div>
+            </div>
+            <div class="filter-bar" style="margin-bottom:16px;gap:12px;" id="calFilters">
+                <div class="cal-filter-dd" id="calPersonFilterWrap">
+                    <button type="button" class="btn btn-secondary btn-sm cal-filter-btn" id="calPersonFilterBtn" onclick="toggleCalFilterMenu('person')">
+                        Исполнитель <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg>
+                    </button>
+                    <div class="cal-filter-menu" id="calPersonMenu"></div>
+                </div>
+                <div class="cal-filter-dd" id="calTypeFilterWrap">
+                    <button type="button" class="btn btn-secondary btn-sm cal-filter-btn" id="calTypeFilterBtn" onclick="toggleCalFilterMenu('type')">
+                        Отображение <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg>
+                    </button>
+                    <div class="cal-filter-menu" id="calTypeMenu"></div>
+                </div>
+            </div>
+            <div class="cal-stretch-wrap" id="calStretchWrap">
+                <div class="card" style="overflow:hidden;">
+                    <div class="cal-grid" id="calGrid">
+                        <div class="cal-day-header">Пн</div>
+                        <div class="cal-day-header">Вт</div>
+                        <div class="cal-day-header">Ср</div>
+                        <div class="cal-day-header">Чт</div>
+                        <div class="cal-day-header">Пт</div>
+                        <div class="cal-day-header cal-weekend-header">Сб</div>
+                        <div class="cal-day-header cal-weekend-header">Вс</div>
+                    </div>
+                </div>
+                <div class="cal-resize-handle" id="calResizeHandle" title="Потяните, чтобы растянуть календарь">
+                    <span class="cal-resize-grip"></span>
+                </div>
+            </div>
+            <div class="cal-legend" style="margin-top:16px;" id="calLegend"></div>
+            </div></div></div>
+        `;
+        
+        initCommonUI();
+        await CRM.load();
+
+        let teamUsers = [];
+        let goals = [];
+        let calStatuses = [];
+        const colorHexMap = { blue: '#3B82F6', yellow: '#F59E0B', green: '#10B981', gray: '#9CA3AF', red: '#EF4444', purple: '#8B5CF6', pink: '#EC4899', orange: '#F97316', teal: '#14B8A6', indigo: '#6366F1', lime: '#84CC16', cyan: '#06B6D4' };
+        const presetColors = [
+            { name: 'blue', hex: '#3B82F6' }, { name: 'yellow', hex: '#F59E0B' },
+            { name: 'green', hex: '#10B981' }, { name: 'gray', hex: '#9CA3AF' },
+            { name: 'red', hex: '#EF4444' }, { name: 'purple', hex: '#8B5CF6' },
+            { name: 'pink', hex: '#EC4899' }, { name: 'orange', hex: '#F97316' },
+            { name: 'teal', hex: '#14B8A6' }, { name: 'indigo', hex: '#6366F1' },
+            { name: 'lime', hex: '#84CC16' }, { name: 'cyan', hex: '#06B6D4' }
+        ];
+        const paletteSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.4-.13-.76-.38-1.04-.25-.28-.37-.6-.37-.96 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.5-4.5-9.5-10-9.5z"/></svg>';
+        const dragHandleSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>';
+        function getColHex(color) {
+            return colorHexMap[color] || (color && String(color).startsWith('#') ? color : '#9CA3AF');
+        }
+
+        async function loadCalStatuses() {
+            try { calStatuses = await API.get('/calendar-statuses') || []; } catch (e) { calStatuses = []; }
+            if (!calStatuses.length) {
+                calStatuses = [
+                    { id: 0, name: 'Просрочено', color: 'red' },
+                    { id: 0, name: 'В работе', color: 'green' },
+                    { id: 0, name: 'Ожидает', color: 'yellow' },
+                    { id: 0, name: 'Цель', color: 'purple' },
+                    { id: 0, name: 'Выполнено', color: 'gray' }
+                ];
+            }
+            renderLegend();
+        }
+        function renderLegend() {
+            const el = document.getElementById('calLegend');
+            if (!el) return;
+            el.innerHTML = calStatuses.map(s =>
+                `<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${getColHex(s.color)};"></span> ${s.name}</div>`
+            ).join('');
+        }
+
+        try { teamUsers = await API.get('/users') || []; } catch (e) { teamUsers = []; }
+        try { goals = await API.get('/goals') || []; } catch (e) { goals = []; }
+        await loadCalStatuses();
+
+        const now = new Date();
+        let calYear = now.getFullYear();
+        let calMonth = now.getMonth();
+
+        // Multi-select filters (no "Все") — restore from session or all checked
+        let selectedPersons, selectedTypes;
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('calFilters') || 'null');
+            if (saved && Array.isArray(saved.persons) && Array.isArray(saved.types)) {
+                selectedPersons = new Set(saved.persons.filter(n => teamUsers.some(u => u.name === n)));
+                if (!selectedPersons.size) selectedPersons = new Set(teamUsers.map(u => u.name));
+                selectedTypes = new Set(saved.types.filter(t => ['task', 'goal', 'deadline'].includes(t)));
+                if (!selectedTypes.size) selectedTypes = new Set(['task', 'goal', 'deadline']);
+            } else {
+                selectedPersons = new Set(teamUsers.map(u => u.name));
+                selectedTypes = new Set(['task', 'goal', 'deadline']);
+            }
+        } catch (e) {
+            selectedPersons = new Set(teamUsers.map(u => u.name));
+            selectedTypes = new Set(['task', 'goal', 'deadline']);
+        }
+
+        function saveCalFilters() {
+            try {
+                sessionStorage.setItem('calFilters', JSON.stringify({
+                    persons: [...selectedPersons],
+                    types: [...selectedTypes]
+                }));
+            } catch (e) {}
+        }
+
+        // Row height stretch (localStorage)
+        const ROW_MIN = 80;
+        const ROW_MAX = 320;
+        let rowBaseH = parseInt(localStorage.getItem('calRowHeight') || '100', 10);
+        if (isNaN(rowBaseH) || rowBaseH < ROW_MIN) rowBaseH = 100;
+        if (rowBaseH > ROW_MAX) rowBaseH = ROW_MAX;
+
+        const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+        function toISO(y, m, d) {
+            const mm = (m + 1) < 10 ? '0' + (m + 1) : '' + (m + 1);
+            const dd = d < 10 ? '0' + d : '' + d;
+            return y + '-' + mm + '-' + dd;
+        }
+
+        function parseISO(s) {
+            if (!s) return null;
+            const day = String(s).trim().slice(0, 10);
+            const p = day.split('-');
+            if (p.length !== 3) return null;
+            return new Date(+p[0], +p[1] - 1, +p[2]);
+        }
+
+        function daysBetween(a, b) {
+            return Math.round((b - a) / 86400000);
+        }
+
+        function updateFilterBtnLabels() {
+            const pBtn = document.getElementById('calPersonFilterBtn');
+            const tBtn = document.getElementById('calTypeFilterBtn');
+            if (pBtn) {
+                const n = selectedPersons.size;
+                const total = teamUsers.length;
+                pBtn.innerHTML = (n === total || n === 0 ? 'Исполнитель' : 'Исполнитель (' + n + ')') +
+                    ' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg>';
+            }
+            if (tBtn) {
+                const labels = { task: 'Задачи', goal: 'Цели', deadline: 'Дедлайны' };
+                const active = [...selectedTypes].map(k => labels[k]).filter(Boolean);
+                const text = active.length === 3 || active.length === 0
+                    ? 'Отображение'
+                    : (active.length === 1 ? active[0] : 'Отображение (' + active.length + ')');
+                tBtn.innerHTML = text +
+                    ' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg>';
+            }
+        }
+
+        function renderPersonMenu() {
+            const menu = document.getElementById('calPersonMenu');
+            if (!menu) return;
+            if (!teamUsers.length) {
+                menu.innerHTML = '<div class="cal-filter-empty">Нет пользователей</div>';
+                return;
+            }
+            menu.innerHTML = teamUsers.map(u =>
+                `<label class="cal-filter-check"><input type="checkbox" value="${u.name.replace(/"/g, '&quot;')}" ${selectedPersons.has(u.name) ? 'checked' : ''}> ${u.name}</label>`
+            ).join('');
+            menu.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) selectedPersons.add(cb.value);
+                    else selectedPersons.delete(cb.value);
+                    saveCalFilters();
+                    updateFilterBtnLabels();
+                    render();
+                });
+            });
+        }
+
+        function renderTypeMenu() {
+            const menu = document.getElementById('calTypeMenu');
+            if (!menu) return;
+            const opts = [
+                { id: 'task', label: 'Задачи' },
+                { id: 'goal', label: 'Цели' },
+                { id: 'deadline', label: 'Дедлайны' }
+            ];
+            menu.innerHTML = opts.map(o =>
+                `<label class="cal-filter-check"><input type="checkbox" value="${o.id}" ${selectedTypes.has(o.id) ? 'checked' : ''}> ${o.label}</label>`
+            ).join('');
+            menu.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) selectedTypes.add(cb.value);
+                    else selectedTypes.delete(cb.value);
+                    saveCalFilters();
+                    updateFilterBtnLabels();
+                    render();
+                });
+            });
+        }
+
+        window.toggleCalFilterMenu = function(which) {
+            const personMenu = document.getElementById('calPersonMenu');
+            const typeMenu = document.getElementById('calTypeMenu');
+            if (which === 'person') {
+                const open = personMenu.classList.contains('show');
+                typeMenu.classList.remove('show');
+                personMenu.classList.toggle('show', !open);
+            } else {
+                const open = typeMenu.classList.contains('show');
+                personMenu.classList.remove('show');
+                typeMenu.classList.toggle('show', !open);
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.cal-filter-dd')) {
+                document.getElementById('calPersonMenu')?.classList.remove('show');
+                document.getElementById('calTypeMenu')?.classList.remove('show');
+            }
+        });
+
+        renderPersonMenu();
+        renderTypeMenu();
+        updateFilterBtnLabels();
+        
+        window.calPrev = function() { calMonth--; if(calMonth<0){calMonth=11;calYear--; } render(); };
+        window.calNext = function() { calMonth++; if(calMonth>11){calMonth=0;calYear++; } render(); };
+        window.calToday = function() { calYear=now.getFullYear(); calMonth=now.getMonth(); render(); };
+
+        function statusByName(name) {
+            return calStatuses.find(s => s.name.toLowerCase() === String(name || '').toLowerCase());
+        }
+        function eventBarStyle(ev) {
+            let statusName = '';
+            if (ev.type === 'goal') statusName = 'Цель';
+            else if (ev.type === 'deadline') statusName = 'Просрочено';
+            else if (ev.done) statusName = 'Выполнено';
+            else if (ev.urgent || (ev.end && ev.end < new Date().toISOString().slice(0, 10) && !ev.done)) statusName = 'Просрочено';
+            else if (ev.status === 'В работе') statusName = 'В работе';
+            else if (ev.status === 'Ожидает' || /соглас/i.test(ev.status || '')) statusName = 'Ожидает';
+            else statusName = ev.status || 'Ожидает';
+            const st = statusByName(statusName) || statusByName(
+                ev.type === 'goal' ? 'Цель' : (ev.done ? 'Выполнено' : 'Ожидает')
+            );
+            return st ? getColHex(st.color) : '#3B82F6';
+        }
+
+        function allPersonsSelected() {
+            return teamUsers.length > 0 && selectedPersons.size === teamUsers.length;
+        }
+
+        function personMatch(nameOrList) {
+            if (!selectedPersons.size) return false;
+            // When all accounts selected — show items without assignee too
+            if (allPersonsSelected()) return true;
+            if (Array.isArray(nameOrList)) {
+                const list = nameOrList.filter(Boolean);
+                if (!list.length) return false;
+                return list.some(n => selectedPersons.has(n));
+            }
+            return !!nameOrList && selectedPersons.has(nameOrList);
+        }
+
+        function dayPart(s) {
+            if (!s) return '';
+            const t = String(s).trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+            const m = t.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+            if (m) {
+                const dd = m[1].padStart(2, '0');
+                const mm = m[2].padStart(2, '0');
+                return m[3] + '-' + mm + '-' + dd;
+            }
+            return '';
+        }
+
+        function openDayPage(dateISO) {
+            if (!dateISO) return;
+            saveCalFilters();
+            location.href = '/pages/calendar-day.html?date=' + encodeURIComponent(dateISO);
+        }
+
+        function collectEvents() {
+            const events = [];
+            // Tasks
+            if (selectedTypes.has('task')) {
+                CRM.getTasks().forEach(t => {
+                    const start = dayPart(t.date);
+                    if (!start) return;
+                    if (!personMatch(t.person || '')) return;
+                    const end = dayPart(t.date_end) || start;
+                    events.push({
+                        id: t.id,
+                        type: 'task',
+                        name: t.name,
+                        start, end,
+                        person: t.person,
+                        done: !!t.done,
+                        urgent: !!t.urgent,
+                        status: t.column_status,
+                        time: t.time || '',
+                        project_id: t.project_id,
+                        href: t.project_id ? '/pages/project.html?id=' + t.project_id : '/pages/tasks.html?task=' + t.id
+                    });
+                });
+            }
+            // Goals
+            if (selectedTypes.has('goal')) {
+                goals.forEach(g => {
+                    const start = dayPart(g.date_start || g.date_end);
+                    const end = dayPart(g.date_end || g.date_start) || start;
+                    if (!start) return;
+                    const assignees = g.assignees || [];
+                    if (!personMatch(assignees.length ? assignees : [''])) return;
+                    events.push({
+                        id: g.id,
+                        type: 'goal',
+                        name: g.name,
+                        start, end,
+                        person: assignees.join(', '),
+                        done: g.status === 'done',
+                        urgent: false,
+                        status: g.status,
+                        time: '',
+                        href: '/pages/goal.html?id=' + g.id
+                    });
+                });
+            }
+            // Project + goal deadlines
+            if (selectedTypes.has('deadline')) {
+                const todayISO = new Date().toISOString().slice(0, 10);
+                CRM.getProjects().forEach(p => {
+                    const people = [];
+                    if (p.assignee) people.push(p.assignee);
+                    if (Array.isArray(p.team)) p.team.forEach(n => { if (n) people.push(n); });
+                    if (!personMatch(people)) return;
+                    const dates = [];
+                    const dl = dayPart(p.deadline);
+                    const pay = dayPart(p.payment_due_date);
+                    if (dl) dates.push({ day: dl, label: 'Дедлайн: ' + p.name });
+                    if (pay && pay !== dl) dates.push({ day: pay, label: 'Оплата: ' + p.name });
+                    dates.forEach(d => {
+                        events.push({
+                            id: 'dl_' + p.id + '_' + d.day,
+                            type: 'deadline',
+                            name: d.label,
+                            start: d.day,
+                            end: d.day,
+                            person: p.assignee || '',
+                            done: false,
+                            urgent: d.day < todayISO,
+                            status: 'Ожидает',
+                            time: '',
+                            href: '/pages/project.html?id=' + p.id
+                        });
+                    });
+                });
+                goals.forEach(g => {
+                    const end = dayPart(g.date_end);
+                    if (!end) return;
+                    const assignees = g.assignees || [];
+                    if (!personMatch(assignees.length ? assignees : [''])) return;
+                    events.push({
+                        id: 'gdl_' + g.id + '_' + end,
+                        type: 'deadline',
+                        name: 'Дедлайн цели: ' + g.name,
+                        start: end,
+                        end: end,
+                        person: assignees.join(', '),
+                        done: g.status === 'done',
+                        urgent: end < todayISO && g.status !== 'done',
+                        status: g.status === 'done' ? 'Готово' : 'Ожидает',
+                        time: '',
+                        href: '/pages/goal.html?id=' + g.id
+                    });
+                });
+            }
+            return events;
+        }
+        
+        function render() {
+            document.getElementById('calMonthLabel').textContent = MONTHS[calMonth] + ' ' + calYear;
+            const grid = document.getElementById('calGrid');
+            // Keep headers
+            const headers = [...grid.querySelectorAll('.cal-day-header')];
+            grid.innerHTML = '';
+            headers.forEach(h => grid.appendChild(h));
+
+            const firstDay = new Date(calYear, calMonth, 1).getDay();
+            const firstDayAdj = firstDay === 0 ? 6 : firstDay - 1;
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            const totalCells = Math.ceil((firstDayAdj + daysInMonth) / 7) * 7;
+
+            // Build flat day list for the grid
+            const days = [];
+            for (let i = 0; i < totalCells; i++) {
+                const dayNum = i - firstDayAdj + 1;
+                if (dayNum < 1 || dayNum > daysInMonth) {
+                    days.push({ empty: true, date: null, col: i % 7 });
+                } else {
+                    days.push({
+                        empty: false,
+                        day: dayNum,
+                        date: toISO(calYear, calMonth, dayNum),
+                        col: i % 7,
+                        isToday: dayNum === now.getDate() && calMonth === now.getMonth() && calYear === now.getFullYear(),
+                        isWeekend: new Date(calYear, calMonth, dayNum).getDay() === 0 || new Date(calYear, calMonth, dayNum).getDay() === 6
+                    });
+                }
+            }
+
+            const events = collectEvents();
+            const BAR_H = 20;
+            const BAR_GAP = 2;
+            const TOP_PAD = 28;
+
+            // Render week by week
+            for (let w = 0; w < days.length / 7; w++) {
+                const weekDays = days.slice(w * 7, w * 7 + 7);
+                const weekEl = document.createElement('div');
+                weekEl.className = 'cal-week';
+
+                // Day cells
+                weekDays.forEach(d => {
+                    const cell = document.createElement('div');
+                    cell.className = 'cal-day' + (d.empty ? ' cal-day-empty' : '') + (d.isToday ? ' cal-today' : '') + (d.isWeekend ? ' cal-weekend' : '');
+                    if (!d.empty) {
+                        cell.classList.add('cal-day-clickable');
+                        cell.title = 'Открыть день ' + d.date;
+                        cell.addEventListener('click', (e) => {
+                            if (e.target.closest('.cal-event-bar')) return;
+                            openDayPage(d.date);
+                        });
+                        const num = document.createElement('div');
+                        num.className = 'cal-day-num' + (d.isToday ? ' cal-today-num' : '');
+                        num.textContent = d.day;
+                        cell.appendChild(num);
+                    }
+                    weekEl.appendChild(cell);
+                });
+
+                // Events layer
+                const layer = document.createElement('div');
+                layer.className = 'cal-week-events';
+
+                const weekStartISO = weekDays.find(d => d.date)?.date;
+                const weekEndISO = [...weekDays].reverse().find(d => d.date)?.date;
+                if (!weekStartISO) {
+                    grid.appendChild(weekEl);
+                    continue;
+                }
+
+                // Events overlapping this week
+                const weekEvents = [];
+                events.forEach(ev => {
+                    const evStart = parseISO(ev.start);
+                    const evEnd = parseISO(ev.end) || evStart;
+                    if (!evStart) return;
+                    const wStart = parseISO(weekStartISO);
+                    const wEnd = parseISO(weekEndISO) || wStart;
+                    if (evEnd < wStart || evStart > wEnd) return;
+
+                    // Column indices within the week (0-6), including empty leading/trailing cells
+                    let startCol = 0, endCol = 6;
+                    for (let c = 0; c < 7; c++) {
+                        if (weekDays[c].date && weekDays[c].date >= ev.start) { startCol = c; break; }
+                        if (weekDays[c].date) startCol = c; // clamp to first real day if event starts before week
+                    }
+                    for (let c = 6; c >= 0; c--) {
+                        if (weekDays[c].date && weekDays[c].date <= ev.end) { endCol = c; break; }
+                        if (weekDays[c].date) endCol = c;
+                    }
+                    // If event starts before this week, start from first non-empty day
+                    if (ev.start < weekStartISO) {
+                        startCol = weekDays.findIndex(d => d.date);
+                        if (startCol < 0) startCol = 0;
+                    }
+                    if (ev.end > weekEndISO) {
+                        for (let c = 6; c >= 0; c--) {
+                            if (weekDays[c].date) { endCol = c; break; }
+                        }
+                    }
+                    if (endCol < startCol) return;
+                    weekEvents.push({ ev, startCol, endCol });
+                });
+
+                // Assign lanes (greedy)
+                const lanes = [];
+                weekEvents.sort((a, b) => a.startCol - b.startCol || (b.endCol - b.startCol) - (a.endCol - a.startCol));
+                weekEvents.forEach(item => {
+                    let lane = 0;
+                    while (true) {
+                        if (!lanes[lane]) lanes[lane] = [];
+                        const conflict = lanes[lane].some(o => !(item.endCol < o.startCol || item.startCol > o.endCol));
+                        if (!conflict) { lanes[lane].push(item); item.lane = lane; break; }
+                        lane++;
+                    }
+                });
+
+                weekEvents.forEach(item => {
+                    const bar = document.createElement('div');
+                    bar.className = 'cal-event-bar' + (item.ev.done ? ' cal-event-done' : '');
+                    const left = (item.startCol / 7) * 100;
+                    const width = ((item.endCol - item.startCol + 1) / 7) * 100;
+                    bar.style.left = 'calc(' + left + '% + 2px)';
+                    bar.style.width = 'calc(' + width + '% - 4px)';
+                    bar.style.top = (TOP_PAD + item.lane * (BAR_H + BAR_GAP)) + 'px';
+                    bar.style.background = eventBarStyle(item.ev);
+                    const label = (item.ev.time ? item.ev.time + ' ' : '') + item.ev.name;
+                    bar.textContent = label;
+                    bar.title = item.ev.name + (item.ev.person ? ' — ' + item.ev.person : '') +
+                        (item.ev.start !== item.ev.end ? ' (' + item.ev.start + ' → ' + item.ev.end + ')' : '');
+                    bar.onclick = () => { if (item.ev.href) location.href = item.ev.href; };
+                    layer.appendChild(bar);
+                });
+
+                // Grow week height to fit lanes + user stretch
+                const laneCount = lanes.length;
+                const minH = Math.max(rowBaseH, TOP_PAD + laneCount * (BAR_H + BAR_GAP) + 8);
+                weekEl.style.minHeight = minH + 'px';
+                weekEl.querySelectorAll('.cal-day').forEach(c => { c.style.minHeight = minH + 'px'; });
+
+                weekEl.appendChild(layer);
+                grid.appendChild(weekEl);
+            }
+        }
+        
+        render();
+
+        // Drag to stretch calendar row height
+        (function initCalResize() {
+            const handle = document.getElementById('calResizeHandle');
+            if (!handle) return;
+            let startY = 0;
+            let startH = 0;
+            let dragging = false;
+
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                dragging = true;
+                startY = e.clientY;
+                startH = rowBaseH;
+                document.body.classList.add('cal-resizing');
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                const delta = e.clientY - startY;
+                // Distribute drag across ~5 weeks roughly → amplify a bit
+                let next = Math.round(startH + delta * 0.35);
+                next = Math.max(ROW_MIN, Math.min(ROW_MAX, next));
+                if (next !== rowBaseH) {
+                    rowBaseH = next;
+                    render();
+                }
+            });
+            window.addEventListener('mouseup', () => {
+                if (!dragging) return;
+                dragging = false;
+                document.body.classList.remove('cal-resizing');
+                try { localStorage.setItem('calRowHeight', String(rowBaseH)); } catch (e) {}
+            });
+        })();
+
+        window.showCalStatusConfigModal = async function() {
+            await loadCalStatuses();
+            const overlay = document.getElementById('modalOverlay');
+
+            function renderList() {
+                return calStatuses.map(c => {
+                    const hex = getColHex(c.color);
+                    const swatchesHtml = presetColors.map(cl =>
+                        `<div class="color-swatch${c.color === cl.name || c.color === cl.hex ? ' active' : ''}" style="background:${cl.hex};" data-color="${cl.name}" data-col-id="${c.id}" onclick="event.stopPropagation();selectCalPresetColor(this,${c.id},'${cl.name}')" title="${cl.name}"></div>`
+                    ).join('');
+                    return `
+                    <div class="col-config-item" data-col-id="${c.id}" draggable="true">
+                        <div class="col-config-handle" title="Перетащить для изменения порядка">${dragHandleSvg}</div>
+                        <div class="col-config-dot" style="background:${hex}"></div>
+                        <div class="col-config-name" ondblclick="startRenameCalStatus(this, ${c.id})" title="Дважды кликните для переименования">${c.name}</div>
+                        <div class="color-palette-wrapper">
+                            <button class="color-palette-btn" onclick="toggleCalColorPalette(this, ${c.id})" title="Изменить цвет" style="background:${hex};">${paletteSvg}</button>
+                            <div class="color-palette-dropdown" id="cal-palette-${c.id}">
+                                <div class="color-palette-grid">${swatchesHtml}</div>
+                                <div class="color-custom-row">
+                                    <input type="color" class="color-custom-input" value="${hex}" data-col-id="${c.id}" onchange="saveCalCustomColor(${c.id},this.value)">
+                                    <span style="font-size:0.75rem;color:var(--gray-500);">Свой цвет</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);padding:2px 6px;" onclick="deleteCalStatus(${c.id})" aria-label="Удалить">✕</button>
+                    </div>`;
+                }).join('');
+            }
+
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Настройка статусов календаря</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div style="font-size:0.8rem;color:var(--gray-500);margin-bottom:12px;">Перетащите для порядка · Двойной клик по названию для переименования</div>
+                        <div id="calStatusConfigList">${renderList()}</div>
+                        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                            <div style="font-weight:600;font-size:0.85rem;margin-bottom:8px;">Добавить статус</div>
+                            <div style="display:flex;gap:8px;">
+                                <input type="text" class="form-input" id="newCalStatusName" placeholder="Название" style="flex:1;">
+                                <button class="btn btn-primary btn-sm" onclick="addCalStatus()">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            initCalStatusDragDrop();
+        };
+
+        window.toggleCalColorPalette = function(btn, colId) {
+            const dropdown = document.getElementById('cal-palette-' + colId);
+            if (!dropdown) return;
+            const isOpen = dropdown.classList.contains('show');
+            document.querySelectorAll('.color-palette-dropdown.show').forEach(d => d.classList.remove('show'));
+            if (!isOpen) {
+                dropdown.classList.add('show');
+                if (typeof event !== 'undefined' && event) event.stopPropagation();
+            }
+        };
+
+        window.selectCalPresetColor = async function(swatchEl, colId, color) {
+            const grid = swatchEl.parentElement;
+            grid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            swatchEl.classList.add('active');
+            const dropdown = swatchEl.closest('.color-palette-dropdown');
+            if (dropdown) dropdown.classList.remove('show');
+            try {
+                await API.put('/calendar-statuses/' + colId, { color });
+                await loadCalStatuses();
+                render();
+                const item = document.querySelector(`.col-config-item[data-col-id="${colId}"]`);
+                if (item) {
+                    const hex = presetColors.find(c => c.name === color)?.hex || color;
+                    const dot = item.querySelector('.col-config-dot');
+                    if (dot) dot.style.background = hex;
+                    const btn = item.querySelector('.color-palette-btn');
+                    if (btn) btn.style.background = hex;
+                    const customInput = item.querySelector('.color-custom-input');
+                    if (customInput) customInput.value = hex;
+                }
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        window.saveCalCustomColor = async function(colId, hexColor) {
+            try {
+                await API.put('/calendar-statuses/' + colId, { color: hexColor });
+                await loadCalStatuses();
+                render();
+                const item = document.querySelector(`.col-config-item[data-col-id="${colId}"]`);
+                if (item) {
+                    const dot = item.querySelector('.col-config-dot');
+                    if (dot) dot.style.background = hexColor;
+                    const btn = item.querySelector('.color-palette-btn');
+                    if (btn) btn.style.background = hexColor;
+                    item.querySelectorAll('.color-swatch').forEach(s => {
+                        s.classList.toggle('active', s.dataset.color === hexColor);
+                    });
+                }
+                document.querySelectorAll('.color-palette-dropdown.show').forEach(d => d.classList.remove('show'));
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        window.startRenameCalStatus = function(el, colId) {
+            const currentName = el.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text'; input.value = currentName; input.className = 'col-config-name-edit';
+            el.replaceWith(input); input.focus(); input.select();
+            async function save() {
+                const newName = input.value.trim() || currentName;
+                try {
+                    await API.put('/calendar-statuses/' + colId, { name: newName });
+                    await loadCalStatuses();
+                    showCalStatusConfigModal();
+                    render();
+                } catch (err) { showToast(err.message || 'Ошибка', 'error'); }
+            }
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+            });
+        };
+
+        function initCalStatusDragDrop() {
+            const list = document.getElementById('calStatusConfigList');
+            if (!list) return;
+            let draggedEl = null;
+            list.querySelectorAll('.col-config-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedEl = item; item.classList.add('col-dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', item.dataset.colId);
+                });
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('col-dragging');
+                    document.querySelectorAll('.col-drag-over').forEach(el => el.classList.remove('col-drag-over'));
+                    draggedEl = null;
+                });
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (draggedEl && draggedEl !== item) item.classList.add('col-drag-over');
+                });
+                item.addEventListener('dragleave', () => item.classList.remove('col-drag-over'));
+                item.addEventListener('drop', async (e) => {
+                    e.preventDefault(); item.classList.remove('col-drag-over');
+                    if (!draggedEl || draggedEl === item) return;
+                    const rect = item.getBoundingClientRect();
+                    if (e.clientY < rect.top + rect.height / 2) list.insertBefore(draggedEl, item);
+                    else list.insertBefore(draggedEl, item.nextSibling);
+                    const items = [...list.querySelectorAll('.col-config-item')];
+                    for (let i = 0; i < items.length; i++) {
+                        await API.put('/calendar-statuses/' + items[i].dataset.colId, { sort_order: i });
+                    }
+                    await loadCalStatuses();
+                    render();
+                });
+            });
+        }
+
+        window.addCalStatus = async function() {
+            const name = document.getElementById('newCalStatusName').value.trim();
+            if (!name) { showToast('Введите название', 'error'); return; }
+            try {
+                await API.post('/calendar-statuses', { name, color: 'blue' });
+                showToast('Статус добавлен', 'success');
+                await loadCalStatuses();
+                showCalStatusConfigModal();
+                render();
+            } catch (err) { showToast(err.message || 'Ошибка', 'error'); }
+        };
+
+        window.deleteCalStatus = async function(id) {
+            try {
+                await API.delete('/calendar-statuses/' + id);
+                showToast('Статус удалён', 'success');
+                await loadCalStatuses();
+                showCalStatusConfigModal();
+                render();
+            } catch (err) { showToast(err.message || 'Ошибка', 'error'); }
+        };
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.color-palette-wrapper')) {
+                document.querySelectorAll('.color-palette-dropdown.show').forEach(d => d.classList.remove('show'));
+            }
+        });
+        
+        window.refreshPageData = async function() {
+            await CRM.load();
+            try { goals = await API.get('/goals') || []; } catch (e) {}
+            await loadCalStatuses();
+            render();
+        };
+    })();
+    </script>
+</body>
+</html>

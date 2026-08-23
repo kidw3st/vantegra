@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интеграции — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=64">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=24"></script>
+    <script src="/assets/js/app.js?v=55"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+        const me = API.getCurrentUser();
+        const isAdmin = me?.role === 'admin';
+        let rows = [];
+        let lastHealthAt = null;
+        let activeAiId = null;
+        const DOMAIN = 'https://crm-seo-123.xyz/';
+
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('integrations') + renderHeader() + `
+            <div class="int-sticky" id="intSticky">
+                <div class="page-header" style="margin-bottom:8px;">
+                    <div>
+                        <h1 class="page-title">Интеграции <span class="badge badge-gray" id="pageVersionBadge" title="Версия">v…</span></h1>
+                        <p class="page-subtitle tip" data-tip="Публичный адрес CRM" title="${DOMAIN}">${DOMAIN}</p>
+                    </div>
+                    <div class="page-actions" style="align-items:center;">
+                        <span class="int-refresh-meta" id="healthUpdatedAt">ещё не обновляли</span>
+                        <button class="btn btn-secondary tip" id="btnRefreshHealth" data-tip="Обновить health и статусы" title="Обновить" aria-label="Обновить" style="padding:8px 10px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="stats-grid" id="healthStats" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));"></div>
+                <div class="int-tabs" id="intTabs">
+                    <button type="button" class="int-tab active" data-target="secGithub">GitHub</button>
+                    <button type="button" class="int-tab" data-target="secServer">Сервер</button>
+                    <button type="button" class="int-tab" data-target="secAdminvps">AdminVPS</button>
+                    <button type="button" class="int-tab" data-target="secBilling">Биллинг</button>
+                    <button type="button" class="int-tab" data-target="secAi">AI</button>
+                </div>
+            </div>
+
+            <div id="secGithub" class="int-section"></div>
+            <div id="secServer" class="int-section" style="margin-top:16px;"></div>
+            <div id="secAdminvps" class="int-section" style="margin-top:16px;"></div>
+            <div id="secBilling" class="int-section" style="margin-top:16px;"></div>
+            <div id="secAi" class="int-section" style="margin-top:16px;"></div>
+
+            <div class="card" style="margin-top:16px;margin-bottom:16px;">
+                <div class="card-header"><h3 class="card-title tip" data-tip="Служебные записи CRM">Прочие подключения</h3></div>
+                <div class="card-body" id="integrationsList"><p class="text-muted">Загрузка…</p></div>
+            </div>
+            </div></div></div>
+        `;
+
+        initCommonUI();
+
+        function esc(s) { return escapeHtmlText(String(s ?? '')); }
+        function tipAttr(text) {
+            return ` class="tip" data-tip="${esc(text).replace(/"/g, '&quot;')}" title="${esc(text).replace(/"/g, '&quot;')}"`;
+        }
+        function statusPill(status, configured) {
+            if (status === 'ok') return `<span class="badge badge-success tip" data-tip="Подключено / OK">подключено</span>`;
+            if (status === 'error') return `<span class="badge badge-danger tip" data-tip="Ошибка проверки">ошибка</span>`;
+            if (configured) return `<span class="badge badge-warning tip" data-tip="Есть данные, нажмите проверить">ожидает</span>`;
+            return `<span class="badge badge-gray tip" data-tip="Нет сохранённых секретов/хоста">не настроено</span>`;
+        }
+        function fmtUpdated(d) {
+            if (!d) return 'ещё не обновляли';
+            const x = new Date(d);
+            const p = n => String(n).padStart(2, '0');
+            return 'обновлено ' + p(x.getHours()) + ':' + p(x.getMinutes()) + ':' + p(x.getSeconds());
+        }
+
+        document.getElementById('intTabs').onclick = (e) => {
+            const tab = e.target.closest('.int-tab');
+            if (!tab) return;
+            document.querySelectorAll('.int-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const el = document.getElementById(tab.dataset.target);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
+        async function loadHealth() {
+            const box = document.getElementById('healthStats');
+            try {
+                const h = await API.get('/api/integrations/health');
+                lastHealthAt = Date.now();
+                document.getElementById('healthUpdatedAt').textContent = fmtUpdated(lastHealthAt);
+                const upMin = Math.floor((h.server?.uptimeSec || 0) / 60);
+                const ver = h.version || window.CRM_APP_VERSION || '—';
+                const vb = document.getElementById('pageVersionBadge');
+                if (vb) vb.textContent = 'v' + ver;
+                const ig = h.integrations || {};
+                const stColor = (s) => s === 'ok' ? 'var(--success)' : (s === 'error' ? 'var(--danger)' : 'var(--warning)');
+                const stWord = (s) => s === 'ok' ? 'OK' : (s === 'error' ? 'ERR' : '—');
+                const domainHost = String(ig.domainUrl || 'crm-seo-123.xyz').replace(/^https?:\/\//, '').replace(/\/$/, '');
+                const ghName = ig.githubLabel || 'GitHub';
+                const sshName = ig.sshLabel || ig.sshHost || 'SSH';
+                const fmtExp = (d) => {
+                    if (!d) return '—';
+                    const t = new Date(d + (String(d).length === 10 ? 'T12:00:00' : ''));
+                    if (Number.isNaN(t.getTime())) return String(d);
+                    const days = Math.ceil((t - Date.now()) / 86400000);
+                    const p = n => String(n).padStart(2, '0');
+                    const s = p(t.getDate()) + '.' + p(t.getMonth() + 1);
+                    if (days < 0) return s + ' · просроч.';
+                    if (days <= 14) return s + ' · ' + days + 'д';
+                    return s;
+                };
+                const expColor = (d) => {
+                    if (!d) return '';
+                    const t = new Date(d + (String(d).length === 10 ? 'T12:00:00' : ''));
+                    const days = Math.ceil((t - Date.now()) / 86400000);
+                    if (days < 0) return 'var(--danger)';
+                    if (days <= 14) return 'var(--warning)';
+                    return 'var(--success)';
+                };
+                box.innerHTML = `
+                    <div class="stat-card"${tipAttr('Общий статус CRM')}>
+                        <div class="stat-info"><div class="stat-label">Состояние</div>
+                        <div class="stat-value" style="color:${h.ok ? 'var(--success)' : 'var(--danger)'}">${h.ok ? 'OK' : 'FAIL'}</div></div>
+                    </div>
+                    <div class="stat-card"${tipAttr('Версия CRM')}>
+                        <div class="stat-info"><div class="stat-label">Версия</div><div class="stat-value">${esc(ver)}</div></div>
+                    </div>
+                    <div class="stat-card"${tipAttr('Uptime · БД')}>
+                        <div class="stat-info"><div class="stat-label">Uptime / БД</div>
+                        <div class="stat-value" style="font-size:0.95rem !important;">${upMin}м · <span style="color:${h.db?.ok ? 'var(--success)' : 'var(--danger)'}">${h.db?.ok ? 'БД' : 'БД!'}</span></div></div>
+                    </div>
+                    <div class="stat-card int-stat-wide"${tipAttr(ig.githubRepo || 'Репозиторий GitHub')}>
+                        <div class="stat-info">
+                            <div class="stat-label">GitHub · <span style="color:${stColor(ig.github)}">${stWord(ig.github)}</span></div>
+                            <div class="stat-value" style="font-size:0.78rem !important;font-weight:600;word-break:break-all;">${esc(ghName)}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card int-stat-wide"${tipAttr('SSH хост деплоя')}>
+                        <div class="stat-info">
+                            <div class="stat-label">SSH · <span style="color:${stColor(ig.ssh)}">${stWord(ig.ssh)}</span></div>
+                            <div class="stat-value" style="font-size:0.85rem !important;font-weight:600;">${esc(sshName)}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card"${tipAttr('AdminVPS кабинет / DNS')}>
+                        <div class="stat-info">
+                            <div class="stat-label">AdminVPS</div>
+                            <div class="stat-value" style="color:${stColor(ig.adminvps)}">${stWord(ig.adminvps)}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card"${tipAttr('Домен · продление ' + (ig.domainExpires || 'не задано'))}>
+                        <div class="stat-info">
+                            <div class="stat-label">Домен · <span style="color:${stColor(ig.domain)}">${stWord(ig.domain)}</span></div>
+                            <div class="stat-value" style="font-size:0.78rem !important;color:${expColor(ig.domainExpires) || 'inherit'}">${esc(domainHost)}${ig.domainExpires ? ' · ' + fmtExp(ig.domainExpires) : ''}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card"${tipAttr('Хостинг · ' + (ig.hostingPlan || ig.hostingProvider || 'биллинг'))}>
+                        <div class="stat-info">
+                            <div class="stat-label">Хостинг · <span style="color:${stColor(ig.hosting)}">${stWord(ig.hosting)}</span></div>
+                            <div class="stat-value" style="font-size:0.78rem !important;color:${expColor(ig.hostingExpires) || 'inherit'}">${esc(ig.hostingAmount ? (ig.hostingAmount + ' ' + (ig.hostingCurrency || '')) : (ig.hostingPlan || '—'))}${ig.hostingExpires ? ' · ' + fmtExp(ig.hostingExpires) : ''}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card"${tipAttr('Нейронки OK / всего')}>
+                        <div class="stat-info"><div class="stat-label">AI</div>
+                        <div class="stat-value">${ig.ai?.ok ?? 0}/${ig.ai?.total ?? 0}</div></div>
+                    </div>
+                `;
+            } catch (e) {
+                box.innerHTML = '<p class="text-muted">Не удалось получить health</p>';
+            }
+        }
+
+        function renderGithub() {
+            const gh = rows.find(r => r.type === 'github');
+            const box = document.getElementById('secGithub');
+            if (!gh) { box.innerHTML = '<p class="text-muted">Нет GitHub</p>'; return; }
+            const c = gh.config || {};
+            box.innerHTML = `
+            <div class="card">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3 class="card-title tip" data-tip="Репозиторий для деплоя">GitHub</h3>
+                    ${statusPill(gh.status, gh.configured)}
+                </div>
+                <div class="card-body">
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label tip" data-tip="URL репозитория">Repo URL</label>
+                            <input class="form-input int-autosave" data-save="github" id="ghRepo" value="${esc(c.repoUrl || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Ветка">Branch</label>
+                            <input class="form-input int-autosave" data-save="github" id="ghBranch" value="${esc(c.branch || 'main')}" ${isAdmin ? '' : 'readonly'}></div>
+                    </div>
+                    <div class="form-group"><label class="form-label tip" data-tip="Token для private">GitHub token</label>
+                        <input class="form-input int-autosave" data-save="github" id="ghToken" type="password" placeholder="${c.has_token ? '•••• сохранён' : 'ghp_…'}" ${isAdmin ? '' : 'readonly'}></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="int-autosave-hint text-muted text-sm" id="ghSaveHint"></span>
+                        ${isAdmin ? `<button class="btn btn-secondary tip" data-tip="Проверить конфиг" onclick="testIntegration(${gh.id})">Проверить</button>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderServer() {
+            const ssh = rows.find(r => r.type === 'ssh_deploy' || r.type === 'server_ssh');
+            const box = document.getElementById('secServer');
+            if (!ssh) { box.innerHTML = '<p class="text-muted">Нет SSH</p>'; return; }
+            const c = ssh.config || {};
+            const auto = !!(ssh.meta && ssh.meta.auto_connect);
+            box.innerHTML = `
+            <div class="card">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3 class="card-title tip" data-tip="SSH деплой на прод">Сервер (SSH)</h3>
+                    ${statusPill(ssh.status, ssh.configured)}
+                </div>
+                <div class="card-body">
+                    <p class="text-sm text-muted tip" data-tip="Публичный домен CRM" style="margin:0 0 12px;">
+                        Домен: <a href="${DOMAIN}" target="_blank" rel="noopener">${DOMAIN}</a>
+                    </p>
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label tip" data-tip="IP/хост">Host</label>
+                            <input class="form-input int-autosave" data-save="ssh" id="sshHost" value="${esc(c.host || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Порт SSH">Port</label>
+                            <input class="form-input int-autosave" data-save="ssh" id="sshPort" value="${esc(c.port || 22)}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Логин">Username</label>
+                            <input class="form-input int-autosave" data-save="ssh" id="sshUser" value="${esc(c.username || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Пароль в vault">Password</label>
+                            <input class="form-input int-autosave" data-save="ssh" id="sshPass" type="password" placeholder="${c.has_password ? '•••• сохранён' : 'пароль'}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Папка приложения">App dir</label>
+                            <input class="form-input int-autosave" data-save="ssh" id="sshApp" value="${esc(c.appDir || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Папка бэкапов">Backup dir</label>
+                            <input class="form-input int-autosave" data-save="ssh" id="sshBackup" value="${esc(c.backupDir || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                    </div>
+                    ${isAdmin ? `
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                        <label class="form-check tip" data-tip="При открытии страницы сразу проверять SSH" style="margin:0;">
+                            <input type="checkbox" class="int-autosave" data-save="ssh" id="sshAutoConnect" ${auto ? 'checked' : ''}> Подключать автоматически
+                        </label>
+                        <span class="int-autosave-hint text-muted text-sm" id="sshSaveHint"></span>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button class="btn btn-secondary tip" data-tip="Проверить SSH" onclick="testIntegration(${ssh.id})">Проверить SSH</button>
+                        <button class="btn btn-secondary tip" data-tip="Копия БД перед деплоем" onclick="runBackup(${ssh.id})">Копия БД</button>
+                        <button class="btn btn-primary tip" data-tip="Деплой с GitHub + миграции БД" onclick="runDeploy(${ssh.id})">Деплой с GitHub</button>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn btn-secondary tip" data-tip="Откатить к prev" onclick="runRestore(${ssh.id})">Откатить БД</button>
+                        <button class="btn btn-danger tip" data-tip="Оставить только старую БД" onclick="runKeepOld(${ssh.id})">Оставить старую БД</button>
+                    </div>
+                    <pre id="deployLog" class="text-sm" style="margin-top:14px;max-height:200px;overflow:auto;background:var(--gray-50);padding:12px;border-radius:8px;white-space:pre-wrap;"></pre>
+                    ` : ''}
+                </div>
+            </div>`;
+        }
+
+        let avCaptchaSessionId = '';
+        let avCaptchaImage = '';
+        let avDnsRecords = [];
+        let avDnsSessionOk = false;
+        let avDnsHint = '';
+
+        function dnsTableHtml(id) {
+            const rowsHtml = (avDnsRecords || []).map((r, i) => `
+                <tr data-line="${esc(r.line || r.id || i)}" data-idx="${i}">
+                    <td><input class="form-input dns-f" data-k="name" value="${esc(r.name || '@')}" ${isAdmin ? '' : 'readonly'}></td>
+                    <td>
+                        <select class="form-input dns-f" data-k="type" ${isAdmin ? '' : 'disabled'}>
+                            ${['A','AAAA','CNAME','MX','TXT','NS','SRV','CAA','PTR'].map(t =>
+                                `<option value="${t}"${(r.type || '').toUpperCase() === t ? ' selected' : ''}>${t}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td><input class="form-input dns-f" data-k="ttl" value="${esc(r.ttl || '3600')}" ${isAdmin ? '' : 'readonly'}></td>
+                    <td><input class="form-input dns-f" data-k="data" value="${esc(r.data || '')}" ${isAdmin ? '' : 'readonly'}></td>
+                    ${isAdmin ? `<td class="dns-actions">
+                        <button type="button" class="btn btn-ghost btn-sm tip" data-tip="Сохранить" data-dns-save="${i}">OK</button>
+                        <button type="button" class="btn btn-ghost btn-sm tip" data-tip="Удалить" data-dns-del="${i}">Del</button>
+                    </td>` : '<td></td>'}
+                </tr>`).join('');
+            return `
+            <div class="av-dns-box" id="avDnsBox">
+                <div class="av-dns-head">
+                    <div class="form-label tip" data-tip="Записи зоны из AdminVPS DNSManager2" style="margin:0;">DNS записи зоны</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        ${isAdmin ? `
+                        <button type="button" class="btn btn-ghost btn-sm tip" data-tip="Обновить из кабинета" onclick="refreshDnsZone(${id})">Обновить</button>
+                        <button type="button" class="btn btn-secondary btn-sm tip" data-tip="Добавить запись" onclick="addDnsRecord(${id})">+ Запись</button>
+                        ` : ''}
+                    </div>
+                </div>
+                <p class="text-muted text-sm" id="avDnsHint" style="margin:0 0 10px;">${esc(avDnsHint || (avDnsSessionOk ? 'Сессия активна' : 'Сначала войдите с капчей'))}</p>
+                <div class="av-dns-table-wrap">
+                    <table class="av-dns-table">
+                        <thead><tr><th>Имя</th><th>Тип</th><th>TTL</th><th>Данные</th><th></th></tr></thead>
+                        <tbody id="avDnsBody">
+                            ${rowsHtml || '<tr><td colspan="5" class="text-muted">Нет записей</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+                ${isAdmin ? `
+                <div class="av-dns-add" id="avDnsAdd" style="display:none;margin-top:12px;">
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label">Имя</label><input class="form-input" id="dnsNewName" value="@"></div>
+                        <div class="form-group"><label class="form-label">Тип</label>
+                            <select class="form-input" id="dnsNewType">${['A','AAAA','CNAME','MX','TXT','NS','SRV'].map(t => `<option>${t}</option>`).join('')}</select>
+                        </div>
+                        <div class="form-group"><label class="form-label">TTL</label><input class="form-input" id="dnsNewTtl" value="3600"></div>
+                        <div class="form-group"><label class="form-label">Данные</label><input class="form-input" id="dnsNewData" placeholder="IP / хост / текст"></div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="createDnsRecord(${id})">Добавить в зону</button>
+                </div>` : ''}
+            </div>`;
+        }
+
+        function renderAdminvps() {
+            const av = rows.find(r => r.type === 'adminvps');
+            const box = document.getElementById('secAdminvps');
+            if (!box) return;
+            if (!av) {
+                box.innerHTML = '<div class="card"><div class="card-body"><p class="text-muted">Нет AdminVPS</p></div></div>';
+                return;
+            }
+            const c = av.config || {};
+            const m = av.meta || {};
+            const panel = m.panel_url || `https://my.adminvps.ru/index.php?m=DNSManager2&mg-action=editZone&zone_id=${esc(m.zone_id || '64808')}`;
+            box.innerHTML = `
+            <div class="card">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <h3 class="card-title tip" data-tip="Личный кабинет AdminVPS и DNS-зона">AdminVPS</h3>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="int-autosave-hint text-muted text-sm" id="avSaveHint"></span>
+                        ${statusPill(av.status, av.configured)}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-sm text-muted" style="margin:0 0 12px;">
+                        DNS:
+                        <a href="${esc(panel)}" target="_blank" rel="noopener" class="tip" data-tip="Открыть зону в кабинете">зона ${esc(m.zone_id || '—')}</a>
+                        · домен CRM: <a href="${DOMAIN}" target="_blank" rel="noopener">${DOMAIN}</a>
+                    </p>
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label tip" data-tip="URL кабинета">Base URL</label>
+                            <input class="form-input int-autosave" data-save="adminvps" id="avBase" value="${esc(c.baseUrl || m.baseUrl || 'https://my.adminvps.ru')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="ID DNS зоны">Zone ID</label>
+                            <input class="form-input int-autosave" data-save="adminvps" id="avZone" value="${esc(m.zone_id || '64808')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Email кабинета">Email</label>
+                            <input class="form-input int-autosave" data-save="adminvps" id="avEmail" value="${esc(c.email || m.email || '')}" ${isAdmin ? '' : 'readonly'} autocomplete="off"></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Пароль в vault">Пароль</label>
+                            <input class="form-input int-autosave" data-save="adminvps" id="avPass" type="password" placeholder="${c.has_password ? '•••• сохранён' : 'пароль'}" ${isAdmin ? '' : 'readonly'} autocomplete="new-password"></div>
+                    </div>
+                    ${isAdmin ? `
+                    <div class="av-captcha-box" id="avCaptchaBox">
+                        <div class="form-label tip" data-tip="Капча из кабинета AdminVPS">Капча для входа</div>
+                        <div class="av-captcha-row">
+                            <img id="avCaptchaImg" alt="Капча" class="av-captcha-img tip" data-tip="Нажмите, чтобы обновить" title="Обновить капчу">
+                            <div style="flex:1;min-width:160px;">
+                                <input class="form-input" id="avCaptchaCode" placeholder="Код с картинки" autocomplete="off">
+                                <button type="button" class="btn btn-ghost btn-sm tip" data-tip="Новая картинка" onclick="loadAdminvpsCaptcha(${av.id})" style="margin-top:6px;">Обновить капчу</button>
+                            </div>
+                        </div>
+                        <p class="text-muted text-sm" id="avCaptchaHint" style="margin:8px 0 0;">Загрузка капчи…</p>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                        <button class="btn btn-primary tip" data-tip="Вход с капчей + загрузка DNS" onclick="testAdminvps(${av.id})">Войти и загрузить DNS</button>
+                        <a class="btn btn-secondary tip" data-tip="Открыть кабинет" href="${esc(panel)}" target="_blank" rel="noopener">Открыть кабинет</a>
+                    </div>
+                    <pre id="avLog" class="text-sm" style="margin-top:14px;max-height:120px;overflow:auto;background:var(--gray-50);padding:12px;border-radius:8px;white-space:pre-wrap;"></pre>
+                    ` : ''}
+                    ${dnsTableHtml(av.id)}
+                </div>
+            </div>`;
+            if (isAdmin) {
+                const img = document.getElementById('avCaptchaImg');
+                const hint = document.getElementById('avCaptchaHint');
+                const code = document.getElementById('avCaptchaCode');
+                if (avCaptchaSessionId && avCaptchaImage) {
+                    if (img) {
+                        img.src = avCaptchaImage;
+                        img.onclick = () => loadAdminvpsCaptcha(av.id);
+                    }
+                    if (code) code.oninput = () => { code.value = code.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+                    if (hint) hint.textContent = 'Введите код → «Войти и загрузить DNS». Клик по картинке = новая капча.';
+                } else {
+                    loadAdminvpsCaptcha(av.id);
+                }
+                if (avDnsSessionOk) refreshDnsZone(av.id, { silent: true });
+            }
+        }
+
+        function renderBilling() {
+            const box = document.getElementById('secBilling');
+            if (!box) return;
+            const dom = rows.find(r => r.type === 'domain');
+            const sub = rows.find(r => r.type === 'subscription');
+            const dm = (dom && dom.meta) || {};
+            const sm = (sub && sub.meta) || {};
+            box.innerHTML = `
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <h3 class="card-title tip" data-tip="Публичный домен CRM и дата продления">Домен CRM</h3>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="int-autosave-hint text-muted text-sm" id="domSaveHint"></span>
+                        ${dom ? statusPill(dom.status, dom.configured) : ''}
+                    </div>
+                </div>
+                <div class="card-body">
+                    ${dom ? `
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label tip" data-tip="URL сайта">URL</label>
+                            <input class="form-input int-autosave" data-save="domain" id="domUrl" value="${esc(dm.url || dm.domain || DOMAIN)}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Дата продления домена">Продление до</label>
+                            <input class="form-input int-autosave" data-save="domain" id="domRenew" type="date" value="${esc(dm.renew_date || dm.expires_at || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Регистратор">Регистратор</label>
+                            <input class="form-input int-autosave" data-save="domain" id="domReg" value="${esc(dm.registrar || '')}" placeholder="AdminVPS / …" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Заметка">Заметка</label>
+                            <input class="form-input int-autosave" data-save="domain" id="domNote" value="${esc(dm.note || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                    </div>` : '<p class="text-muted">Нет записи домена</p>'}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <h3 class="card-title tip" data-tip="Оплата VPS / хостинга">Хостинг / биллинг</h3>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="int-autosave-hint text-muted text-sm" id="subSaveHint"></span>
+                        ${sub ? statusPill(sub.status, sub.configured) : ''}
+                    </div>
+                </div>
+                <div class="card-body">
+                    ${sub ? `
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label tip" data-tip="Провайдер">Провайдер</label>
+                            <input class="form-input int-autosave" data-save="subscription" id="subProvider" value="${esc(sm.provider || 'AdminVPS')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Тариф / план">Тариф</label>
+                            <input class="form-input int-autosave" data-save="subscription" id="subPlan" value="${esc(sm.plan || '')}" placeholder="VPS …" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Сумма оплаты">Сумма</label>
+                            <input class="form-input int-autosave" data-save="subscription" id="subAmount" value="${esc(sm.amount || '')}" placeholder="1200" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Валюта">Валюта</label>
+                            <input class="form-input int-autosave" data-save="subscription" id="subCurrency" value="${esc(sm.currency || 'RUB')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Оплачено до">Оплачено до</label>
+                            <input class="form-input int-autosave" data-save="subscription" id="subPaid" type="date" value="${esc(sm.paid_until || sm.renew_date || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Следующее продление">Продление</label>
+                            <input class="form-input int-autosave" data-save="subscription" id="subRenew" type="date" value="${esc(sm.renew_date || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group" style="grid-column:1/-1;"><label class="form-label tip" data-tip="Заметка">Заметка</label>
+                            <input class="form-input int-autosave" data-save="subscription" id="subNote" value="${esc(sm.note || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                    </div>` : '<p class="text-muted">Нет записи биллинга</p>'}
+                </div>
+            </div>`;
+        }
+
+        function renderAi() {
+            const box = document.getElementById('secAi');
+            const ais = rows.filter(r => String(r.type || '').startsWith('ai_'));
+            if (!ais.length) {
+                box.innerHTML = '<div class="card"><div class="card-body"><p class="text-muted">Нет AI</p>' +
+                    (isAdmin ? '<button class="btn btn-primary" onclick="addAi()">+ Добавить</button>' : '') + '</div></div>';
+                return;
+            }
+            if (!activeAiId || !ais.some(a => a.id === activeAiId)) activeAiId = ais[0].id;
+            const active = ais.find(a => a.id === activeAiId) || ais[0];
+            const m = active.meta || {};
+            const c = active.config || {};
+
+            const tabs = ais.map(a => `
+                <div class="int-ai-tab${a.id === activeAiId ? ' active' : ''}" data-ai="${a.id}">
+                    <span class="ai-tab-label" data-id="${a.id}">${esc(a.name)}</span>
+                    ${isAdmin ? `<button type="button" class="int-ai-edit tip" data-tip="Переименовать" data-edit-ai="${a.id}" aria-label="Переименовать" title="Переименовать">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </button>` : ''}
+                    ${isAdmin && a.type !== 'ai_openai' && a.type !== 'ai_claude' ? `<button type="button" class="btn btn-ghost btn-sm tip" data-tip="Удалить" data-del-ai="${a.id}" style="padding:0 4px;color:var(--danger);">&times;</button>` : ''}
+                </div>`).join('');
+
+            box.innerHTML = `
+            <div class="card">
+                <div class="card-body">
+                    <div class="int-ai-tabs">
+                        ${tabs}
+                        ${isAdmin ? `<button type="button" class="int-ai-add tip" data-tip="Добавить нейронку" onclick="addAi()">+</button>` : ''}
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group"><label class="form-label tip" data-tip="Токены использовано">Токенов использовано</label>
+                            <input class="form-input ai-field int-autosave" data-save="ai" data-k="tokens_used" type="number" value="${esc(m.tokens_used || 0)}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Лимит тарифа">Лимит токенов</label>
+                            <input class="form-input ai-field int-autosave" data-save="ai" data-k="tokens_limit" type="number" value="${esc(m.tokens_limit || 0)}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Дата покупки">Дата покупки</label>
+                            <input class="form-input ai-field int-autosave" data-save="ai" data-k="purchase_date" type="date" value="${esc(m.purchase_date || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Обновление тарифа">Дата обновления тарифа</label>
+                            <input class="form-input ai-field int-autosave" data-save="ai" data-k="renew_date" type="date" value="${esc(m.renew_date || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="Название тарифа">Тариф</label>
+                            <input class="form-input ai-field int-autosave" data-save="ai" data-k="tariff" value="${esc(m.tariff || '')}" ${isAdmin ? '' : 'readonly'}></div>
+                        <div class="form-group"><label class="form-label tip" data-tip="API key в vault">API key</label>
+                            <input class="form-input int-autosave" data-save="ai" id="aiKeyActive" type="password" placeholder="${c.has_api_key ? '•••• сохранён' : 'sk-…'}" ${isAdmin ? '' : 'readonly'}></div>
+                    </div>
+                    <span class="int-autosave-hint text-muted text-sm" id="aiSaveHint"></span>
+                </div>
+            </div>`;
+
+            function startRenameAi(id) {
+                if (!isAdmin) return;
+                const row = ais.find(a => a.id === id);
+                if (!row) return;
+                const label = box.querySelector(`.ai-tab-label[data-id="${id}"]`);
+                if (!label) return;
+                const input = document.createElement('input');
+                input.value = row.name;
+                input.className = 'form-input';
+                input.style.cssText = 'width:140px;padding:2px 6px;font-size:0.85rem;';
+                label.replaceWith(input);
+                input.focus();
+                input.select();
+                let done = false;
+                const commit = async () => {
+                    if (done) return;
+                    done = true;
+                    const name = input.value.trim();
+                    if (!name || name === row.name) { renderAi(); return; }
+                    try {
+                        await API.put('/api/integrations/' + id, { name });
+                        showToast('Переименовано', 'success');
+                        await loadIntegrations();
+                    } catch (err) {
+                        showToast(err.message || 'Ошибка', 'error');
+                        renderAi();
+                    }
+                };
+                input.addEventListener('blur', commit);
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+                    if (ev.key === 'Escape') { done = true; renderAi(); }
+                });
+            }
+
+            box.querySelectorAll('.int-ai-tab[data-ai]').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    if (e.target.closest('[data-del-ai]') || e.target.closest('[data-edit-ai]') || e.target.closest('input')) return;
+                    activeAiId = Number(tab.dataset.ai);
+                    renderAi();
+                });
+            });
+            box.querySelectorAll('[data-del-ai]').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (!confirm('Удалить нейронку?')) return;
+                    try {
+                        await API.delete('/api/integrations/' + btn.dataset.delAi);
+                        showToast('Удалено', 'success');
+                        await loadIntegrations();
+                    } catch (err) { showToast(err.message || 'Ошибка', 'error'); }
+                });
+            });
+            box.querySelectorAll('[data-edit-ai]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    startRenameAi(Number(btn.dataset.editAi));
+                });
+            });
+            bindAutosave();
+        }
+
+        const OTHER_HELP = {
+            server: 'Текущий процесс CRM',
+            database: 'SQLite crm.db',
+            subscription: 'Биллинг (вкладка выше)',
+            domain: 'Домен (вкладка выше)',
+            adminvps: 'Кабинет AdminVPS (основная карточка выше)'
+        };
+
+        async function loadIntegrations() {
+            const list = document.getElementById('integrationsList');
+            try {
+                rows = await API.get('/api/integrations') || [];
+                renderGithub();
+                renderServer();
+                renderAdminvps();
+                renderBilling();
+                renderAi();
+                bindAutosave();
+                const other = rows.filter(r => !['github', 'ssh_deploy', 'server_ssh', 'adminvps', 'domain', 'subscription'].includes(r.type) && !String(r.type).startsWith('ai_'));
+                list.innerHTML = other.map(r => {
+                    const help = OTHER_HELP[r.type] || (r.meta && (r.meta.label || r.meta.url || r.meta.domain)) || r.type;
+                    const ok = r.status === 'ok';
+                    const extra = (r.meta && (r.meta.url || r.meta.domain)) ? ' · ' + (r.meta.url || r.meta.domain) : '';
+                    return `<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);align-items:center;" class="tip" data-tip="${esc(help)}">
+                        <div><div style="font-weight:600;${ok ? 'color:var(--success);' : ''}">${esc(r.name)}</div>
+                        <div class="text-sm text-muted">${esc(help)}${esc(extra)}</div></div>
+                        ${statusPill(r.status, r.configured)}
+                    </div>`;
+                }).join('') || '<p class="text-muted">Нет записей</p>';
+            } catch (e) {
+                list.innerHTML = '<p class="text-muted">Ошибка загрузки</p>';
+            }
+        }
+
+        function setLog(text) {
+            const el = document.getElementById('deployLog');
+            if (el) el.textContent = text || '';
+        }
+
+        function setSaveHint(id, text, ok) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text || '';
+            el.style.color = ok === false ? 'var(--danger)' : (ok ? 'var(--success)' : '');
+        }
+
+        window.saveGithub = async function(id, opts = {}) {
+            const silent = !!opts.silent;
+            try {
+                const secret = {
+                    repoUrl: document.getElementById('ghRepo').value.trim(),
+                    branch: document.getElementById('ghBranch').value.trim() || 'main'
+                };
+                const token = document.getElementById('ghToken').value;
+                if (token) secret.token = token;
+                await API.put('/api/integrations/' + id, { meta: { repoUrl: secret.repoUrl, branch: secret.branch }, secret });
+                if (silent) setSaveHint('ghSaveHint', 'сохранено', true);
+                else {
+                    showToast('GitHub сохранён', 'success');
+                    await loadHealth();
+                }
+            } catch (e) {
+                if (silent) setSaveHint('ghSaveHint', 'ошибка', false);
+                else showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.saveSsh = async function(id, opts = {}) {
+            const silent = !!opts.silent;
+            try {
+                const secret = {
+                    host: document.getElementById('sshHost').value.trim(),
+                    port: Number(document.getElementById('sshPort').value) || 22,
+                    username: document.getElementById('sshUser').value.trim(),
+                    appDir: document.getElementById('sshApp').value.trim(),
+                    backupDir: document.getElementById('sshBackup').value.trim()
+                };
+                const pass = document.getElementById('sshPass').value;
+                if (pass) secret.password = pass;
+                const auto = !!document.getElementById('sshAutoConnect')?.checked;
+                await API.put('/api/integrations/' + id, {
+                    meta: { ...secret, auto_connect: auto, domain: DOMAIN },
+                    secret
+                });
+                if (silent) setSaveHint('sshSaveHint', 'сохранено', true);
+                else {
+                    showToast('SSH сохранён', 'success');
+                    await loadHealth();
+                }
+            } catch (e) {
+                if (silent) setSaveHint('sshSaveHint', 'ошибка', false);
+                else showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.saveAdminvps = async function(id, opts = {}) {
+            const silent = !!opts.silent;
+            try {
+                const baseUrl = document.getElementById('avBase').value.trim() || 'https://my.adminvps.ru';
+                const zoneId = document.getElementById('avZone').value.trim() || '64808';
+                const email = document.getElementById('avEmail').value.trim();
+                const secret = { baseUrl, email };
+                const pass = document.getElementById('avPass').value;
+                if (pass) secret.password = pass;
+                const panel_url = `${baseUrl.replace(/\/$/, '')}/index.php?m=DNSManager2&mg-action=editZone&zone_id=${encodeURIComponent(zoneId)}`;
+                await API.put('/api/integrations/' + id, {
+                    meta: { baseUrl, zone_id: zoneId, email, domain: DOMAIN, panel_url, label: 'Кабинет AdminVPS · DNSManager' },
+                    secret
+                });
+                if (silent) setSaveHint('avSaveHint', 'сохранено', true);
+                else showToast('AdminVPS сохранён', 'success');
+            } catch (e) {
+                if (silent) setSaveHint('avSaveHint', 'ошибка', false);
+                else showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.saveDomain = async function(id, opts = {}) {
+            const silent = !!opts.silent;
+            try {
+                const url = document.getElementById('domUrl')?.value.trim() || DOMAIN;
+                const renew_date = document.getElementById('domRenew')?.value || '';
+                const registrar = document.getElementById('domReg')?.value.trim() || '';
+                const note = document.getElementById('domNote')?.value.trim() || '';
+                await API.put('/api/integrations/' + id, {
+                    meta: { url, domain: url, renew_date, expires_at: renew_date, registrar, note, label: 'Публичный адрес CRM' }
+                });
+                if (silent) setSaveHint('domSaveHint', 'сохранено', true);
+                else showToast('Домен сохранён', 'success');
+            } catch (e) {
+                if (silent) setSaveHint('domSaveHint', 'ошибка', false);
+                else showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.saveSubscription = async function(id, opts = {}) {
+            const silent = !!opts.silent;
+            try {
+                const provider = document.getElementById('subProvider')?.value.trim() || 'AdminVPS';
+                const plan = document.getElementById('subPlan')?.value.trim() || '';
+                const amount = document.getElementById('subAmount')?.value.trim() || '';
+                const currency = document.getElementById('subCurrency')?.value.trim() || 'RUB';
+                const paid_until = document.getElementById('subPaid')?.value || '';
+                const renew_date = document.getElementById('subRenew')?.value || paid_until;
+                const note = document.getElementById('subNote')?.value.trim() || '';
+                await API.put('/api/integrations/' + id, {
+                    meta: {
+                        provider, plan, amount, currency, paid_until, renew_date,
+                        expires_at: paid_until || renew_date,
+                        domain: DOMAIN, note, label: 'Оплата хостинга / VPS'
+                    }
+                });
+                if (silent) setSaveHint('subSaveHint', 'сохранено', true);
+                else showToast('Биллинг сохранён', 'success');
+            } catch (e) {
+                if (silent) setSaveHint('subSaveHint', 'ошибка', false);
+                else showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.loadAdminvpsCaptcha = async function(id) {
+            const img = document.getElementById('avCaptchaImg');
+            const hint = document.getElementById('avCaptchaHint');
+            const code = document.getElementById('avCaptchaCode');
+            if (hint) hint.textContent = 'Загрузка капчи…';
+            if (code) code.value = '';
+            avCaptchaSessionId = '';
+            avCaptchaImage = '';
+            try {
+                const r = await API.get('/api/integrations/' + id + '/adminvps-captcha');
+                if (!r.ok || !r.image) throw new Error(r.error || r.err || 'Нет картинки');
+                avCaptchaSessionId = r.sessionId || '';
+                avCaptchaImage = r.image;
+                if (img) {
+                    img.src = avCaptchaImage;
+                    img.onclick = () => loadAdminvpsCaptcha(id);
+                }
+                if (code) {
+                    code.focus();
+                    code.oninput = () => { code.value = code.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+                }
+                if (hint) hint.textContent = 'Введите код → «Войти и загрузить DNS». Клик по картинке = новая капча.';
+            } catch (e) {
+                avCaptchaSessionId = '';
+                avCaptchaImage = '';
+                if (hint) hint.textContent = 'Капча не загрузилась: ' + (e.message || e);
+                if (img) img.removeAttribute('src');
+            }
+        };
+
+        function applyDnsRecords(records, hint) {
+            avDnsRecords = Array.isArray(records) ? records : [];
+            avDnsHint = hint || (`Записей: ${avDnsRecords.length}`);
+            const body = document.getElementById('avDnsBody');
+            const hintEl = document.getElementById('avDnsHint');
+            if (hintEl) hintEl.textContent = avDnsHint;
+            if (!body) return;
+            const av = rows.find(r => r.type === 'adminvps');
+            const id = av ? av.id : 0;
+            body.innerHTML = (avDnsRecords.length ? avDnsRecords.map((r, i) => `
+                <tr data-line="${esc(r.line || r.id || i)}" data-idx="${i}">
+                    <td><input class="form-input dns-f" data-k="name" value="${esc(r.name || '@')}"></td>
+                    <td>
+                        <select class="form-input dns-f" data-k="type">
+                            ${['A','AAAA','CNAME','MX','TXT','NS','SRV','CAA','PTR'].map(t =>
+                                `<option value="${t}"${(r.type || '').toUpperCase() === t ? ' selected' : ''}>${t}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td><input class="form-input dns-f" data-k="ttl" value="${esc(r.ttl || '3600')}"></td>
+                    <td><input class="form-input dns-f" data-k="data" value="${esc(r.data || '')}"></td>
+                    <td class="dns-actions">
+                        <button type="button" class="btn btn-ghost btn-sm" data-dns-save="${i}">OK</button>
+                        <button type="button" class="btn btn-ghost btn-sm" data-dns-del="${i}">Del</button>
+                    </td>
+                </tr>`).join('') : '<tr><td colspan="5" class="text-muted">Нет записей</td></tr>');
+            body.querySelectorAll('[data-dns-save]').forEach(btn => {
+                btn.addEventListener('click', () => saveDnsRecord(id, Number(btn.dataset.dnsSave)));
+            });
+            body.querySelectorAll('[data-dns-del]').forEach(btn => {
+                btn.addEventListener('click', () => deleteDnsRecord(id, Number(btn.dataset.dnsDel)));
+            });
+        }
+
+        window.refreshDnsZone = async function(id, opts = {}) {
+            try {
+                const r = await API.get('/api/integrations/' + id + '/adminvps-zone?refresh=1');
+                avDnsSessionOk = true;
+                applyDnsRecords(r.records, r.rawHint || (`Записей: ${(r.records || []).length}` + (r.cached ? ' (кэш)' : '')));
+                if (!opts.silent) showToast('DNS обновлён', 'success');
+            } catch (e) {
+                const msg = e.message || String(e);
+                avDnsSessionOk = false;
+                avDnsHint = /вход|login|капч|сессия/i.test(msg) ? 'Сессия истекла — войдите с капчей' : msg;
+                const hintEl = document.getElementById('avDnsHint');
+                if (hintEl) hintEl.textContent = avDnsHint;
+                if (!opts.silent) showToast(avDnsHint, 'error');
+            }
+        };
+
+        window.addDnsRecord = function() {
+            const box = document.getElementById('avDnsAdd');
+            if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.createDnsRecord = async function(id) {
+            try {
+                const name = document.getElementById('dnsNewName')?.value.trim() || '@';
+                const type = document.getElementById('dnsNewType')?.value || 'A';
+                const ttl = document.getElementById('dnsNewTtl')?.value || '3600';
+                const data = document.getElementById('dnsNewData')?.value.trim() || '';
+                if (!data) { showToast('Укажите данные записи', 'error'); return; }
+                const r = await API.post('/api/integrations/' + id + '/adminvps-zone/records', { name, type, ttl, data });
+                applyDnsRecords(r.records, r.message || 'Добавлено');
+                showToast(r.message || 'Добавлено', 'success');
+                const add = document.getElementById('avDnsAdd');
+                if (add) add.style.display = 'none';
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+                if (/вход|login|капч|401/i.test(e.message || '')) avDnsSessionOk = false;
+            }
+        };
+
+        window.saveDnsRecord = async function(id, idx) {
+            const rec = avDnsRecords[idx];
+            if (!rec) return;
+            const tr = document.querySelector(`#avDnsBody tr[data-idx="${idx}"]`);
+            if (!tr) return;
+            const patch = { line: rec.line || rec.id, id: rec.line || rec.id };
+            tr.querySelectorAll('.dns-f').forEach(el => { patch[el.dataset.k] = el.value; });
+            try {
+                const r = await API.put('/api/integrations/' + id + '/adminvps-zone/records/' + encodeURIComponent(patch.line), patch);
+                applyDnsRecords(r.records, r.message || 'Сохранено');
+                showToast(r.message || 'Сохранено', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.deleteDnsRecord = async function(id, idx) {
+            const rec = avDnsRecords[idx];
+            if (!rec) return;
+            if (!confirm('Удалить DNS запись?')) return;
+            try {
+                const line = rec.line || rec.id;
+                const r = await API.delete('/api/integrations/' + id + '/adminvps-zone/records/' + encodeURIComponent(line));
+                applyDnsRecords(r.records, r.message || 'Удалено');
+                showToast(r.message || 'Удалено', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.testAdminvps = async function(id) {
+            try {
+                await saveAdminvps(id, { silent: true });
+                const captchaCode = (document.getElementById('avCaptchaCode')?.value || '').trim().replace(/\s+/g, '');
+                if (!captchaCode) {
+                    showToast('Введите код с картинки', 'error');
+                    return;
+                }
+                if (!avCaptchaSessionId) {
+                    showToast('Сначала обновите капчу', 'error');
+                    await loadAdminvpsCaptcha(id);
+                    return;
+                }
+                const avLog = document.getElementById('avLog');
+                if (avLog) avLog.textContent = 'Вход и загрузка DNS…';
+                const r = await API.post('/api/integrations/' + id + '/test', {
+                    captchaCode,
+                    captchaSessionId: avCaptchaSessionId
+                });
+                if (avLog) avLog.textContent = JSON.stringify({
+                    ok: r.ok, message: r.message, zoneId: r.zoneId,
+                    count: (r.records || []).length, source: r.source, rawHint: r.rawHint
+                }, null, 2);
+                showToast(r.ok ? (r.message || 'OK') : (r.error || r.message || 'Ошибка'), r.ok ? 'success' : 'error');
+                if (!r.ok) {
+                    avDnsSessionOk = false;
+                    await loadAdminvpsCaptcha(id);
+                } else {
+                    avDnsSessionOk = true;
+                    avDnsRecords = r.records || [];
+                    avDnsHint = r.rawHint || (`Записей: ${avDnsRecords.length}` + (r.source ? ` · ${r.source}` : ''));
+                    const row = rows.find(x => x.id === id);
+                    if (row) row.status = 'ok';
+                    renderAdminvps();
+                    bindAutosave();
+                    applyDnsRecords(avDnsRecords, avDnsHint);
+                }
+                await loadHealth();
+            } catch (e) {
+                const avLog = document.getElementById('avLog');
+                if (avLog) avLog.textContent = e.message || String(e);
+                showToast(e.message || 'Ошибка', 'error');
+                await loadAdminvpsCaptcha(id);
+            }
+        };
+
+        window.addAi = async function() {
+            try {
+                const created = await API.post('/api/integrations', { name: 'Новая нейронка', type: '' });
+                activeAiId = created.id;
+                showToast('Добавлено', 'success');
+                await loadIntegrations();
+            } catch (e) { showToast(e.message || 'Ошибка', 'error'); }
+        };
+
+        window.saveAiActive = async function(opts = {}) {
+            if (!activeAiId) return;
+            const silent = !!opts.silent;
+            try {
+                const meta = {};
+                document.querySelectorAll('#secAi .ai-field').forEach(inp => {
+                    let v = inp.value;
+                    if (inp.dataset.k === 'tokens_used' || inp.dataset.k === 'tokens_limit') v = Number(v) || 0;
+                    meta[inp.dataset.k] = v;
+                });
+                const secret = {};
+                const key = document.getElementById('aiKeyActive')?.value;
+                if (key) secret.api_key = key;
+                await API.put('/api/integrations/' + activeAiId, { meta, secret });
+                if (silent) setSaveHint('aiSaveHint', 'сохранено', true);
+                else showToast('Сохранено', 'success');
+            } catch (e) {
+                if (silent) setSaveHint('aiSaveHint', 'ошибка', false);
+                else showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.testIntegration = async function(id) {
+            try {
+                setLog('Проверка…');
+                const r = await API.post('/api/integrations/' + id + '/test', {});
+                setLog(JSON.stringify(r, null, 2));
+                showToast(r.ok ? (r.message || 'OK') : (r.error || r.message || 'Ошибка'), r.ok ? 'success' : 'error');
+                await loadHealth();
+                // soft status update without wiping inputs
+                const row = rows.find(x => x.id === id);
+                if (row) row.status = r.ok ? 'ok' : 'error';
+            } catch (e) {
+                setLog(e.message || String(e));
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        let _autosaveTimers = {};
+        function bindAutosave() {
+            if (!isAdmin) return;
+            const gh = rows.find(r => r.type === 'github');
+            const ssh = rows.find(r => r.type === 'ssh_deploy' || r.type === 'server_ssh');
+            const av = rows.find(r => r.type === 'adminvps');
+            const dom = rows.find(r => r.type === 'domain');
+            const sub = rows.find(r => r.type === 'subscription');
+            document.querySelectorAll('.int-autosave').forEach(el => {
+                if (el.dataset.boundAutosave) return;
+                el.dataset.boundAutosave = '1';
+                const run = () => {
+                    const kind = el.dataset.save;
+                    const hintMap = {
+                        github: 'ghSaveHint', ssh: 'sshSaveHint', adminvps: 'avSaveHint',
+                        ai: 'aiSaveHint', domain: 'domSaveHint', subscription: 'subSaveHint'
+                    };
+                    setSaveHint(hintMap[kind], 'сохранение…');
+                    clearTimeout(_autosaveTimers[kind]);
+                    _autosaveTimers[kind] = setTimeout(async () => {
+                        if (kind === 'github' && gh) await saveGithub(gh.id, { silent: true });
+                        else if (kind === 'ssh' && ssh) await saveSsh(ssh.id, { silent: true });
+                        else if (kind === 'adminvps' && av) await saveAdminvps(av.id, { silent: true });
+                        else if (kind === 'domain' && dom) await saveDomain(dom.id, { silent: true });
+                        else if (kind === 'subscription' && sub) await saveSubscription(sub.id, { silent: true });
+                        else if (kind === 'ai') await saveAiActive({ silent: true });
+                        await loadHealth();
+                    }, 700);
+                };
+                el.addEventListener('input', run);
+                el.addEventListener('change', run);
+            });
+        }
+        window.runBackup = async function(id) {
+            if (!confirm('Копия crm.db?')) return;
+            try {
+                setLog('Бэкап…');
+                const r = await API.post('/api/integrations/' + id + '/backup', {});
+                setLog((r.out || '') + '\n' + (r.path || ''));
+                showToast(r.ok ? 'Бэкап готов' : 'Ошибка', r.ok ? 'success' : 'error');
+            } catch (e) { showToast(e.message || 'Ошибка', 'error'); }
+        };
+        window.runDeploy = async function(id) {
+            if (!confirm('Деплой с GitHub?')) return;
+            try {
+                setLog('Деплой…');
+                const r = await API.post('/api/integrations/' + id + '/deploy', {});
+                setLog((r.out || '') + '\n' + (r.err || ''));
+                showToast(r.ok ? 'Деплой OK' : 'Ошибка', r.ok ? 'success' : 'error');
+                await loadHealth();
+                await loadIntegrations();
+            } catch (e) { showToast(e.message || 'Ошибка', 'error'); }
+        };
+        window.runRestore = async function(id) {
+            if (!confirm('Откатить БД?')) return;
+            try {
+                const r = await API.post('/api/integrations/' + id + '/restore-prev', {});
+                setLog(r.out || '');
+                showToast(r.ok ? 'Откат OK' : 'Ошибка', r.ok ? 'success' : 'error');
+            } catch (e) { showToast(e.message || 'Ошибка', 'error'); }
+        };
+        window.runKeepOld = async function(id) {
+            if (!confirm('Оставить только старую БД?')) return;
+            try {
+                const r = await API.post('/api/integrations/' + id + '/keep-old-db', {});
+                setLog(r.out || '');
+                showToast(r.ok ? 'Старая БД активна' : 'Ошибка', r.ok ? 'success' : 'error');
+            } catch (e) { showToast(e.message || 'Ошибка', 'error'); }
+        };
+
+        document.getElementById('btnRefreshHealth').onclick = async () => {
+            await loadHealth();
+            await loadIntegrations();
+            showToast('Обновлено', 'success');
+        };
+
+        await loadHealth();
+        await loadIntegrations();
+        const ssh = rows.find(r => r.type === 'ssh_deploy' || r.type === 'server_ssh');
+        if (isAdmin && ssh?.meta?.auto_connect && ssh.config?.has_password) {
+            try { await testIntegration(ssh.id); } catch (e) {}
+        }
+    })();
+    </script>
+</body>
+</html>

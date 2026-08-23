@@ -1,0 +1,8 @@
+{
+  "name": "@vantegra/staff-web",
+  "private": true,
+  "description": "Vanilla JS CRM for staff. Send this folder for UI changes.",
+  "scripts": {
+    "dev": "npx --yes serve . -p 4174"
+  }
+}

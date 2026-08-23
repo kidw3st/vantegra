@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=60">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=24"></script>
+    <script src="/assets/js/app.js?v=55"></script>
+    <script src="/assets/js/dashboard-board.js?v=7"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+
+        const user = API.getCurrentUser();
+        const app = document.getElementById('app');
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+        app.innerHTML = renderSidebar('settings') + renderHeader() + `
+            <div class="page-header"><div><h1 class="page-title">Настройки</h1></div></div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="tabProfile">Профиль</button>
+                <button class="tab-btn" data-tab="tabInterface">Интерфейс</button>
+                <button class="tab-btn" data-tab="tabSecurity">Безопасность</button>
+                <button class="tab-btn" data-tab="tabTeam">Команда</button>
+            </div>
+
+            <!-- ПРОФИЛЬ -->
+            <div class="tab-content active" id="tabProfile">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Личные данные</h3></div>
+                        <div class="card-body">
+                            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+                                <div class="user-avatar" style="width:56px;height:56px;font-size:1.1rem;" id="profileAvatar">${user?.avatar || 'АИ'}</div>
+                                <div>
+                                    <div style="font-weight:600;font-size:1rem;" id="profileNameDisplay">${user?.name || 'Пользователь'}</div>
+                                    <div class="text-muted text-sm" id="profileRoleDisplay">${user?.role === 'admin' ? 'Администратор' : 'Менеджер'}</div>
+                                </div>
+                            </div>
+                            <div class="form-group"><label class="form-label" for="settingsName">Имя</label><input type="text" class="form-input" id="settingsName" value="${user?.name || ''}"></div>
+                            <div class="form-group"><label class="form-label" for="settingsUsername">Логин</label><input type="text" class="form-input" id="settingsUsername" value="${user?.username || ''}"></div>
+                            <div class="form-group"><label class="form-label">Роль</label><input type="text" class="form-input" value="${user?.role === 'admin' ? 'Администратор' : 'Менеджер'}" readonly style="opacity:0.6;cursor:not-allowed;"></div>
+                            <button class="btn btn-primary" onclick="saveProfile()">Сохранить изменения</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Статистика аккаунта</h3></div>
+                        <div class="card-body">
+                            <div id="accountStats" style="display:flex;flex-direction:column;gap:16px;">
+                                <a href="/pages/projects.html" class="tip" data-tip="Открыть проекты" style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--gray-50);border-radius:var(--radius-md);text-decoration:none;color:inherit;cursor:pointer;transition:background .15s;">
+                                    <span class="text-muted">Проектов</span>
+                                    <span style="font-weight:700;font-size:1.1rem;" id="statProjects">—</span>
+                                </a>
+                                <a href="/pages/tasks.html" class="tip" data-tip="Открыть активные задачи" style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--gray-50);border-radius:var(--radius-md);text-decoration:none;color:inherit;cursor:pointer;transition:background .15s;">
+                                    <span class="text-muted">Активных задач</span>
+                                    <span style="font-weight:700;font-size:1.1rem;" id="statTasks">—</span>
+                                </a>
+                                <a href="/pages/tasks.html?filter=overdue" class="tip" data-tip="Открыть просроченные задачи" style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--gray-50);border-radius:var(--radius-md);text-decoration:none;color:inherit;cursor:pointer;transition:background .15s;">
+                                    <span class="text-muted">Просроченных</span>
+                                    <span style="font-weight:700;font-size:1.1rem;color:var(--danger);" id="statOverdue">—</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ИНТЕРФЕЙС -->
+            <div class="tab-content" id="tabInterface">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Тема оформления</h3></div>
+                        <div class="card-body">
+                            <div style="display:flex;gap:12px;">
+                                <button class="btn ${!isDark ? 'btn-primary' : 'btn-secondary'}" onclick="setTheme('light')" style="flex:1;justify-content:center;padding:16px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                                    Светлая
+                                </button>
+                                <button class="btn ${isDark ? 'btn-primary' : 'btn-secondary'}" onclick="setTheme('dark')" style="flex:1;justify-content:center;padding:16px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                                    Тёмная
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title tip" data-tip="Не время сервера — рабочий пояс CRM">Дата и время</h3></div>
+                        <div class="card-body">
+                            <p class="text-muted text-sm" style="margin:0 0 12px;">Сейчас в CRM: <strong id="tzNowLabel">—</strong></p>
+                            <div class="form-group">
+                                <label class="form-label" for="tzSelect">Часовой пояс</label>
+                                <select class="form-input" id="tzSelect" ${user?.role === 'admin' ? '' : 'disabled'}></select>
+                            </div>
+                            <p class="text-muted text-sm tip" data-tip="При смене пояса даты задач/проектов/расходов сдвигаются, если день уже другой" style="margin:0 0 12px;">
+                                По умолчанию — Пермь (UTC+5). При смене пояса даты переносятся.
+                            </p>
+                            ${user?.role === 'admin'
+                                ? '<button class="btn btn-primary" onclick="saveTimezone()">Сохранить пояс</button>'
+                                : '<p class="text-muted text-sm">Менять пояс может только администратор</p>'}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Дашборд</h3></div>
+                        <div class="card-body">
+                            <p class="text-muted text-sm" style="margin-bottom:14px;">Сохраните раскладку дашборда в файл или загрузите чужой конфиг.</p>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <button type="button" class="btn btn-primary" onclick="saveDashConfig()">Сохранить конфиг</button>
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('dashConfigFile').click()">Загрузить конфиг</button>
+                                <input type="file" id="dashConfigFile" accept="application/json,.json" hidden>
+                            </div>
+                            <p class="text-muted text-sm" id="dashConfigHint" style="margin-top:12px;">Файл проверяется: лишние поля и неверный формат отклоняются.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Уведомления</h3></div>
+                        <div class="card-body">
+                            <div style="display:flex;flex-direction:column;gap:14px;">
+                                <label class="form-check" title="Расходы и платежи за 3 дня до даты"><input type="checkbox" checked id="notifReminders"> Напоминания об оплате</label>
+                                <label class="form-check" title="За 7 дней до дедлайна задачи или проекта"><input type="checkbox" checked id="notifDeadlineWeek"> За неделю до дедлайна (задачи и проекты)</label>
+                                <label class="form-check" title="За 1 день до дедлайна задачи или проекта"><input type="checkbox" checked id="notifDeadlineDay"> За 1 день до дедлайна (задачи и проекты)</label>
+                                <label class="form-check" title="Когда дедлайн уже прошёл"><input type="checkbox" checked id="notifOverdue"> Просроченные задачи и проекты</label>
+                            </div>
+                            <button class="btn btn-primary" style="margin-top:16px;" onclick="saveNotifSettings()">Сохранить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- БЕЗОПАСНОСТЬ -->
+            <div class="tab-content" id="tabSecurity">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Смена пароля</h3></div>
+                        <div class="card-body">
+                            <div class="form-group"><label class="form-label" for="currentPassword">Текущий пароль</label><input type="password" class="form-input" id="currentPassword" placeholder="Введите текущий пароль"></div>
+                            <div class="form-group"><label class="form-label" for="newPassword">Новый пароль</label><input type="password" class="form-input" id="newPassword" placeholder="Минимум 6 символов"></div>
+                            <div class="form-group"><label class="form-label" for="confirmPassword">Подтвердите пароль</label><input type="password" class="form-input" id="confirmPassword" placeholder="Повторите новый пароль"></div>
+                            <button class="btn btn-primary" onclick="changePassword()">Сменить пароль</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Сессия</h3></div>
+                        <div class="card-body">
+                            <p class="text-muted" style="margin-bottom:16px;">Вы авторизованы как <strong>${user?.name || '—'}</strong></p>
+                            <button class="btn btn-danger" onclick="API.logout()">Выйти из аккаунта</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- КОМАНДА -->
+            <div class="tab-content" id="tabTeam">
+                <div class="card">
+                    <div class="card-header">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <h3 class="card-title">Команда</h3>
+                            <button class="btn btn-ghost btn-sm" onclick="showNewUserModal()" title="Добавить пользователя" aria-label="Добавить пользователя" style="padding:2px 8px;font-size:1.1rem;line-height:1;">+</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead><tr><th>Пользователь</th><th>Логин</th><th>Роль</th><th></th></tr></thead>
+                                <tbody id="teamTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div></div></div>
+        `;
+
+        initCommonUI();
+
+        // Load stats
+        try {
+            const stats = await API.getStats();
+            document.getElementById('statProjects').textContent = stats.activeProjects || 0;
+            document.getElementById('statTasks').textContent = stats.pendingTasks || 0;
+            document.getElementById('statOverdue').textContent = stats.overdueTasks || 0;
+        } catch (e) {}
+
+        // Load notification settings from server (fallback localStorage)
+        try {
+            const me = await API.checkAuth();
+            if (me) {
+                API.saveUser({ ...API.getCurrentUser(), ...me });
+                document.getElementById('settingsName').value = me.name || '';
+                document.getElementById('settingsUsername').value = me.username || '';
+                document.getElementById('profileAvatar').textContent = me.avatar || '';
+                document.getElementById('profileNameDisplay').textContent = me.name || '';
+                document.getElementById('notifReminders').checked = me.notif_reminders !== false;
+                document.getElementById('notifDeadlineWeek').checked = me.notif_deadline_week !== false;
+                document.getElementById('notifDeadlineDay').checked = me.notif_deadline_day !== false;
+                document.getElementById('notifOverdue').checked = me.notif_overdue !== false;
+            }
+        } catch (e) {
+            const notifSettings = JSON.parse(localStorage.getItem('crm_notif_settings') || '{}');
+            if (notifSettings.reminders === false) document.getElementById('notifReminders').checked = false;
+            if (notifSettings.deadline_week === false || notifSettings.deadlines === false) document.getElementById('notifDeadlineWeek').checked = false;
+            if (notifSettings.deadline_day === false || notifSettings.deadlines === false) document.getElementById('notifDeadlineDay').checked = false;
+            if (notifSettings.overdue === false) document.getElementById('notifOverdue').checked = false;
+        }
+
+        // Save profile → DB
+        window.saveProfile = async function() {
+            const name = document.getElementById('settingsName').value.trim();
+            const username = document.getElementById('settingsUsername').value.trim();
+            if (!name) { showToast('Введите имя', 'error'); return; }
+            if (!username) { showToast('Введите логин', 'error'); return; }
+            try {
+                const updated = await API.put('/users/me', { name, username });
+                API.saveUser({ ...API.getCurrentUser(), ...updated });
+                document.getElementById('profileAvatar').textContent = updated.avatar || '';
+                document.getElementById('profileNameDisplay').textContent = updated.name || name;
+                showToast('Профиль сохранён в БД', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка сохранения', 'error');
+            }
+        };
+
+        // Theme
+        window.setTheme = function(theme) {
+            if (typeof applyTheme === 'function') applyTheme(theme);
+            else {
+                if (theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('crm_theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    localStorage.setItem('crm_theme', 'light');
+                }
+            }
+            showToast(theme === 'dark' ? 'Тёмная тема' : 'Светлая тема', 'success');
+        };
+
+        // Timezone (Perm by default)
+        let _tzClockTimer = null;
+        function paintTzNow(today, now, label) {
+            const el = document.getElementById('tzNowLabel');
+            if (!el) return;
+            const t = today || (window.CrmTime && CrmTime.todayISO()) || '';
+            const n = now || (window.CrmTime && CrmTime.nowTime()) || '';
+            const ru = t && /^\d{4}-\d{2}-\d{2}$/.test(t)
+                ? t.slice(8, 10) + '.' + t.slice(5, 7) + '.' + t.slice(0, 4)
+                : t;
+            el.textContent = (ru && n ? ru + ' ' + n.slice(0, 5) : '—') + (label ? ' · ' + label : '');
+        }
+        async function loadTimezoneSettings() {
+            const sel = document.getElementById('tzSelect');
+            if (!sel) return;
+            try {
+                const s = await API.get('/api/app-settings');
+                const list = s.timezones || [];
+                sel.innerHTML = list.map(z =>
+                    `<option value="${escapeHtmlAttr(z.id)}"${z.id === s.timezone ? ' selected' : ''}>${escapeHtmlText(z.label)}</option>`
+                ).join('');
+                if (s.timezone && window.CrmTime) CrmTime.setTimezone(s.timezone);
+                paintTzNow(s.today, s.now, s.timezoneLabel);
+                if (_tzClockTimer) clearInterval(_tzClockTimer);
+                _tzClockTimer = setInterval(() => {
+                    if (window.CrmTime) paintTzNow(CrmTime.todayISO(), CrmTime.nowTime(), s.timezoneLabel);
+                }, 1000);
+            } catch (e) {
+                sel.innerHTML = '<option value="Asia/Yekaterinburg">Пермь (UTC+5)</option>';
+                paintTzNow();
+            }
+        }
+        window.saveTimezone = async function() {
+            const timezone = document.getElementById('tzSelect')?.value;
+            if (!timezone) return;
+            if (!confirm('Сменить часовой пояс?\nДаты задач, проектов, расходов и напоминаний будут перенесены, если день уже другой.')) return;
+            try {
+                const res = await API.put('/api/app-settings', { timezone, migrate: true });
+                if (res.timezone && window.CrmTime) CrmTime.setTimezone(res.timezone);
+                paintTzNow(res.today, res.now, res.timezoneLabel);
+                const m = res.migration || {};
+                showToast(
+                    m.delta
+                        ? `Пояс сохранён · сдвиг ${m.delta > 0 ? '+' : ''}${m.delta} дн. · записей: ${m.updated || 0}`
+                        : 'Пояс сохранён (даты без сдвига)',
+                    'success'
+                );
+                await loadTimezoneSettings();
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+        loadTimezoneSettings();
+
+        // Dashboard config export / import (validated)
+        window.saveDashConfig = function() {
+            try {
+                const json = DashBoard.exportConfig(user);
+                const blob = new Blob([json], { type: 'application/json' });
+                const a = document.createElement('a');
+                const stamp = (window.CrmTime && CrmTime.todayISO()) || new Date().toISOString().slice(0, 10);
+                a.href = URL.createObjectURL(blob);
+                a.download = 'crm-dashboard-' + stamp + '.json';
+                a.click();
+                URL.revokeObjectURL(a.href);
+                showToast('Конфиг дашборда сохранён', 'success');
+            } catch (e) {
+                showToast('Ошибка сохранения: ' + (e.message || e), 'error');
+            }
+        };
+
+        document.getElementById('dashConfigFile')?.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            if (file.size > 200000) {
+                showToast('Файл слишком большой', 'error');
+                return;
+            }
+            if (file.type && file.type !== 'application/json' && !file.name.endsWith('.json')) {
+                showToast('Нужен JSON-файл конфига', 'error');
+                return;
+            }
+            try {
+                const text = await file.text();
+                const res = DashBoard.importConfig(user, text);
+                if (!res.ok) {
+                    showToast('Файл отклонён: ' + res.error, 'error');
+                    const hint = document.getElementById('dashConfigHint');
+                    if (hint) hint.textContent = 'Ошибка: ' + res.error;
+                    return;
+                }
+                showToast('Конфиг загружен · откройте дашборд', 'success');
+                const hint = document.getElementById('dashConfigHint');
+                if (hint) hint.textContent = 'Загружено блоков: ' + res.config.widgets.length;
+            } catch (err) {
+                showToast('Не удалось прочитать файл', 'error');
+            }
+        });
+
+        // Notification settings → DB
+        window.saveNotifSettings = async function() {
+            const settings = {
+                notif_reminders: document.getElementById('notifReminders').checked,
+                notif_deadline_week: document.getElementById('notifDeadlineWeek').checked,
+                notif_deadline_day: document.getElementById('notifDeadlineDay').checked,
+                notif_overdue: document.getElementById('notifOverdue').checked
+            };
+            settings.notif_deadlines = settings.notif_deadline_week || settings.notif_deadline_day;
+            try {
+                const updated = await API.put('/users/me', settings);
+                API.saveUser({ ...API.getCurrentUser(), ...updated });
+                localStorage.setItem('crm_notif_settings', JSON.stringify({
+                    reminders: settings.notif_reminders,
+                    deadline_week: settings.notif_deadline_week,
+                    deadline_day: settings.notif_deadline_day,
+                    deadlines: settings.notif_deadlines,
+                    overdue: settings.notif_overdue
+                }));
+                showToast('Уведомления сохранены', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка сохранения', 'error');
+            }
+        };
+
+        // Change password → DB + bcrypt
+        window.changePassword = async function() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (!current || !newPass || !confirm) { showToast('Заполните все поля', 'error'); return; }
+            if (newPass.length < 6) { showToast('Пароль минимум 6 символов', 'error'); return; }
+            if (newPass !== confirm) { showToast('Пароли не совпадают', 'error'); return; }
+
+            try {
+                await API.put('/users/me/password', { current_password: current, new_password: newPass });
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                showToast('Пароль изменён', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка смены пароля', 'error');
+            }
+        };
+
+        // ===== TEAM =====
+        const roleLabel = { admin: 'Админ', manager: 'Менеджер' };
+        const avatarColors = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--info)', 'var(--danger)'];
+
+        async function loadTeam() {
+            const tbody = document.getElementById('teamTableBody');
+            try {
+                const users = await API.get('/users') || [];
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;padding:20px;">Нет пользователей</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = users.map((u, i) => {
+                    const canDelete = user?.role === 'admin' && u.id !== user.id;
+                    return `<tr>
+                        <td><div style="display:flex;align-items:center;gap:10px;">
+                            <div class="user-avatar" style="width:30px;height:30px;font-size:0.65rem;background:${avatarColors[i % avatarColors.length]};">${u.avatar || '?'}</div>
+                            <span class="table-cell-name">${u.name}</span>
+                        </div></td>
+                        <td>${u.username}</td>
+                        <td><span class="badge ${u.role === 'admin' ? 'badge-primary' : 'badge-gray'}">${roleLabel[u.role] || u.role}</span></td>
+                        <td style="text-align:right;">${canDelete ? '<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteUser(' + u.id + ', \'' + u.name.replace(/'/g, "\\'") + '\')" title="Удалить">✕</button>' : ''}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-muted">Ошибка загрузки</td></tr>';
+            }
+        }
+
+        window.showNewUserModal = function() {
+            if (user?.role !== 'admin') { showToast('Только админ может добавлять пользователей', 'error'); return; }
+            const overlay = document.getElementById('modalOverlay');
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Новый пользователь</h3>
+                        <button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label">Имя *</label><input type="text" class="form-input" id="newUserName" placeholder="Как отображать в системе"></div>
+                        <div class="form-group"><label class="form-label">Логин *</label><input type="text" class="form-input" id="newUserLogin" placeholder="Для входа"></div>
+                        <div class="form-group"><label class="form-label">Пароль *</label><input type="password" class="form-input" id="newUserPassword" placeholder="Минимум 4 символа"></div>
+                        <div class="form-group"><label class="form-label">Роль</label>
+                            <select class="form-select" id="newUserRole">
+                                <option value="manager">Менеджер</option>
+                                <option value="admin">Администратор</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                        <button class="btn btn-primary" onclick="createUser()">Создать</button>
+                    </div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.createUser = async function() {
+            const name = document.getElementById('newUserName').value.trim();
+            const username = document.getElementById('newUserLogin').value.trim();
+            const password = document.getElementById('newUserPassword').value;
+            const role = document.getElementById('newUserRole').value;
+            if (!name || !username || !password) { showToast('Заполните все поля', 'error'); return; }
+            try {
+                await API.post('/users', { name, username, password, role });
+                closeModal();
+                showToast('Пользователь создан', 'success');
+                await loadTeam();
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.deleteUser = function(id, name) {
+            confirmDelete('Пользователь «' + name + '» удалён', {
+                optimistic: () => {
+                    const row = document.querySelector(`button[onclick*="deleteUser(${id}"]`)?.closest('tr');
+                    if (row) row.remove();
+                },
+                commit: async () => {
+                    await API.delete('/users/' + id);
+                    await loadTeam();
+                },
+                undo: async () => { await loadTeam(); }
+            });
+        };
+
+        await loadTeam();
+    })();
+    </script>
+</body>
+</html>

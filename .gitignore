@@ -10,8 +10,19 @@ desktop.ini
 node_modules/
 
 # папка под заливку на сервер — собирается заново
-dist/
-vantegra-site.zip
 
 # доступы к базе. В репозитории лежит только config.sample.php
-inc/config.php
+
+# ---- монорепозиторий ----
+node_modules/
+*.db
+*.db-wal
+*.db-shm
+.env
+.vault-key
+uploads/
+apps/core-api/uploads/
+apps/core-api/server.log
+apps/marketing-site/dist/
+apps/marketing-site/inc/config.php
+**/.DS_Store

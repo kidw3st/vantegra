@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Документы — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+</head>
+<body class="wiki-mode">
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=23"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+
+        let wikiKinds = [];
+        let pages = [];
+        /** Soft-deleted page ids (waiting for 5s commit or Restore) — hidden from tree/API refresh */
+        const pendingWikiDeletes = new Set();
+        let selectedId = null;
+        let expanded = new Set();
+        let saveTimer = null;
+        let dirty = false;
+        let dragId = null;
+        let treeCollapsed = localStorage.getItem('wikiTreeCollapsed') === '1';
+
+        const filters = {
+            q: '',
+            project_id: '',
+            kinds: new Set(),
+            file_types: new Set() // extensions like ".pdf", ".mp4"
+        };
+        let knownFileExts = [];
+
+        function kindLabel(key) {
+            const k = wikiKinds.find(x => x.key === key);
+            return k ? k.label : key;
+        }
+
+        function kindLabelsMap() {
+            const m = {};
+            wikiKinds.forEach(k => { m[k.key] = k.label; });
+            return m;
+        }
+
+        try {
+            const saved = JSON.parse(localStorage.getItem('wikiExpanded') || '[]');
+            if (Array.isArray(saved)) saved.forEach(id => expanded.add(Number(id)));
+        } catch (e) {}
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function saveExpanded() {
+            try { localStorage.setItem('wikiExpanded', JSON.stringify([...expanded])); } catch (e) {}
+        }
+
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('documents') + renderHeader() + `
+            <div class="wiki-shell">
+                <div class="wiki-topbar">
+                    <div class="wiki-topbar-left">
+                        <button type="button" class="btn btn-ghost btn-icon wiki-tree-toggle" id="wikiTreeToggle" title="Показать/скрыть дерево" aria-label="Дерево страниц">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+                        </button>
+                        <h1 class="wiki-top-title">Документы</h1>
+                        <button type="button" class="btn btn-ghost btn-icon" onclick="wikiManageKinds()" title="Настройки типов" aria-label="Настройки типов" style="width:32px;height:32px;color:var(--gray-400);">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div class="wiki-filters" id="wikiFilters">
+                        <input type="search" class="form-input wiki-search" id="wikiSearch" placeholder="Поиск…">
+                        <select class="form-select" id="wikiFilterProject">
+                            <option value="">Все проекты</option>
+                            <option value="none">Без проекта</option>
+                        </select>
+                        <div class="wiki-ext-filter" id="wikiExtFilter">
+                            <button type="button" class="form-select wiki-ext-filter-btn" id="wikiExtFilterBtn">Тип файла</button>
+                            <div class="wiki-ext-filter-panel" id="wikiExtFilterPanel" hidden>
+                                <input type="search" class="form-input wiki-ext-filter-search" id="wikiExtFilterSearch" placeholder="Поиск .pdf, .mp4…">
+                                <div class="wiki-ext-filter-list" id="wikiExtFilterList"></div>
+                                <div class="wiki-ext-filter-actions">
+                                    <button type="button" class="btn btn-ghost btn-sm" id="wikiExtFilterClear">Сбросить</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wiki-kind-filters" id="wikiKindFilters"></div>
+                    </div>
+                    <div class="wiki-topbar-actions">
+                        <button class="btn btn-primary btn-sm" onclick="wikiCreatePage()">+ Страница</button>
+                    </div>
+                </div>
+
+                <div class="wiki-layout${treeCollapsed ? ' tree-collapsed' : ''}" id="wikiLayout">
+                    <aside class="wiki-tree-panel" id="wikiTreePanel">
+                        <div class="wiki-tree-toolbar">
+                            <span class="wiki-tree-label">Страницы</span>
+                            <div style="display:flex;gap:2px;">
+                                <button class="btn btn-ghost btn-icon btn-sm" onclick="wikiCreatePage()" title="Новая страница" aria-label="Новая страница">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </button>
+                                <button class="btn btn-ghost btn-icon btn-sm" id="wikiTreeCollapseBtn" title="Скрыть дерево" aria-label="Скрыть дерево">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="wiki-drop-root" id="wikiDropRoot" title="Отпустите здесь, чтобы открепить на верхний уровень">
+                            ↕ Открепить на верхний уровень
+                        </div>
+                        <div class="wiki-tree" id="wikiTree"></div>
+                    </aside>
+                    <button type="button" class="wiki-tree-expand" id="wikiTreeExpand" title="Показать дерево">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+                    </button>
+                    <section class="wiki-editor-panel" id="wikiEditor">
+                        <div class="wiki-empty">
+                            <p class="text-muted">Выберите страницу слева или создайте новую</p>
+                            <button class="btn btn-primary" style="margin-top:12px;" onclick="wikiCreatePage()">Создать страницу</button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            </div></div></div>
+        `;
+
+        document.querySelector('.content-wrapper')?.classList.add('full-width', 'wiki-content');
+        initCommonUI();
+
+        function setTreeCollapsed(collapsed) {
+            treeCollapsed = !!collapsed;
+            const layout = document.getElementById('wikiLayout');
+            if (layout) layout.classList.toggle('tree-collapsed', treeCollapsed);
+            try { localStorage.setItem('wikiTreeCollapsed', treeCollapsed ? '1' : '0'); } catch (e) {}
+        }
+        document.getElementById('wikiTreeToggle')?.addEventListener('click', () => setTreeCollapsed(!treeCollapsed));
+        document.getElementById('wikiTreeCollapseBtn')?.addEventListener('click', () => setTreeCollapsed(true));
+        document.getElementById('wikiTreeExpand')?.addEventListener('click', () => setTreeCollapsed(false));
+
+        await CRM.load();
+
+        async function loadKinds() {
+            try {
+                wikiKinds = await API.getWikiKinds() || [];
+            } catch (e) {
+                wikiKinds = [
+                    { id: 0, key: 'page', label: 'Страница' },
+                    { id: 0, key: 'template', label: 'Шаблон' },
+                    { id: 0, key: 'prompt', label: 'Промпт' },
+                    { id: 0, key: 'file', label: 'Файл' }
+                ];
+            }
+            const keys = new Set(wikiKinds.map(k => k.key));
+            [...filters.kinds].forEach(k => { if (!keys.has(k)) filters.kinds.delete(k); });
+            if (!filters.kinds.size) wikiKinds.forEach(k => filters.kinds.add(k.key));
+            renderKindFilters();
+        }
+
+        const projects = CRM.getProjects() || [];
+        const projSelect = document.getElementById('wikiFilterProject');
+        projects.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = (p.client ? p.client + ' — ' : '') + p.name;
+            projSelect.appendChild(opt);
+        });
+
+        function renderKindFilters() {
+            const el = document.getElementById('wikiKindFilters');
+            el.innerHTML = wikiKinds.map(k =>
+                `<label class="wiki-kind-chip${filters.kinds.has(k.key) ? ' active' : ''}">
+                    <input type="checkbox" value="${esc(k.key)}" ${filters.kinds.has(k.key) ? 'checked' : ''}> ${esc(k.label)}
+                </label>`
+            ).join('');
+            el.querySelectorAll('input').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) filters.kinds.add(cb.value);
+                    else filters.kinds.delete(cb.value);
+                    renderKindFilters();
+                    renderTree();
+                    if (selectedId && !visibleIds().has(selectedId)) {
+                        selectedId = null;
+                        renderEditor();
+                    }
+                });
+            });
+        }
+
+        window.wikiManageKinds = function() {
+            const overlay = document.getElementById('modalOverlay');
+            function draw() {
+                const list = wikiKinds.map(k => `
+                    <div class="wiki-kind-row" data-id="${k.id}">
+                        <div>
+                            <div style="font-weight:600;">${esc(k.label)}</div>
+                            <div class="text-sm text-muted">${esc(k.key)}</div>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);" data-del="${k.id}">Удалить</button>
+                    </div>`).join('') || '<p class="text-muted">Типов пока нет</p>';
+                overlay.innerHTML = `
+                    <div class="modal" style="max-width:520px;" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h2 class="modal-title">Типы страниц</h2>
+                            <button class="modal-close" onclick="closeModal(true)">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group" style="display:flex;gap:8px;align-items:flex-end;">
+                                <div style="flex:1;">
+                                    <label class="form-label">Новый тип</label>
+                                    <input class="form-input" id="newKindLabel" placeholder="Например: Инструкция">
+                                </div>
+                                <button class="btn btn-primary" id="addKindBtn">Добавить</button>
+                            </div>
+                            <div id="kindsList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">${list}</div>
+                            <div id="kindDeleteBlock" style="display:none;margin-top:16px;padding:12px;border:1px solid var(--danger);border-radius:8px;background:var(--danger-light,#FEE2E2);">
+                                <div style="font-weight:600;margin-bottom:8px;color:var(--danger);" id="kindDeleteMsg"></div>
+                                <div id="kindDeletePages" style="max-height:180px;overflow:auto;"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeModal(true)">Закрыть</button>
+                        </div>
+                    </div>`;
+                overlay.classList.add('show');
+                overlay.onclick = (e) => { if (e.target === overlay) closeModal(true); };
+
+                document.getElementById('addKindBtn').onclick = async () => {
+                    const label = document.getElementById('newKindLabel').value.trim();
+                    if (!label) return showToast('Введите название', 'error');
+                    try {
+                        const row = await API.createWikiKind({ label });
+                        wikiKinds.push(row);
+                        filters.kinds.add(row.key);
+                        showToast('Тип добавлен', 'success');
+                        draw();
+                        renderKindFilters();
+                        if (selectedId) renderEditor();
+                    } catch (err) {
+                        showToast(err.message || 'Ошибка', 'error');
+                    }
+                };
+
+                overlay.querySelectorAll('[data-del]').forEach(btn => {
+                    btn.onclick = async () => {
+                        const id = Number(btn.getAttribute('data-del'));
+                        const block = document.getElementById('kindDeleteBlock');
+                        const msg = document.getElementById('kindDeleteMsg');
+                        const pagesEl = document.getElementById('kindDeletePages');
+                        block.style.display = 'none';
+                        try {
+                            await API.deleteWikiKind(id);
+                            wikiKinds = wikiKinds.filter(k => k.id !== id);
+                            showToast('Тип удалён', 'success');
+                            draw();
+                            renderKindFilters();
+                            if (selectedId) renderEditor();
+                        } catch (err) {
+                            if (err.status === 409 && err.data && err.data.pages) {
+                                msg.textContent = err.message + ' (' + (err.data.count || err.data.pages.length) + '):';
+                                pagesEl.innerHTML = err.data.pages.map(p =>
+                                    `<div class="wiki-kind-blocked-page"><a href="#" data-open="${p.id}">${esc(p.title)}</a></div>`
+                                ).join('');
+                                pagesEl.querySelectorAll('[data-open]').forEach(a => {
+                                    a.onclick = (ev) => {
+                                        ev.preventDefault();
+                                        closeModal(true);
+                                        wikiSelect(Number(a.getAttribute('data-open')));
+                                    };
+                                });
+                                block.style.display = 'block';
+                            } else {
+                                showToast(err.message || 'Ошибка удаления', 'error');
+                            }
+                        }
+                    };
+                });
+            }
+            draw();
+        };
+
+        function visibleIds() {
+            const set = new Set();
+            filteredPages().forEach(p => set.add(p.id));
+            return set;
+        }
+
+        function filteredPages() {
+            return pages.filter(p => {
+                if (filters.kinds.size && !filters.kinds.has(p.kind)) return false;
+                if (filters.project_id === 'none' && p.project_id) return false;
+                if (filters.project_id && filters.project_id !== 'none' && String(p.project_id) !== String(filters.project_id)) return false;
+                if (filters.file_types.size) {
+                    const pageExts = getPageExtensions(p);
+                    if (![...filters.file_types].some(ext => pageExts.has(ext))) return false;
+                }
+                if (filters.q) {
+                    const n = filters.q.toLowerCase();
+                    const hit = (p.title || '').toLowerCase().includes(n) || (p.content || '').toLowerCase().includes(n);
+                    if (!hit) return false;
+                }
+                return true;
+            });
+        }
+
+        function normalizeExt(raw) {
+            if (!raw) return '';
+            let s = String(raw).trim().toLowerCase();
+            // "PDF" / "pdf" / ".pdf" / "file.pdf" / mime leftovers
+            if (s.includes('/')) return '';
+            const m = s.match(/\.([a-z0-9]{1,8})$/);
+            if (m) return '.' + m[1];
+            if (/^[a-z0-9]{1,8}$/.test(s)) return '.' + s;
+            return '';
+        }
+
+        function extractExtsFromText(text, into) {
+            if (!text) return;
+            const re = /\.([a-z0-9]{2,8})(?=["'?\s&#<>\]\|,]|$)/gi;
+            let m;
+            while ((m = re.exec(String(text)))) {
+                into.add('.' + m[1].toLowerCase());
+            }
+        }
+
+        function getPageExtensions(p) {
+            const set = new Set();
+            const ft = normalizeExt(p.file_type);
+            if (ft) set.add(ft);
+            extractExtsFromText(p.file_path, set);
+            extractExtsFromText(p.title, set);
+            extractExtsFromText(p.content, set);
+            return set;
+        }
+
+        async function refreshKnownFileExts() {
+            const set = new Set();
+            pages.forEach(p => getPageExtensions(p).forEach(e => set.add(e)));
+            // Also from task descriptions (files uploaded in tasks)
+            try {
+                const tasks = await API.getTasks();
+                (tasks || []).forEach(t => extractExtsFromText(t.description || t.name, set));
+            } catch (e) {}
+            knownFileExts = [...set].sort((a, b) => a.localeCompare(b, 'en'));
+            renderExtFilter();
+        }
+
+        function renderExtFilter() {
+            const btn = document.getElementById('wikiExtFilterBtn');
+            const list = document.getElementById('wikiExtFilterList');
+            const search = document.getElementById('wikiExtFilterSearch');
+            if (!btn || !list) return;
+            const q = (search?.value || '').trim().toLowerCase().replace(/^\./, '');
+            const visible = knownFileExts.filter(ext => !q || ext.slice(1).includes(q) || ext.includes(q));
+            const n = filters.file_types.size;
+            btn.textContent = n ? ('Тип файла (' + n + ')') : 'Тип файла';
+            btn.classList.toggle('has-value', n > 0);
+            if (!knownFileExts.length) {
+                list.innerHTML = '<div class="wiki-ext-filter-empty">Пока нет файлов</div>';
+                return;
+            }
+            if (!visible.length) {
+                list.innerHTML = '<div class="wiki-ext-filter-empty">Ничего не найдено</div>';
+                return;
+            }
+            list.innerHTML = visible.map(ext => {
+                const checked = filters.file_types.has(ext) ? 'checked' : '';
+                return `<label class="wiki-ext-filter-item">
+                    <input type="checkbox" value="${esc(ext)}" ${checked}>
+                    <span>${esc(ext)}</span>
+                </label>`;
+            }).join('');
+            list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) filters.file_types.add(cb.value);
+                    else filters.file_types.delete(cb.value);
+                    renderExtFilter();
+                    renderTree();
+                });
+            });
+        }
+
+        function bindExtFilter() {
+            const wrap = document.getElementById('wikiExtFilter');
+            const btn = document.getElementById('wikiExtFilterBtn');
+            const panel = document.getElementById('wikiExtFilterPanel');
+            const search = document.getElementById('wikiExtFilterSearch');
+            const clear = document.getElementById('wikiExtFilterClear');
+            if (!wrap || !btn || !panel) return;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const open = panel.hasAttribute('hidden');
+                document.querySelectorAll('.wiki-ext-filter-panel').forEach(p => p.setAttribute('hidden', ''));
+                if (open) {
+                    panel.removeAttribute('hidden');
+                    search?.focus();
+                }
+            });
+            search?.addEventListener('input', () => renderExtFilter());
+            clear?.addEventListener('click', () => {
+                filters.file_types.clear();
+                if (search) search.value = '';
+                renderExtFilter();
+                renderTree();
+            });
+            document.addEventListener('click', (e) => {
+                if (!wrap.contains(e.target)) panel.setAttribute('hidden', '');
+            });
+        }
+
+        async function loadPages() {
+            try {
+                let all;
+                if (typeof API.getWikiPages === 'function') {
+                    all = await API.getWikiPages() || [];
+                } else {
+                    all = await API.get('/wiki-pages') || [];
+                }
+                // Keep soft-deleted pages hidden until Restore or commit finishes
+                pages = all.filter(p => !pendingWikiDeletes.has(Number(p.id)));
+            } catch (err) {
+                pages = [];
+                const msg = String(err.message || '');
+                if (/404|Ошибка сервера \(404\)/i.test(msg)) {
+                    showToast('API wiki не найден — перезапустите сервер CRM', 'error');
+                } else {
+                    showToast(msg || 'Не удалось загрузить страницы', 'error');
+                }
+            }
+            if (selectedId && pendingWikiDeletes.has(Number(selectedId))) selectedId = null;
+            await refreshKnownFileExts();
+            if (selectedId) expandAncestors(selectedId);
+            renderTree();
+            renderEditor();
+        }
+
+        function expandAncestors(id) {
+            let cur = pages.find(p => p.id === id);
+            while (cur && cur.parent_id) {
+                expanded.add(Number(cur.parent_id));
+                cur = pages.find(p => p.id === cur.parent_id);
+            }
+            saveExpanded();
+        }
+
+        function childrenOf(parentId) {
+            const list = filteredPages().filter(p =>
+                parentId == null ? (p.parent_id == null) : Number(p.parent_id) === Number(parentId)
+            );
+            list.sort((a, b) => (a.sort_order - b.sort_order) || a.title.localeCompare(b.title, 'ru'));
+            return list;
+        }
+
+        function hasChildren(id) {
+            return pages.some(p => Number(p.parent_id) === Number(id));
+        }
+
+        function kindIcon(kind) {
+            if (kind === 'file') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13,2 13,9 20,9"/></svg>';
+            if (kind === 'prompt') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+            if (kind === 'template') return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
+            return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>';
+        }
+
+        function renderTreeNode(page, depth) {
+            const kids = childrenOf(page.id);
+            const open = expanded.has(page.id);
+            const canExpand = hasChildren(page.id) || kids.length > 0;
+            const showKids = open && kids.length > 0;
+            return `
+                <div class="wiki-node" data-id="${page.id}">
+                    <div class="wiki-node-row${selectedId === page.id ? ' active' : ''}" style="padding-left:${8 + depth * 14}px"
+                         data-drop-id="${page.id}" data-drag-id="${page.id}">
+                        <button type="button" class="wiki-twistie${canExpand ? '' : ' empty'}" onclick="event.stopPropagation();wikiToggle(${page.id})" aria-label="Раскрыть">
+                            ${canExpand ? (open
+                                ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg>'
+                                : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9,18 15,12 9,6"/></svg>') : ''}
+                        </button>
+                        <span class="wiki-node-icon kind-${esc(page.kind)}">${kindIcon(page.kind)}</span>
+                        <span class="wiki-node-title" title="${esc(page.title)}">${esc(page.title)}</span>
+                        <div class="wiki-node-actions" onclick="event.stopPropagation()">
+                            ${page.parent_id != null ? `<button type="button" class="btn btn-ghost btn-icon" title="Открепить наверх" onclick="wikiDetach(${page.id})">⇈</button>` : ''}
+                            <button type="button" class="btn btn-ghost btn-icon" title="Дочерняя страница" onclick="wikiCreatePage(${page.id})">+</button>
+                            <button type="button" class="btn btn-ghost btn-icon" title="Удалить" onclick="wikiDelete(${page.id})">✕</button>
+                        </div>
+                        <div class="wiki-drop-zones" data-target-id="${page.id}">
+                            <div class="wiki-dz wiki-dz-before" data-mode="before" title="Выше"></div>
+                            <div class="wiki-dz wiki-dz-inside" data-mode="inside" title="Вложить"></div>
+                            <div class="wiki-dz wiki-dz-after" data-mode="after" title="Ниже"></div>
+                        </div>
+                    </div>
+                    ${showKids ? `<div class="wiki-children">${kids.map(k => renderTreeNode(k, depth + 1)).join('')}</div>` : ''}
+                </div>`;
+        }
+
+        function renderTree() {
+            const tree = document.getElementById('wikiTree');
+            const roots = childrenOf(null);
+            // Also include orphaned nodes whose parent is filtered out but themselves match — show at root
+            const visible = visibleIds();
+            const orphanRoots = filteredPages().filter(p => {
+                if (p.parent_id == null) return false;
+                return !visible.has(Number(p.parent_id)) && !roots.some(r => r.id === p.id);
+            });
+            const allRoots = [...roots, ...orphanRoots];
+            if (!allRoots.length) {
+                tree.innerHTML = '<div class="wiki-tree-empty">Нет страниц<br><button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="wikiCreatePage()">Создать</button></div>';
+                bindTreeDnD();
+                return;
+            }
+            tree.innerHTML = allRoots.map(p => renderTreeNode(p, 0)).join('');
+            bindTreeDnD();
+        }
+
+        function isDescendantOf(ancestorId, maybeChildId) {
+            let cur = pages.find(p => p.id === maybeChildId);
+            while (cur && cur.parent_id != null) {
+                if (Number(cur.parent_id) === Number(ancestorId)) return true;
+                cur = pages.find(p => p.id === cur.parent_id);
+            }
+            return false;
+        }
+
+        function bindTreeDnD() {
+            const tree = document.getElementById('wikiTree');
+            const dropRoot = document.getElementById('wikiDropRoot');
+            if (!tree) return;
+
+            let activeDrop = null; // { id, mode, row }
+
+            function clearDropMarks() {
+                tree.querySelectorAll('.wiki-dz.hot, .wiki-node-row.drop-before, .wiki-node-row.drop-inside, .wiki-node-row.drop-after')
+                    .forEach(el => el.classList.remove('hot', 'drop-before', 'drop-inside', 'drop-after'));
+                dropRoot?.classList.remove('active');
+                activeDrop = null;
+            }
+
+            function markDrop(row, mode) {
+                clearDropMarks();
+                if (!row || !mode) return;
+                const dz = row.querySelector('.wiki-dz[data-mode="' + mode + '"]');
+                if (dz) dz.classList.add('hot');
+                row.classList.add('drop-' + mode);
+                activeDrop = {
+                    id: Number(row.getAttribute('data-drop-id')),
+                    mode,
+                    row
+                };
+            }
+
+            async function detachToRoot(srcId) {
+                const page = pages.find(p => p.id === srcId);
+                if (page && page.parent_id == null) {
+                    showToast('Уже в корне', 'info');
+                    return;
+                }
+                const max = pages.filter(p => p.parent_id == null)
+                    .reduce((m, p) => Math.max(m, Number(p.sort_order) || 0), -1);
+                await API.updateWikiPage(srcId, { parent_id: null, sort_order: max + 1 });
+                await loadPages();
+                showToast('Страница откреплена', 'success');
+            }
+
+            /** Find drop target by zone rectangles (no pointer capture) */
+            function hitTest(clientX, clientY, srcId) {
+                if (dropRoot && dropRoot.classList.contains('visible')) {
+                    const dr = dropRoot.getBoundingClientRect();
+                    if (clientX >= dr.left && clientX <= dr.right &&
+                        clientY >= dr.top && clientY <= dr.bottom) {
+                        return { type: 'root' };
+                    }
+                }
+
+                const zones = tree.querySelectorAll('.wiki-dz');
+                for (const dz of zones) {
+                    const row = dz.closest('.wiki-node-row');
+                    if (!row) continue;
+                    const id = Number(row.getAttribute('data-drop-id'));
+                    if (!id || id === srcId || isDescendantOf(srcId, id)) continue;
+                    const rect = dz.getBoundingClientRect();
+                    if (clientX >= rect.left && clientX <= rect.right &&
+                        clientY >= rect.top && clientY <= rect.bottom) {
+                        return {
+                            type: 'row',
+                            id,
+                            mode: dz.getAttribute('data-mode') || 'inside',
+                            row
+                        };
+                    }
+                }
+                return { type: 'none' };
+            }
+
+            tree.querySelectorAll('.wiki-node-row').forEach(row => {
+                row.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    if (e.target.closest('button, a, input, select, .wiki-twistie, .wiki-node-actions')) return;
+                    const srcId = Number(row.getAttribute('data-drag-id'));
+                    if (!srcId) return;
+
+                    e.preventDefault();
+                    let started = false;
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const ghost = document.createElement('div');
+                    ghost.className = 'wiki-drag-ghost';
+                    ghost.textContent = row.querySelector('.wiki-node-title')?.textContent || 'Страница';
+
+                    const onMove = (ev) => {
+                        const dx = ev.clientX - startX;
+                        const dy = ev.clientY - startY;
+                        if (!started && Math.hypot(dx, dy) < 6) return;
+                        if (!started) {
+                            started = true;
+                            dragId = srcId;
+                            row.closest('.wiki-node')?.classList.add('dragging');
+                            dropRoot?.classList.add('visible');
+                            document.body.appendChild(ghost);
+                            document.body.classList.add('wiki-dnd-active');
+                        }
+                        ghost.style.left = (ev.clientX + 14) + 'px';
+                        ghost.style.top = (ev.clientY + 10) + 'px';
+                        dropRoot?.classList.add('visible');
+                        const hit = hitTest(ev.clientX, ev.clientY, srcId);
+                        if (hit.type === 'row') {
+                            markDrop(hit.row, hit.mode);
+                        } else {
+                            clearDropMarks();
+                            if (hit.type === 'root') dropRoot?.classList.add('active');
+                        }
+                    };
+
+                    const onUp = async (ev) => {
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                        ghost.remove();
+                        document.body.classList.remove('wiki-dnd-active');
+                        tree.querySelectorAll('.wiki-node.dragging').forEach(n => n.classList.remove('dragging'));
+                        const hit = started ? hitTest(ev.clientX, ev.clientY, srcId) : { type: 'none' };
+                        const saved = activeDrop ? { ...activeDrop } : null;
+                        clearDropMarks();
+                        dropRoot?.classList.remove('visible', 'active');
+
+                        if (!started) {
+                            wikiSelect(srcId);
+                            return;
+                        }
+
+                        const from = dragId;
+                        dragId = null;
+                        const target = (hit.type === 'row') ? hit : (saved ? { type: 'row', ...saved } : hit);
+                        if (!from) return;
+
+                        try {
+                            if (target.type === 'row' && target.id && target.id !== from) {
+                                await movePage(from, target.id, target.mode);
+                                showToast(
+                                    target.mode === 'inside' ? 'Вложено в страницу' :
+                                    target.mode === 'before' ? 'Вставлено выше' : 'Вставлено ниже',
+                                    'success'
+                                );
+                            } else if (target.type === 'root' || hit.type === 'root') {
+                                await detachToRoot(from);
+                            } else {
+                                showToast('Отпустите на зону: линия сверху / снизу или пунктир (вложить)', 'info');
+                            }
+                        } catch (err) {
+                            showToast(err.message || 'Не удалось переместить', 'error');
+                            await loadPages();
+                        }
+                    };
+
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
+            });
+        }
+
+        window.wikiDetach = async function(id) {
+            try {
+                const max = pages.filter(p => p.parent_id == null)
+                    .reduce((m, p) => Math.max(m, Number(p.sort_order) || 0), -1);
+                await API.updateWikiPage(id, { parent_id: null, sort_order: max + 1 });
+                await loadPages();
+                showToast('Страница откреплена', 'success');
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        };
+
+        /**
+         * Reorder by rebuilding sibling list under the new parent.
+         * mode: before | after | inside
+         */
+        async function movePage(srcId, targetId, mode) {
+            srcId = Number(srcId);
+            targetId = Number(targetId);
+            const src = pages.find(p => Number(p.id) === srcId);
+            const target = pages.find(p => Number(p.id) === targetId);
+            if (!src || !target || srcId === targetId) return;
+            if (isDescendantOf(srcId, targetId)) {
+                throw new Error('Нельзя переместить страницу в своего потомка');
+            }
+
+            let newParentId;
+            if (mode === 'inside') {
+                newParentId = targetId;
+            } else {
+                newParentId = target.parent_id == null ? null : Number(target.parent_id);
+            }
+
+            const sameParent = (p) => (
+                newParentId == null
+                    ? p.parent_id == null
+                    : Number(p.parent_id) === Number(newParentId)
+            );
+
+            const siblings = pages
+                .filter(p => Number(p.id) !== srcId && sameParent(p))
+                .sort((a, b) =>
+                    (Number(a.sort_order) - Number(b.sort_order)) ||
+                    String(a.title || '').localeCompare(String(b.title || ''), 'ru')
+                );
+
+            const ordered = [];
+            if (mode === 'inside') {
+                for (const s of siblings) ordered.push(Number(s.id));
+                ordered.push(srcId);
+            } else if (mode === 'before') {
+                let placed = false;
+                for (const s of siblings) {
+                    if (Number(s.id) === targetId) {
+                        ordered.push(srcId);
+                        placed = true;
+                    }
+                    ordered.push(Number(s.id));
+                }
+                if (!placed) ordered.unshift(srcId);
+            } else {
+                let placed = false;
+                for (const s of siblings) {
+                    ordered.push(Number(s.id));
+                    if (Number(s.id) === targetId) {
+                        ordered.push(srcId);
+                        placed = true;
+                    }
+                }
+                if (!placed) ordered.push(srcId);
+            }
+
+            if (mode === 'inside') {
+                expanded.add(targetId);
+                saveExpanded();
+            }
+
+            // Apply locally first (instant UI)
+            ordered.forEach((id, i) => {
+                const p = pages.find(x => Number(x.id) === id);
+                if (!p) return;
+                p.sort_order = i;
+                if (id === srcId) p.parent_id = newParentId;
+            });
+            renderTree();
+
+            const items = ordered.map((id, i) => {
+                const p = pages.find(x => Number(x.id) === id);
+                return {
+                    id,
+                    parent_id: id === srcId
+                        ? newParentId
+                        : (p && p.parent_id != null ? Number(p.parent_id) : null),
+                    sort_order: i
+                };
+            });
+
+            try {
+                if (typeof API.reorderWikiPages === 'function') {
+                    await API.reorderWikiPages(items);
+                } else {
+                    throw new Error('no-reorder-api');
+                }
+            } catch (err) {
+                // Fallback: update one-by-one (old server without /reorder)
+                for (const it of items) {
+                    await API.updateWikiPage(it.id, {
+                        parent_id: it.parent_id,
+                        sort_order: it.sort_order
+                    });
+                }
+            }
+            await loadPages();
+        }
+
+        window.wikiToggle = function(id) {
+            if (expanded.has(id)) expanded.delete(id);
+            else expanded.add(id);
+            saveExpanded();
+            renderTree();
+        };
+
+        window.wikiSelect = async function(id) {
+            if (dirty) await flushSave();
+            selectedId = id;
+            expandAncestors(id);
+            renderTree();
+            renderEditor();
+        };
+
+        function selectedPage() {
+            return pages.find(p => p.id === selectedId) || null;
+        }
+
+        function renderEditor() {
+            const panel = document.getElementById('wikiEditor');
+            const page = selectedPage();
+            if (!page) {
+                panel.innerHTML = `<div class="wiki-empty">
+                    <p class="text-muted">Выберите страницу слева или создайте новую</p>
+                    <button class="btn btn-primary" style="margin-top:12px;" onclick="wikiCreatePage()">Создать страницу</button>
+                </div>`;
+                return;
+            }
+
+            const projectOpts = '<option value="">Без проекта</option>' +
+                projects.map(p => `<option value="${esc(p.id)}" ${String(page.project_id) === String(p.id) ? 'selected' : ''}>${esc((p.client ? p.client + ' — ' : '') + p.name)}</option>`).join('');
+
+            const kindOpts = wikiKinds.map(k =>
+                `<option value="${esc(k.key)}" ${page.kind === k.key ? 'selected' : ''}>${esc(k.label)}</option>`
+            ).join('') + (wikiKinds.some(k => k.key === page.kind) ? '' :
+                `<option value="${esc(page.kind)}" selected>${esc(kindLabel(page.kind))}</option>`);
+
+            const isFile = page.kind === 'file' || !!page.file_path;
+
+            panel.innerHTML = `
+                <div class="wiki-editor-head">
+                    <input class="wiki-title-input" id="wikiTitle" value="${esc(page.title)}" placeholder="Название страницы">
+                    <div class="wiki-editor-actions">
+                        <span class="wiki-save-status" id="wikiSaveStatus"></span>
+                        <button class="btn btn-secondary btn-sm" onclick="wikiCreatePage(${page.id})">+ Дочерняя</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="wikiDelete(${page.id})">Удалить</button>
+                    </div>
+                </div>
+                <div class="wiki-meta-bar">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">Тип</label>
+                        <select class="form-select" id="wikiKind">${kindOpts}</select>
+                    </div>
+                    <div class="form-group" style="margin:0;flex:1;">
+                        <label class="form-label">Проект</label>
+                        <select class="form-select" id="wikiProject">${projectOpts}</select>
+                    </div>
+                    ${isFile ? `<div class="form-group" style="margin:0;">
+                        <label class="form-label">Тип файла</label>
+                        <input class="form-input" id="wikiFileType" value="${esc(page.file_type || '')}" style="width:100px;">
+                    </div>` : ''}
+                </div>
+                <div class="wiki-body">
+                    <label class="form-label">Содержание</label>
+                    ${renderRichEditor('wikiContent', ensureFileInContent(page), 'Напишите текст или перетащите файлы сюда…', { fullPreview: true })}
+                </div>
+                <div class="wiki-footer text-sm text-muted">
+                    ${page.updated_by ? 'Изменил: ' + esc(page.updated_by) + ' · ' : ''}
+                    ${page.updated_at ? 'Обновлено: ' + esc(String(page.updated_at).replace('T', ' ').slice(0, 16)) : ''}
+                </div>
+            `;
+
+            dirty = false;
+            const titleEl = document.getElementById('wikiTitle');
+            const kindEl = document.getElementById('wikiKind');
+            const projEl = document.getElementById('wikiProject');
+            const fileTypeEl = document.getElementById('wikiFileType');
+
+            const schedule = () => { dirty = true; scheduleSave(); };
+
+            titleEl.addEventListener('input', schedule);
+            kindEl.addEventListener('change', schedule);
+            projEl.addEventListener('change', schedule);
+            if (fileTypeEl) fileTypeEl.addEventListener('input', schedule);
+
+            bindRichEditor('wikiContent', {
+                onChange: schedule,
+                onBlur: () => { dirty = true; flushSave(); }
+            });
+
+            // File DnD onto the whole editor panel (not only the rich box)
+            bindEditorPanelFileDrop(panel);
+        }
+
+        /** If page has file_path but content has no attach — show file inline in editor */
+        function ensureFileInContent(page) {
+            let content = page.content || '';
+            if (!page.file_path) return content;
+            const url = '/uploads/' + page.file_path;
+            if (content.includes(url) || content.includes('data-file="' + url + '"')) return content;
+            const chip = (typeof buildRichAttachHtml === 'function')
+                ? buildRichAttachHtml({
+                    url,
+                    name: page.title || page.file_path,
+                    mime: '',
+                    mode: 'link'
+                })
+                : `<a href="${esc(url)}">📎 ${esc(page.title || page.file_path)}</a>`;
+            return (content ? content + '<br>' : '') + chip;
+        }
+
+        function bindEditorPanelFileDrop(panel) {
+            if (!panel) return;
+            const isFiles = (e) => {
+                const t = e.dataTransfer && e.dataTransfer.types ? [...e.dataTransfer.types] : [];
+                return t.includes('Files');
+            };
+            async function ingestFiles(fileList) {
+                const wrap = panel.querySelector('[data-rich-wrap="wikiContent"]');
+                const uploadFn = wrap && wrap._uploadAndInsertFile;
+                const files = [...(fileList || [])];
+                if (!files.length) return;
+                if (!uploadFn) {
+                    showToast('Редактор не готов — кликните по тексту и повторите', 'error');
+                    return;
+                }
+                for (const file of files) {
+                    try {
+                        showToast('Загрузка: ' + file.name + '…', 'info');
+                        await uploadFn(file);
+                        showToast('Файл прикреплён: ' + file.name, 'success');
+                    } catch (err) {
+                        showToast(err.message || 'Ошибка загрузки', 'error');
+                    }
+                }
+                dirty = true;
+                await flushSave();
+            }
+            // Rebind every render (innerHTML wipes children; panel node stays)
+            if (panel._wikiFileDropAbort) panel._wikiFileDropAbort.abort();
+            const ac = new AbortController();
+            panel._wikiFileDropAbort = ac;
+            const opts = { signal: ac.signal, capture: true };
+            panel.addEventListener('dragenter', (e) => {
+                if (!isFiles(e)) return;
+                e.preventDefault();
+                e.stopPropagation();
+            }, opts);
+            panel.addEventListener('dragover', (e) => {
+                if (!isFiles(e)) return;
+                e.preventDefault();
+                e.stopPropagation();
+                try { e.dataTransfer.dropEffect = 'copy'; } catch (err) {}
+                panel.classList.add('wiki-editor-filedrop');
+            }, opts);
+            panel.addEventListener('dragleave', (e) => {
+                if (!panel.contains(e.relatedTarget)) panel.classList.remove('wiki-editor-filedrop');
+            }, opts);
+            panel.addEventListener('drop', async (e) => {
+                if (!isFiles(e)) return;
+                e.preventDefault();
+                e.stopPropagation();
+                panel.classList.remove('wiki-editor-filedrop');
+                await ingestFiles(e.dataTransfer.files);
+            }, opts);
+        }
+
+        // Prevent browser from opening dropped files as a new tab
+        if (!window._wikiGlobalFileDropBound) {
+            window._wikiGlobalFileDropBound = true;
+            window.addEventListener('dragover', (e) => {
+                const t = e.dataTransfer && e.dataTransfer.types ? [...e.dataTransfer.types] : [];
+                if (t.includes('Files')) e.preventDefault();
+            });
+            window.addEventListener('drop', (e) => {
+                const t = e.dataTransfer && e.dataTransfer.types ? [...e.dataTransfer.types] : [];
+                if (t.includes('Files')) e.preventDefault();
+            });
+        }
+
+        function scheduleSave() {
+            const st = document.getElementById('wikiSaveStatus');
+            if (st) st.textContent = 'Сохранение…';
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => flushSave(), 600);
+        }
+
+        async function flushSave() {
+            clearTimeout(saveTimer);
+            const page = selectedPage();
+            if (!page || !dirty) {
+                const st = document.getElementById('wikiSaveStatus');
+                if (st && !dirty) st.textContent = '';
+                return;
+            }
+            const titleEl = document.getElementById('wikiTitle');
+            const kindEl = document.getElementById('wikiKind');
+            const projEl = document.getElementById('wikiProject');
+            const fileTypeEl = document.getElementById('wikiFileType');
+            if (!titleEl) return;
+
+            const payload = {
+                title: titleEl.value.trim() || 'Без названия',
+                kind: kindEl.value,
+                project_id: projEl.value || null,
+                content: getDescValue('wikiContent')
+            };
+            if (fileTypeEl) payload.file_type = fileTypeEl.value.trim();
+
+            try {
+                const updated = await API.updateWikiPage(page.id, payload);
+                dirty = false;
+                const idx = pages.findIndex(p => p.id === page.id);
+                if (idx >= 0) pages[idx] = { ...pages[idx], ...updated };
+                const st = document.getElementById('wikiSaveStatus');
+                if (st) st.textContent = 'Сохранено';
+                refreshKnownFileExts();
+                // Refresh tree title without full editor remount
+                renderTree();
+                setTimeout(() => {
+                    const s = document.getElementById('wikiSaveStatus');
+                    if (s && s.textContent === 'Сохранено') s.textContent = '';
+                }, 1500);
+            } catch (err) {
+                const st = document.getElementById('wikiSaveStatus');
+                if (st) st.textContent = 'Ошибка';
+                showToast(err.message || 'Ошибка сохранения', 'error');
+            }
+        }
+
+        window.wikiCreatePage = async function(parentId) {
+            if (dirty) await flushSave();
+            const parent = parentId != null ? parentId : (selectedId || null);
+            const payload = {
+                parent_id: parent,
+                title: 'Новая страница',
+                kind: 'page',
+                content: '',
+                project_id: filters.project_id && filters.project_id !== 'none' ? filters.project_id : null
+            };
+            try {
+                let page;
+                if (typeof API.createWikiPage === 'function') {
+                    page = await API.createWikiPage(payload);
+                } else {
+                    page = await API.post('/wiki-pages', payload);
+                }
+                if (parent) {
+                    expanded.add(Number(parent));
+                    saveExpanded();
+                }
+                selectedId = page.id;
+                await loadPages();
+                const titleEl = document.getElementById('wikiTitle');
+                if (titleEl) { titleEl.focus(); titleEl.select(); }
+            } catch (err) {
+                const msg = String(err.message || '');
+                if (/404|not found|failed/i.test(msg) || msg.includes('Ошибка сервера (404)')) {
+                    showToast('API wiki не найден — перезапустите сервер (npm start / pm2 restart)', 'error');
+                } else {
+                    showToast(msg || 'Не удалось создать', 'error');
+                }
+            }
+        };
+
+        window.wikiDelete = async function(id) {
+            id = Number(id);
+            const page = pages.find(p => Number(p.id) === id);
+            if (!page) return;
+            const removeIds = getWikiDescendantIdsLocal(id);
+            const prevSelected = selectedId;
+            const label = 'Страница «' + page.title + '» удалена';
+            confirmDelete(label, {
+                optimistic: () => {
+                    removeIds.forEach(rid => pendingWikiDeletes.add(Number(rid)));
+                    pages = pages.filter(p => !pendingWikiDeletes.has(Number(p.id)));
+                    if (pendingWikiDeletes.has(Number(selectedId))) selectedId = null;
+                    dirty = false;
+                    renderTree();
+                    renderEditor();
+                },
+                commit: async () => {
+                    try {
+                        await API.deleteWikiPage(id);
+                    } finally {
+                        // After real delete (or error) drop from pending mask
+                        removeIds.forEach(rid => pendingWikiDeletes.delete(Number(rid)));
+                    }
+                },
+                undo: async () => {
+                    removeIds.forEach(rid => pendingWikiDeletes.delete(Number(rid)));
+                    selectedId = prevSelected;
+                    await loadPages();
+                    showToast('Страница восстановлена', 'success');
+                }
+            });
+        };
+
+        function getWikiDescendantIdsLocal(rootId) {
+            const ids = [Number(rootId)];
+            let changed = true;
+            while (changed) {
+                changed = false;
+                pages.forEach(p => {
+                    if (p.parent_id != null && ids.includes(Number(p.parent_id)) && !ids.includes(Number(p.id))) {
+                        ids.push(Number(p.id));
+                        changed = true;
+                    }
+                });
+            }
+            return ids;
+        }
+
+        function getWikiDescendantCheck(rootId, checkId) {
+            if (!checkId) return false;
+            const map = new Map(pages.map(p => [p.id, p.parent_id]));
+            let cur = checkId;
+            while (cur) {
+                if (Number(cur) === Number(rootId)) return true;
+                cur = map.get(cur);
+            }
+            return false;
+        }
+
+        window.wikiUploadFile = function() {
+            const overlay = document.getElementById('modalOverlay');
+            const parent = selectedId || null;
+            const projectOpts = '<option value="">Без проекта</option>' +
+                projects.map(p => `<option value="${esc(p.id)}">${esc((p.client ? p.client + ' — ' : '') + p.name)}</option>`).join('');
+
+            overlay.innerHTML = `
+                <div class="modal" style="max-width:480px;" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h2 class="modal-title">Загрузить файл</h2>
+                        <button class="modal-close" onclick="closeModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Название</label>
+                            <input class="form-input" id="upTitle" placeholder="Название документа">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Тип</label>
+                            <select class="form-select" id="upKind">
+                                ${wikiKinds.map(k => `<option value="${esc(k.key)}" ${k.key === 'file' ? 'selected' : ''}>${esc(k.label)}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Проект</label>
+                            <select class="form-select" id="upProject">${projectOpts}</select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Файл</label>
+                            <input type="file" class="form-input" id="upFile" accept=".pdf,.docx,.xlsx,.txt,.md,.zip,.png,.jpg,.jpeg,.doc,.xls,.csv">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                        <button class="btn btn-primary" id="upSubmit">Загрузить</button>
+                    </div>
+                </div>`;
+            overlay.classList.add('show');
+            overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+
+            document.getElementById('upFile').addEventListener('change', () => {
+                const f = document.getElementById('upFile').files[0];
+                const title = document.getElementById('upTitle');
+                if (f && !title.value) title.value = f.name.replace(/\.[^.]+$/, '');
+            });
+
+            document.getElementById('upSubmit').onclick = async () => {
+                const file = document.getElementById('upFile').files[0];
+                if (!file) { showToast('Выберите файл', 'error'); return; }
+                if (file.size > 30 * 1024 * 1024) {
+                    showToast('Максимальный размер файла — 30 МБ', 'error');
+                    return;
+                }
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('title', document.getElementById('upTitle').value.trim() || file.name);
+                fd.append('kind', document.getElementById('upKind').value);
+                fd.append('project_id', document.getElementById('upProject').value || '');
+                if (parent) fd.append('parent_id', String(parent));
+                const kb = Math.round(file.size / 1024);
+                fd.append('file_size', kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB');
+                try {
+                    const page = await API.uploadWikiPage(fd);
+                    closeModal(true);
+                    if (parent) { expanded.add(Number(parent)); saveExpanded(); }
+                    selectedId = page.id;
+                    await loadPages();
+                    showToast('Файл загружен', 'success');
+                } catch (err) {
+                    showToast(err.message || 'Ошибка загрузки', 'error');
+                }
+            };
+        };
+
+        // Filters
+        document.getElementById('wikiSearch').addEventListener('input', (e) => {
+            filters.q = e.target.value.trim();
+            renderTree();
+        });
+        document.getElementById('wikiFilterProject').addEventListener('change', (e) => {
+            filters.project_id = e.target.value;
+            renderTree();
+        });
+        bindExtFilter();
+
+        await loadKinds();
+        await loadPages();
+
+        // Select from URL ?id=
+        const urlId = Number(new URLSearchParams(location.search).get('id') || 0);
+        if (urlId && pages.some(p => p.id === urlId)) {
+            selectedId = urlId;
+            expandAncestors(urlId);
+            renderTree();
+            renderEditor();
+        }
+
+        window.refreshPageData = async () => {
+            await CRM.load();
+            await loadKinds();
+            await loadPages();
+        };
+    })();
+    </script>
+</body>
+</html>

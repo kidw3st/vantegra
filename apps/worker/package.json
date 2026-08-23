@@ -1,0 +1,8 @@
+{
+  "name": "@vantegra/worker",
+  "private": true,
+  "description": "BullMQ worker. Same codebase as core-api.",
+  "scripts": {
+    "start": "node ../core-api/worker.js"
+  }
+}

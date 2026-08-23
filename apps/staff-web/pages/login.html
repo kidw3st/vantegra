@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в CRM — Vantegra</title>
+    <meta name="robots" content="noindex">
+    <script>(function(){try{var t=localStorage.getItem('vantegra-theme');document.documentElement.dataset.theme=t||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}})()</script>
+    <link rel="icon" href="/assets/img/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body class="login-page">
+<div class="login-card">
+    <a class="login-mark" href="/">
+        <img src="/assets/img/logo.png" alt="" width="512" height="512">
+        <span>Vantegra</span>
+    </a>
+    <p class="login-kicker">Команда</p>
+    <h1 class="login-title">Вход в CRM</h1>
+    <p class="login-subtitle">Панель студии: проекты, задачи и заявки</p>
+    <form id="loginForm">
+        <div class="form-group">
+            <label class="form-label" for="username">Логин</label>
+            <input type="text" class="form-input" id="username" placeholder="Логин" required autofocus>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="password">Пароль</label>
+            <input type="password" class="form-input" id="password" placeholder="Пароль" required>
+        </div>
+        <div class="login-row">
+            <label class="form-check"><input type="checkbox" id="remember" checked> Запомнить устройство</label>
+        </div>
+        <div id="errorMsg" class="login-error" hidden></div>
+        <button type="submit" class="btn btn-primary btn-lg login-submit">Войти</button>
+    </form>
+    <p class="login-back"><a href="/cabinet.html">Назад к выбору кабинета</a></p>
+</div>
+
+<script src="/assets/js/api.js?v=11"></script>
+<script>
+(async function() {
+    if (API.isLoggedIn()) {
+        try {
+            const result = await API.checkAuth();
+            if (result && result.user) {
+                window.location.href = '/pages/dashboard.html';
+                return;
+            }
+        } catch (e) {
+            API.clearToken();
+        }
+    }
+})();
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const remember = document.getElementById('remember').checked;
+    const errorMsg = document.getElementById('errorMsg');
+    const btn = e.target.querySelector('button[type="submit"]');
+
+    if (!username || !password) {
+        errorMsg.textContent = 'Введите логин и пароль';
+        errorMsg.hidden = false;
+        errorMsg.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Вход...';
+
+    try {
+        const result = await API.login(username, password, remember);
+        if (result && result.token) {
+            window.location.href = '/pages/dashboard.html';
+        }
+    } catch (err) {
+        errorMsg.textContent = err.message || 'Неверный логин или пароль';
+        errorMsg.hidden = false;
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Войти';
+    }
+});
+</script>
+</body>
+</html>

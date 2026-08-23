@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цель — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+    <style>
+        .goal-stat-card { position: relative; }
+        .goal-stat-card .edit-pencil {
+            position: absolute; top: 10px; right: 10px;
+            width: 28px; height: 28px; border: none; background: transparent;
+            color: var(--gray-400); cursor: pointer; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s;
+        }
+        .goal-stat-card:hover .edit-pencil { opacity: 1; }
+        .goal-stat-card .edit-pencil:hover { color: var(--primary); background: var(--primary-light); }
+        .goal-stat-card.editing .edit-pencil { opacity: 1; color: var(--primary); }
+        .click-edit {
+            cursor: text; border-radius: 6px; padding: 2px 4px; margin: -2px -4px;
+            transition: background 0.15s;
+        }
+        .click-edit:hover { background: var(--gray-100); }
+        .click-edit.editing { background: transparent; padding: 0; margin: 0; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=17"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const goalId = urlParams.get('id');
+        if (!goalId) { window.location.href = '/pages/goals.html'; return; }
+
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('goals') + renderHeader() + `
+            <div id="goalContent"><div style="text-align:center;padding:60px;"><p class="text-muted">Загрузка...</p></div></div>
+            </div></div></div>
+        `;
+        initCommonUI();
+
+        let users = [];
+        let goal = null;
+        try { users = await API.get('/users') || []; } catch (e) {}
+        try { goal = await API.get('/goals/' + goalId); } catch (e) { goal = null; }
+
+        if (!goal) {
+            document.getElementById('goalContent').innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:60px;"><p class="text-muted">Цель не найдена</p><a href="/pages/goals.html" class="btn btn-primary" style="margin-top:16px;">К целям</a></div></div>';
+            return;
+        }
+
+        const pencilSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        function formatDate(s) {
+            if (!s) return '—';
+            const p = s.split('-');
+            return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : s;
+        }
+        function countdownParts(dateEnd) {
+            if (!dateEnd) return { text: 'Без срока', cls: '' };
+            const end = new Date(dateEnd + 'T23:59:59');
+            const now = new Date();
+            let diff = end - now;
+            if (diff <= 0) return { text: 'Просрочено', cls: 'overdue' };
+            const days = Math.floor(diff / 86400000);
+            diff %= 86400000;
+            const hours = Math.floor(diff / 3600000);
+            diff %= 3600000;
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            const pad = n => String(n).padStart(2, '0');
+            const text = days > 0
+                ? days + 'д ' + pad(hours) + ':' + pad(mins) + ':' + pad(secs)
+                : pad(hours) + ':' + pad(mins) + ':' + pad(secs);
+            return { text, cls: days < 3 ? 'urgent' : 'ok' };
+        }
+
+        async function patchGoal(updates, { silent } = {}) {
+            try {
+                const updated = await API.put('/goals/' + goalId, updates);
+                Object.assign(goal, updated || updates);
+                if (!silent) showToast('Сохранено', 'success');
+                return true;
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+                return false;
+            }
+        }
+
+        function render() {
+            const cd = countdownParts(goal.date_end);
+            const progress = typeof goalTimeProgress === 'function'
+                ? goalTimeProgress(goal.date_start, goal.date_end, goal.status)
+                : Math.min(100, Math.max(0, goal.progress || 0));
+            const assignees = goal.assignees || [];
+
+            document.getElementById('goalContent').innerHTML = `
+                ${typeof NavTrail !== 'undefined' ? NavTrail.render(goal.name) : ''}
+
+                <div class="page-header">
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <h1 class="page-title click-edit" id="goalTitle" data-field="name" title="Кликните, чтобы изменить">${escapeHtml(goal.name)}</h1>
+                            ${goal.status === 'done' ? '<span class="badge badge-success">Выполнено</span>' : '<span class="badge badge-primary">Активна</span>'}
+                            <div class="goal-countdown ${cd.cls}" id="goalCountdown" data-end="${escapeHtml(goal.date_end || '')}">${cd.text}</div>
+                        </div>
+                        <p class="page-subtitle" style="margin-top:6px;">
+                            ${formatDate(goal.date_start)} → ${formatDate(goal.date_end)}
+                            · Исполнители: ${assignees.length ? assignees.map(a => escapeHtml(a)).join(', ') : '—'}
+                        </p>
+                    </div>
+                    <div class="page-actions">
+                        ${goal.status !== 'done'
+                            ? '<button class="btn btn-secondary" onclick="completeGoal()">Выполнить</button>'
+                            : '<button class="btn btn-secondary" onclick="reopenGoal()">Вернуть</button>'}
+                        <button class="btn btn-danger" onclick="deleteThisGoal()">Удалить</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+                    <div class="stat-card goal-stat-card" id="cardDates">
+                        <button class="edit-pencil" onclick="editField('dates')" title="Изменить даты">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Сроки</div>
+                            <div style="margin-top:6px;font-weight:600;font-size:0.9rem;">${formatDate(goal.date_start)} → ${formatDate(goal.date_end)}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card goal-stat-card" id="cardAssignees">
+                        <button class="edit-pencil" onclick="editField('assignees')" title="Изменить исполнителей">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Исполнители</div>
+                            <div style="margin-top:6px;font-weight:600;font-size:0.85rem;">${assignees.length ? assignees.map(a => '<span class="goal-assignee-chip">' + escapeHtml(a) + '</span>').join(' ') : '—'}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card goal-stat-card tip" id="cardProgress" data-tip="Прогресс считается автоматически по сроку (от начала до конца)">
+                        <div class="stat-info">
+                            <div class="stat-label">По сроку</div>
+                            <div style="margin-top:6px;font-weight:600;" id="goalTimeProgressValue">${progress}%</div>
+                            <div class="goal-progress-bar" style="margin-top:8px;"><span id="goalTimeProgressBar" style="width:${progress}%"></span></div>
+                        </div>
+                    </div>
+                    <div class="stat-card goal-stat-card" id="cardStatus">
+                        <button class="edit-pencil" onclick="editField('status')" title="Изменить статус">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Статус</div>
+                            <div style="margin-top:6px;font-weight:600;">${goal.status === 'done' ? 'Выполнено' : 'Активна'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-header"><h3 class="card-title">Описание</h3></div>
+                    <div class="card-body">
+                        ${renderRichEditor('goalDescEditor', goal.description || '', 'Что нужно сделать…', { fullPreview: true })}
+                    </div>
+                </div>
+            `;
+
+            document.querySelectorAll('#goalContent .click-edit[data-field]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    startTextEdit(el, el.dataset.field);
+                });
+            });
+
+            let descSaveTimer = null;
+            bindRichEditor('goalDescEditor', {
+                onBlur: async (html) => {
+                    if ((goal.description || '') === html) return;
+                    await patchGoal({ description: html }, { silent: true });
+                },
+                onChange: (html) => {
+                    clearTimeout(descSaveTimer);
+                    descSaveTimer = setTimeout(async () => {
+                        if ((goal.description || '') === html) return;
+                        goal.description = html;
+                        try { await patchGoal({ description: html }, { silent: true }); } catch (e) {}
+                    }, 900);
+                }
+            });
+        }
+
+        function startTextEdit(el, field) {
+            if (!el || el.classList.contains('editing')) return;
+            el.classList.add('editing');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-input';
+            input.value = goal[field] || '';
+            input.style.cssText = 'padding:4px 8px;font-size:inherit;font-weight:inherit;min-width:200px;';
+            el.replaceWith(input);
+            input.focus();
+            input.select();
+            async function finish(save) {
+                if (!save) { render(); return; }
+                const val = input.value.trim();
+                if (field === 'name' && !val) { showToast('Введите название', 'error'); input.focus(); return; }
+                await patchGoal({ [field]: val });
+                render();
+            }
+            input.addEventListener('blur', () => finish(true));
+            input.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+            });
+        }
+
+        window.editField = function(field) {
+            const cardMap = { dates: 'cardDates', assignees: 'cardAssignees', progress: 'cardProgress', status: 'cardStatus' };
+            const card = document.getElementById(cardMap[field]);
+            if (!card || card.classList.contains('editing')) return;
+            card.classList.add('editing');
+            const info = card.querySelector('.stat-info');
+            const label = info.querySelector('.stat-label').textContent;
+
+            if (field === 'dates') {
+                info.innerHTML = `
+                    <div class="stat-label">${label}</div>
+                    <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">
+                        <input type="date" class="form-input" id="editDateStart" value="${escapeHtml(goal.date_start || '')}">
+                        <input type="date" class="form-input" id="editDateEnd" value="${escapeHtml(goal.date_end || '')}">
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-primary btn-sm" id="saveDates">OK</button>
+                            <button class="btn btn-secondary btn-sm" id="cancelDates">✕</button>
+                        </div>
+                    </div>`;
+                info.querySelector('#saveDates').onclick = async () => {
+                    const date_end = document.getElementById('editDateEnd').value;
+                    if (!date_end) { showToast('Укажите дедлайн', 'error'); return; }
+                    await patchGoal({
+                        date_start: document.getElementById('editDateStart').value || date_end,
+                        date_end
+                    });
+                    render();
+                };
+                info.querySelector('#cancelDates').onclick = () => render();
+            } else if (field === 'assignees') {
+                const selected = new Set(goal.assignees || []);
+                const checks = users.map(u =>
+                    `<label style="display:flex;align-items:center;gap:6px;margin:4px 0;"><input type="checkbox" value="${escapeHtml(u.name)}" ${selected.has(u.name) ? 'checked' : ''}> ${escapeHtml(u.name)}</label>`
+                ).join('');
+                info.innerHTML = `
+                    <div class="stat-label">${label}</div>
+                    <div style="margin-top:6px;" id="editAssignees">${checks || '<span class="text-muted">Нет пользователей</span>'}</div>
+                    <div style="display:flex;gap:6px;margin-top:8px;">
+                        <button class="btn btn-primary btn-sm" id="saveAssignees">OK</button>
+                        <button class="btn btn-secondary btn-sm" id="cancelAssignees">✕</button>
+                    </div>`;
+                info.querySelector('#saveAssignees').onclick = async () => {
+                    const assignees = [...info.querySelectorAll('#editAssignees input:checked')].map(i => i.value);
+                    if (!assignees.length) { showToast('Выберите исполнителя', 'error'); return; }
+                    await patchGoal({ assignees });
+                    render();
+                };
+                info.querySelector('#cancelAssignees').onclick = () => render();
+            } else if (field === 'progress') {
+                info.innerHTML = `
+                    <div class="stat-label">${label}: <span id="progLabel">${goal.progress || 0}%</span></div>
+                    <input type="range" id="editProgress" min="0" max="100" step="5" value="${goal.progress || 0}" style="width:100%;margin-top:8px;"
+                        oninput="document.getElementById('progLabel').textContent=this.value+'%'">
+                    <div style="display:flex;gap:6px;margin-top:8px;">
+                        <button class="btn btn-primary btn-sm" id="saveProgress">OK</button>
+                        <button class="btn btn-secondary btn-sm" id="cancelProgress">✕</button>
+                    </div>`;
+                info.querySelector('#saveProgress').onclick = async () => {
+                    await patchGoal({ progress: parseInt(document.getElementById('editProgress').value, 10) || 0 });
+                    render();
+                };
+                info.querySelector('#cancelProgress').onclick = () => render();
+            } else if (field === 'status') {
+                const opts = [
+                    { value: 'active', label: 'Активна' },
+                    { value: 'done', label: 'Выполнено' }
+                ].map(o => `<option value="${o.value}"${goal.status === o.value || (goal.status !== 'done' && o.value === 'active' && goal.status !== 'done') ? ' selected' : ''}>${o.label}</option>`).join('');
+                info.innerHTML = `<div class="stat-label">${label}</div><div style="margin-top:6px;"><select class="form-select" id="inlineStatus">${opts}</select></div>`;
+                const sel = info.querySelector('#inlineStatus');
+                sel.focus();
+                sel.onchange = async () => {
+                    const status = sel.value;
+                    await patchGoal({ status, progress: status === 'done' ? 100 : goal.progress });
+                    render();
+                };
+                sel.onblur = () => setTimeout(() => { if (card.classList.contains('editing')) render(); }, 200);
+            }
+        };
+
+        window.completeGoal = async function() {
+            await patchGoal({ status: 'done', progress: 100 });
+            render();
+        };
+        window.reopenGoal = async function() {
+            await patchGoal({ status: 'active' });
+            render();
+        };
+        window.deleteThisGoal = function() {
+            confirmDelete('Цель удалена', {
+                optimistic: () => {
+                    const main = document.querySelector('.main-content .content-wrapper');
+                    if (main) main.style.opacity = '0.35';
+                },
+                commit: async () => {
+                    await API.delete('/goals/' + goalId);
+                    location.href = '/pages/goals.html';
+                },
+                undo: () => {
+                    const main = document.querySelector('.main-content .content-wrapper');
+                    if (main) main.style.opacity = '';
+                }
+            });
+        };
+
+        render();
+        setInterval(() => {
+            const el = document.getElementById('goalCountdown');
+            if (el) {
+                const cd = countdownParts(el.getAttribute('data-end'));
+                el.textContent = cd.text;
+                el.className = 'goal-countdown ' + cd.cls;
+            }
+            if (goal && typeof goalTimeProgress === 'function') {
+                const p = goalTimeProgress(goal.date_start, goal.date_end, goal.status);
+                const val = document.getElementById('goalTimeProgressValue');
+                const bar = document.getElementById('goalTimeProgressBar');
+                if (val) val.textContent = p + '%';
+                if (bar) bar.style.width = p + '%';
+            }
+        }, 1000);
+
+        window.refreshPageData = async function() {
+            try { goal = await API.get('/goals/' + goalId); } catch (e) {}
+            if (goal && !document.querySelector('.rich-editor[data-rich-open="1"]') && !document.querySelector('.goal-stat-card.editing')) {
+                render();
+            }
+        };
+    })();
+    </script>
+</body>
+</html>

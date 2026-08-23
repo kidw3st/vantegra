@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявки — CRM</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=60">
+</head>
+<body>
+    <div id="app"></div>
+    <script src="/assets/js/api.js?v=24"></script>
+    <script src="/assets/js/app.js?v=54"></script>
+    <script>
+    (async function () {
+        if (!API.requireAuth()) return;
+        const app = document.getElementById('app');
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        app.innerHTML = renderSidebar('leads') + renderHeader() + `
+            <main class="main-content">
+                <div class="page-header"><h1>Заявки с сайта</h1></div>
+                <div class="card"><div class="card-body" id="leadsBox">Загрузка…</div></div>
+            </main>`;
+        try {
+            const rows = await API.get('/api/leads');
+            const box = document.getElementById('leadsBox');
+            if (!rows.length) {
+                box.innerHTML = '<p class="text-muted">Пока пусто. Форма на vantegracode.ru/contacts.html пишет сюда.</p>';
+                return;
+            }
+            box.innerHTML = `<table class="table"><thead><tr><th>Когда</th><th>Имя</th><th>Связь</th><th>Тип</th><th>Задача</th><th>Статус</th></tr></thead><tbody>
+                ${rows.map(r => `<tr>
+                    <td>${esc(String(r.created_at || '').slice(0, 16))}</td>
+                    <td>${esc(r.name)}</td>
+                    <td>${esc(r.contact)}</td>
+                    <td>${esc(r.kind)}</td>
+                    <td>${esc(r.task)}</td>
+                    <td>
+                        <select data-lead="${esc(r.id)}">
+                            ${['new','in_progress','won','lost'].map(s => `<option value="${s}" ${r.status===s?'selected':''}>${s}</option>`).join('')}
+                        </select>
+                    </td>
+                </tr>`).join('')}
+            </tbody></table>`;
+            box.querySelectorAll('select[data-lead]').forEach(sel => {
+                sel.addEventListener('change', async () => {
+                    await API.put('/api/leads/' + sel.getAttribute('data-lead'), { status: sel.value });
+                    showToast('Статус обновлён', 'success');
+                });
+            });
+        } catch (e) {
+            document.getElementById('leadsBox').textContent = e.message || 'Ошибка';
+        }
+    })();
+    </script>
+</body>
+</html>

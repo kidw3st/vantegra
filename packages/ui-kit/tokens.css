@@ -1,0 +1,46 @@
+/* Shared brand tokens. Site styles.css keeps a copy for standalone deploys. */
+:root {
+  --ink: #101413;
+  --ink-70: #4a524f;
+  --ink-45: #656b68;
+  --paper: #f7f6f1;
+  --paper-2: #efece4;
+  --line: #dedad0;
+  --accent: #b9761a;
+  --accent-ink: #8e590f;
+  --paper-blur: rgba(247, 246, 241, .84);
+  --veil: rgba(247, 246, 241, .9);
+  --hover-fill: rgba(255, 255, 255, .5);
+  --input: rgba(255, 255, 255, .55);
+  --input-focus: #ffffff;
+  --shadow: rgba(16, 20, 19, .45);
+  --cta-bg: #101413;
+  --cta-fg: #f7f6f1;
+  --s-1: 8px; --s-2: 16px; --s-3: 24px; --s-4: 40px; --s-5: 64px; --s-6: 96px; --s-7: 140px;
+  --shell: min(1320px, 100vw - clamp(24px, 6vw, 120px) * 2);
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --spring: cubic-bezier(.34, 1.42, .58, 1);
+  --font-display: "Unbounded", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Onest", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --ink: #eae7df;
+  --ink-70: #a9b1ad;
+  --ink-45: #848c88;
+  --paper: #0f1211;
+  --paper-2: #161a18;
+  --line: #2b312e;
+  --accent: #d8952f;
+  --accent-ink: #e2a747;
+  --paper-blur: rgba(15, 18, 17, .86);
+  --veil: rgba(15, 18, 17, .86);
+  --hover-fill: rgba(255, 255, 255, .045);
+  --input: rgba(255, 255, 255, .04);
+  --input-focus: rgba(255, 255, 255, .08);
+  --shadow: rgba(0, 0, 0, .7);
+  --cta-bg: #1a201d;
+  --cta-fg: #eae7df;
+  color-scheme: dark;
+}

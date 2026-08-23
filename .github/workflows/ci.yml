@@ -1,0 +1,30 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: marketing-site present
+        run: test -f apps/marketing-site/index.html
+      - name: staff-web present
+        run: test -f apps/staff-web/pages/dashboard.html
+      - name: client-portal present
+        run: test -f apps/client-portal/pages/client-cabinet.html
+      - name: core-api present
+        run: test -f apps/core-api/server.js
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: compose config
+        run: docker compose -f infra/docker-compose.yml config >/dev/null
+  portal-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: openapi exists
+        run: test -f infra/openapi-public.yaml

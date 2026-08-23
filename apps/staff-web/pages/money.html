@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Финансы — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=60">
+    <style>
+        .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--gray-200); padding-bottom: 0; }
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: 500; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+        .tab:hover { color: var(--gray-700); }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 20px; }
+        .stat-label { font-size: 0.85rem; color: var(--gray-500); margin-bottom: 4px; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-value.income { color: var(--success); }
+        .stat-value.expense { color: var(--danger); }
+        .expense-card {
+            background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg);
+            padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        }
+        .expense-info { flex: 1; min-width: 0; }
+        .expense-category { display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 500; margin-bottom: 4px; }
+        .expense-category.salary { background: #dbeafe; color: #1e40af; }
+        .expense-category.servers { background: #e0e7ff; color: #3730a3; }
+        .expense-category.ai { background: #fce7f3; color: #9d174d; }
+        .expense-category.tax { background: #ffedd5; color: #9a3412; }
+        .expense-category.refund { background: #d1fae5; color: #065f46; }
+        .expense-category.other { background: #f3f4f6; color: #374151; }
+        .expense-badge-recur {
+            display: inline-block; margin-left: 6px; padding: 1px 6px;
+            font-size: 0.7rem; border-radius: 999px; background: #fef3c7; color: #92400e; font-weight: 600;
+        }
+        .expense-desc { font-weight: 500; }
+        .expense-meta { font-size: 0.8rem; color: var(--gray-500); margin-top: 2px; }
+        .expense-amount { font-size: 1.1rem; font-weight: 600; white-space: nowrap; }
+        .expense-amount.negative { color: var(--danger); }
+        .expense-amount.positive { color: var(--success); }
+        .recur-interval-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+        .recur-interval-row .form-select { flex: 1; }
+        .expense-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .salary-status { padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500; white-space: nowrap; }
+        .salary-status.paid { background: #d1fae5; color: #065f46; }
+        .salary-status.unpaid { background: #fef3c7; color: #92400e; }
+        .month-selector { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .month-selector input, .month-selector select { padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: 0.9rem; background: var(--white); }
+        .category-breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+        .category-item { display: flex; align-items: center; gap: 8px; }
+        .category-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .category-name { font-size: 0.85rem; color: var(--gray-600); }
+        .category-amount { font-weight: 600; margin-left: auto; }
+        .money-salary-fields[hidden] { display: none !important; }
+        #expenseCustomRecurBox[hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=24"></script>
+    <script src="/assets/js/app.js?v=55"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+        
+        const app = document.getElementById('app');
+        let currentTab = 'history';
+        let typeFilter = ''; // '' | expense | salary | income
+        let categoryFilter = '';
+        let dateFrom = '';
+        let dateTo = '';
+        let datePreset = 'month';
+        let expenses = [];
+        let salaries = [];
+        let incomes = [];
+        let projects = [];
+        let expenseStats = { categories: [], total: 0 };
+        let CATEGORIES = ['Сервера', 'ИИ', 'Налоги', 'Возврат', 'Зарплата'];
+        let categoryRows = [];
+        const AI_SUBGROUPS = ['Костя', 'Максим', 'Андрей', 'Общий'];
+
+        function isoToday() {
+            return (window.CrmTime && CrmTime.todayISO()) || new Date().toISOString().slice(0, 10);
+        }
+        function addDaysISO(iso, days) {
+            if (window.CrmTime) return CrmTime.addDaysISO(iso, days);
+            const d = new Date(iso + 'T12:00:00');
+            d.setDate(d.getDate() + days);
+            return d.toISOString().slice(0, 10);
+        }
+        function applyPreset(preset) {
+            datePreset = preset || 'month';
+            const to = isoToday();
+            dateTo = to;
+            if (preset === 'week') dateFrom = addDaysISO(to, -6);
+            else if (preset === 'month') dateFrom = addDaysISO(to, -29);
+            else if (preset === '3m') dateFrom = addDaysISO(to, -89);
+            else if (preset === '6m') dateFrom = addDaysISO(to, -179);
+            else if (preset === 'year') dateFrom = addDaysISO(to, -364);
+            else if (preset === 'custom') { /* keep */ }
+            else dateFrom = addDaysISO(to, -29);
+        }
+        applyPreset('month');
+        const RECUR_BASE = [
+            { value: 'day', label: 'День' },
+            { value: 'week', label: 'Неделя' },
+            { value: 'month', label: 'Месяц' },
+            { value: 'year', label: 'Год' }
+        ];
+        const CUSTOM_RECUR_KEY = 'crm_custom_recur_intervals';
+
+        function loadCustomRecur() {
+            try { return JSON.parse(localStorage.getItem(CUSTOM_RECUR_KEY) || '[]'); }
+            catch (_) { return []; }
+        }
+        function saveCustomRecur(list) {
+            localStorage.setItem(CUSTOM_RECUR_KEY, JSON.stringify(list));
+        }
+        function recurOptionsHtml(selected) {
+            const customs = loadCustomRecur();
+            const all = RECUR_BASE.concat(customs);
+            return all.map(o =>
+                `<option value="${esc(o.value)}"${o.value === selected ? ' selected' : ''}>${esc(o.label)}</option>`
+            ).join('');
+        }
+        function unitWord(n, unit) {
+            const forms = {
+                day: ['день', 'дня', 'дней'],
+                week: ['неделя', 'недели', 'недель'],
+                month: ['месяц', 'месяца', 'месяцев'],
+                year: ['год', 'года', 'лет']
+            };
+            const f = forms[unit] || forms.day;
+            const abs = Math.abs(n) % 100;
+            const d = abs % 10;
+            if (abs > 10 && abs < 20) return f[2];
+            if (d === 1) return f[0];
+            if (d >= 2 && d <= 4) return f[1];
+            return f[2];
+        }
+
+        function render() {
+            app.innerHTML = renderSidebar('money') + renderHeader() + `
+                <div class="page-header">
+                    <div><h1 class="page-title">Финансы</h1><p class="page-subtitle">История, фильтры и статистика</p></div>
+                    <div class="page-actions">
+                        <button class="btn btn-secondary tip" data-tip="Настройка категорий расходов" onclick="showCategorySettings()" title="Категории" aria-label="Настройки категорий" style="padding:8px 10px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                        </button>
+                        <button class="btn btn-primary tip" data-tip="Добавить расход / зарплату" onclick="showAddExpenseModal()" title="Добавить" aria-label="Добавить" style="padding:8px 12px;font-size:1.2rem;line-height:1;">+</button>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab ${currentTab === 'history' ? 'active' : ''}" onclick="switchTab('history')">История</div>
+                    <div class="tab ${currentTab === 'stats' ? 'active' : ''}" onclick="switchTab('stats')">Статистика</div>
+                </div>
+
+                <div class="month-selector">
+                    <label class="tip" data-tip="Быстрый период">Период:</label>
+                    <select id="datePreset" onchange="changeDatePreset(this.value)" class="tip" data-tip="Пресет дат">
+                        <option value="week"${datePreset === 'week' ? ' selected' : ''}>Неделя</option>
+                        <option value="month"${datePreset === 'month' ? ' selected' : ''}>Месяц</option>
+                        <option value="3m"${datePreset === '3m' ? ' selected' : ''}>3 месяца</option>
+                        <option value="6m"${datePreset === '6m' ? ' selected' : ''}>Полгода</option>
+                        <option value="year"${datePreset === 'year' ? ' selected' : ''}>Год</option>
+                        <option value="custom"${datePreset === 'custom' ? ' selected' : ''}>Диапазон…</option>
+                    </select>
+                    <input type="date" id="dateFrom" value="${dateFrom}" onchange="changeDateRange()" class="tip" data-tip="Дата от" title="От">
+                    <span>—</span>
+                    <input type="date" id="dateTo" value="${dateTo}" onchange="changeDateRange()" class="tip" data-tip="Дата до" title="До">
+                    ${currentTab === 'history' ? `
+                    <label>Тип:</label>
+                    <select id="typeFilter" onchange="changeTypeFilter(this.value)" class="tip" data-tip="Фильтр: расходы / зарплаты / доходы">
+                        <option value="">Все</option>
+                        <option value="expense"${typeFilter === 'expense' ? ' selected' : ''}>Расходы</option>
+                        <option value="salary"${typeFilter === 'salary' ? ' selected' : ''}>Зарплаты</option>
+                        <option value="income"${typeFilter === 'income' ? ' selected' : ''}>Доходы</option>
+                    </select>
+                    <label>Категория:</label>
+                    <select id="categoryFilter" onchange="changeCategoryFilter(this.value)">
+                        <option value="">Все</option>
+                        ${CATEGORIES.map(c => `<option value="${esc(c)}"${categoryFilter === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}
+                        <option value="Доход"${categoryFilter === 'Доход' ? ' selected' : ''}>Доход</option>
+                    </select>` : ''}
+                </div>
+                <p class="text-muted text-sm tip" data-tip="Оплаченные проекты попадают сюда как доходы" style="margin:-8px 0 16px;">
+                    Доходы: проекты со статусом оплаты «оплачено» (сумма проекта)
+                </p>
+
+                <div id="tabContent"></div>
+            `;
+            
+            renderTabContent();
+            initCommonUI();
+        }
+
+        function renderTabContent() {
+            const container = document.getElementById('tabContent');
+            if (!container) return;
+            if (currentTab === 'history') container.innerHTML = renderHistoryTab();
+            else container.innerHTML = renderStatsTab();
+        }
+
+        function salaryMethodLabel(m) {
+            return m === 'cash' ? 'Наличка' : 'Перевод';
+        }
+
+        function formatRuDate(d) {
+            if (!d) return '';
+            const parts = String(d).slice(0, 10).split('-');
+            if (parts.length !== 3) return d;
+            return parts[2] + '.' + parts[1] + '.' + parts[0];
+        }
+
+        function getCategoryClass(cat) {
+            const map = {
+                'Зарплата': 'salary',
+                'Сервера': 'servers',
+                'ИИ': 'ai',
+                'Налоги': 'tax',
+                'Возврат': 'refund'
+            };
+            return map[cat] || 'other';
+        }
+
+        function projectLabel(id) {
+            const p = projects.find(x => String(x.id) === String(id));
+            if (!p) return '';
+            return (p.client ? p.client + ' — ' : '') + p.name;
+        }
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('ru-RU').format(amount || 0);
+        }
+
+        /** Unified card for expense / salary / income */
+        function renderMoneyCard(item) {
+            if (item._type === 'income') {
+                const p = item;
+                return `<div class="expense-card tip" data-tip="Доход из оплаченного проекта">
+                    <div class="expense-info">
+                        <span class="expense-category" style="background:#d1fae5;color:#065f46;">Доход</span>
+                        <div class="expense-desc">${esc(p.name || 'Проект')}</div>
+                        <div class="expense-meta">${formatRuDate(p._sort)} · ${esc(p.client || '')} · из проекта</div>
+                    </div>
+                    <div class="expense-actions">
+                        <div class="expense-amount positive">+${formatMoney(p.amount)} ₽</div>
+                        <a class="btn btn-ghost btn-sm tip" data-tip="Открыть проект" href="/pages/project.html?id=${esc(p.id)}" onclick="event.stopPropagation()">→</a>
+                    </div>
+                </div>`;
+            }
+            if (item._type === 'salary') {
+                const s = item;
+                const meta = [
+                    s.pay_date ? formatRuDate(s.pay_date) : '',
+                    salaryMethodLabel(s.payment_method),
+                    s.note || ''
+                ].filter(Boolean).join(' · ');
+                return `
+                <div class="expense-card" data-kind="salary" data-id="${s.id}">
+                    <div class="expense-info">
+                        <span class="expense-category salary">Зарплата</span>
+                        <div class="expense-desc">${esc(s.user_name)}</div>
+                        <div class="expense-meta">${esc(meta)}</div>
+                    </div>
+                    <div class="expense-amount negative">-${formatMoney(s.amount)} ₽</div>
+                    <div class="expense-actions">
+                        <span class="salary-status ${s.paid ? 'paid' : 'unpaid'}">${s.paid ? 'Выплачено' : 'Не выплачено'}</span>
+                        <button class="btn btn-sm ${s.paid ? 'btn-secondary' : 'btn-success'}" onclick="toggleSalaryPaid(${s.id}, ${!s.paid})">
+                            ${s.paid ? 'Отменить' : 'Оплатить'}
+                        </button>
+                        <button class="btn btn-sm btn-ghost" onclick="deleteSalary(${s.id})" title="Удалить" aria-label="Удалить">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>`;
+            }
+            const e = item;
+            const titleParts = [];
+            if (e.category === 'ИИ' && e.subcategory) titleParts.push(e.subcategory);
+            if (e.description) titleParts.push(e.description);
+            const title = titleParts.join(' · ') || e.category;
+            const isRefund = e.category === 'Возврат';
+            const meta = [
+                e.date ? formatRuDate(e.date) : '',
+                e.project_id ? projectLabel(e.project_id) : '',
+                e.explanation || '',
+                e.note || '',
+                e.is_recurring ? ('повтор · след. ' + formatRuDate(e.next_date || e.date)) : ''
+            ].filter(Boolean).join(' · ');
+            return `
+                <div class="expense-card" data-kind="expense" data-id="${e.id}">
+                    <div class="expense-info">
+                        <span class="expense-category ${getCategoryClass(e.category)}">${esc(e.category)}</span>
+                        ${e.is_recurring ? '<span class="expense-badge-recur">↻ повтор</span>' : ''}
+                        <div class="expense-desc">${esc(title)}</div>
+                        <div class="expense-meta">${esc(meta)}</div>
+                    </div>
+                    <div class="expense-amount ${isRefund ? 'positive' : 'negative'}">${isRefund ? '+' : '-'}${formatMoney(e.amount)} ₽</div>
+                    <div class="expense-actions">
+                        <button class="btn btn-sm btn-ghost" onclick="deleteExpense(${e.id})" title="Удалить" aria-label="Удалить">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function buildHistoryList() {
+            let list = [];
+            if (!typeFilter || typeFilter === 'expense') {
+                list = list.concat(expenses.map(e => ({ ...e, _type: 'expense', _sort: e.date || '' })));
+            }
+            if (!typeFilter || typeFilter === 'salary') {
+                list = list.concat(salaries.map(s => ({
+                    ...s,
+                    _type: 'salary',
+                    _sort: s.pay_date || s.paid_date || (s.month ? s.month + '-01' : '')
+                })));
+            }
+            if (!typeFilter || typeFilter === 'income') {
+                list = list.concat(incomes.map(p => ({
+                    ...p,
+                    _type: 'income',
+                    _sort: p._payDate || ''
+                })));
+            }
+            if (categoryFilter) {
+                if (categoryFilter === 'Зарплата') {
+                    list = list.filter(i => i._type === 'salary' || (i._type === 'expense' && i.category === 'Зарплата'));
+                } else if (categoryFilter === 'Доход') {
+                    list = list.filter(i => i._type === 'income');
+                } else {
+                    list = list.filter(i => i._type === 'expense' && i.category === categoryFilter);
+                }
+            }
+            list.sort((a, b) => String(b._sort).localeCompare(String(a._sort)));
+            return list;
+        }
+
+        function renderHistoryTab() {
+            const list = buildHistoryList();
+            if (!list.length) return '<div class="empty-state"><p>Нет записей за выбранный период</p></div>';
+            return list.map(renderMoneyCard).join('');
+        }
+
+        function renderStatsTab() {
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+            const salaryTotal = salaries.reduce((sum, s) => sum + (s.amount || 0), 0);
+            const salaryPaid = salaries.filter(s => s.paid).reduce((sum, s) => sum + (s.amount || 0), 0);
+            const allCats = [...(expenseStats.categories || [])];
+            const refundCat = allCats.find(c => c.category === 'Возврат');
+            const refundTotal = refundCat ? (refundCat.total || 0) : 0;
+            // Expenses without refunds
+            const cats = allCats.filter(c => c.category !== 'Возврат');
+            const salIdx = cats.findIndex(c => c.category === 'Зарплата');
+            if (salaryTotal > 0) {
+                if (salIdx >= 0) cats[salIdx] = { category: 'Зарплата', total: (cats[salIdx].total || 0) + salaryTotal };
+                else cats.unshift({ category: 'Зарплата', total: salaryTotal });
+            }
+            const expensesOnly = cats.reduce((sum, c) => sum + (c.total || 0), 0);
+            const incomeTotal = incomes.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            return `
+                <div class="stats-grid">
+                    <div class="stat-card tip" data-tip="Сумма расходов за период (без возвратов)">
+                        <div class="stat-label">Всего расходов</div>
+                        <div class="stat-value expense">${formatMoney(expensesOnly)} ₽</div>
+                    </div>
+                    <div class="stat-card tip" data-tip="Оплаченные проекты (pay_status = paid)">
+                        <div class="stat-label">Доходы из проектов</div>
+                        <div class="stat-value income">+${formatMoney(incomeTotal)} ₽</div>
+                    </div>
+                    <div class="stat-card tip" data-tip="Категория Возврат">
+                        <div class="stat-label">Возврат сумм</div>
+                        <div class="stat-value income">+${formatMoney(refundTotal)} ₽</div>
+                    </div>
+                    <div class="stat-card tip" data-tip="Зарплаты за период">
+                        <div class="stat-label">Зарплаты</div>
+                        <div class="stat-value">${formatMoney(salaryTotal)} ₽</div>
+                    </div>
+                    <div class="stat-card tip" data-tip="Уже выплаченные зарплаты">
+                        <div class="stat-label">Выплачено</div>
+                        <div class="stat-value income">${formatMoney(salaryPaid)} ₽</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Расходы по категориям</h3></div>
+                    <div class="card-body">
+                        <div class="category-breakdown">
+                            ${cats.map((c, i) => `
+                                <div class="category-item">
+                                    <div class="category-dot" style="background:${colors[i % colors.length]}"></div>
+                                    <span class="category-name">${esc(c.category)}</span>
+                                    <span class="category-amount">${formatMoney(c.total)} ₽</span>
+                                </div>
+                            `).join('') || '<p class="text-muted">Нет данных</p>'}
+                        </div>
+                    </div>
+                </div>
+                ${refundTotal > 0 ? `
+                <div class="card" style="margin-top:16px;">
+                    <div class="card-header"><h3 class="card-title">Возврат сумм</h3></div>
+                    <div class="card-body">
+                        <div class="category-breakdown">
+                            <div class="category-item">
+                                <div class="category-dot" style="background:#10b981"></div>
+                                <span class="category-name">Возврат</span>
+                                <span class="category-amount" style="color:var(--success);">+${formatMoney(refundTotal)} ₽</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>` : ''}
+            `;
+        }
+
+        window.switchTab = function(tab) {
+            currentTab = tab;
+            render();
+        };
+
+        window.changeDatePreset = function(preset) {
+            applyPreset(preset);
+            render();
+            loadData();
+        };
+
+        window.changeDateRange = function() {
+            dateFrom = document.getElementById('dateFrom')?.value || dateFrom;
+            dateTo = document.getElementById('dateTo')?.value || dateTo;
+            datePreset = 'custom';
+            const sel = document.getElementById('datePreset');
+            if (sel) sel.value = 'custom';
+            loadData();
+        };
+
+        window.changeTypeFilter = function(val) {
+            typeFilter = val || '';
+            renderTabContent();
+        };
+
+        window.changeCategoryFilter = function(val) {
+            categoryFilter = val || '';
+            renderTabContent();
+        };
+
+        function buildIncomesFromProjects(allProjects) {
+            const from = dateFrom;
+            const to = dateTo;
+            return (allProjects || []).filter(p => {
+                if (p.pay_status !== 'paid') return false;
+                const d = (p.payment_due_date || p.deadline || String(p.updated_at || '').slice(0, 10) || '').slice(0, 10);
+                if (!d) return true;
+                if (from && d < from) return false;
+                if (to && d > to) return false;
+                return true;
+            }).map(p => ({
+                ...p,
+                _payDate: (p.payment_due_date || p.deadline || String(p.updated_at || '').slice(0, 10) || '').slice(0, 10)
+            }));
+        }
+
+        async function loadCategories() {
+            try {
+                categoryRows = await API.get('/api/expense-categories') || [];
+                if (categoryRows.length) CATEGORIES = categoryRows.map(c => c.name);
+            } catch (e) {}
+        }
+
+        async function loadData() {
+            try {
+                const q = `from=${encodeURIComponent(dateFrom)}&to=${encodeURIComponent(dateTo)}`;
+                const [expRes, salRes, statsRes, projRes] = await Promise.all([
+                    API.get(`/api/expenses?${q}`),
+                    API.get(`/api/salaries?${q}`),
+                    API.get(`/api/expenses/stats?${q}`),
+                    API.getProjects().catch(() => [])
+                ]);
+                expenses = expRes || [];
+                salaries = salRes || [];
+                expenseStats = statsRes || { categories: [], total: 0 };
+                projects = Array.isArray(projRes) ? projRes : [];
+                incomes = buildIncomesFromProjects(projects);
+                renderTabContent();
+            } catch (err) {
+                console.error('Failed to load data:', err);
+            }
+        }
+
+        window.showCategorySettings = async function() {
+            await loadCategories();
+            const overlay = document.getElementById('modalOverlay');
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Категории расходов</h3>
+                        <button class="modal-close" onclick="closeModal()" aria-label="Закрыть">&times;</button></div>
+                    <div class="modal-body">
+                        <div id="catList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+                            ${categoryRows.map(c => `
+                                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--gray-50);border-radius:8px;">
+                                    <span>${esc(c.name)}${c.is_system ? ' <span class="text-muted text-sm">(системная)</span>' : ''}</span>
+                                    ${!c.is_system ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteExpenseCategory(${c.id})">Удалить</button>` : ''}
+                                </div>`).join('') || '<p class="text-muted">Нет категорий</p>'}
+                        </div>
+                        <div class="form-group"><label class="form-label">Новая категория</label>
+                            <div style="display:flex;gap:8px;">
+                                <input class="form-input" id="newCatName" placeholder="Название">
+                                <button class="btn btn-primary" onclick="addExpenseCategory()">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.addExpenseCategory = async function() {
+            const name = document.getElementById('newCatName')?.value.trim();
+            if (!name) { showToast('Введите название', 'error'); return; }
+            try {
+                await API.post('/api/expense-categories', { name });
+                showToast('Добавлено', 'success');
+                await loadCategories();
+                showCategorySettings();
+                render();
+                await loadData();
+            } catch (e) { showToast(e.message || 'Ошибка', 'error'); }
+        };
+
+        window.deleteExpenseCategory = async function(id) {
+            if (!confirm('Удалить категорию?')) return;
+            try {
+                await API.delete('/api/expense-categories/' + id);
+                showToast('Удалено', 'success');
+                await loadCategories();
+                showCategorySettings();
+                render();
+                await loadData();
+            } catch (e) { showToast(e.message || 'Ошибка', 'error'); }
+        };
+
+        function syncExpenseFormFields() {
+            const cat = document.getElementById('expenseCategory')?.value;
+            const isSal = cat === 'Зарплата';
+            const isAi = cat === 'ИИ';
+            const isRefund = cat === 'Возврат';
+            const salBox = document.getElementById('moneySalaryFields');
+            const aiBox = document.getElementById('moneyAiFields');
+            const projectBox = document.getElementById('moneyProjectFields');
+            const descGroup = document.getElementById('expenseDescGroup');
+            if (salBox) salBox.hidden = !isSal;
+            if (aiBox) aiBox.hidden = !isAi;
+            if (projectBox) projectBox.hidden = !isRefund;
+            if (descGroup) {
+                descGroup.hidden = isSal;
+                const label = descGroup.querySelector('.form-label');
+                const input = document.getElementById('expenseDesc');
+                if (label) {
+                    label.textContent = isAi ? 'Название / сервис' : (isRefund ? 'Причина возврата *' : 'Описание *');
+                }
+                if (input) {
+                    input.placeholder = isRefund ? 'Причина возврата' : (isAi ? 'Название / сервис' : 'На что потрачено?');
+                }
+            }
+            const recurBox = document.getElementById('expenseRecurBox');
+            if (recurBox) recurBox.hidden = isSal;
+            const recurHint = document.getElementById('expenseRecurHint');
+            const recurOn = !isSal && document.getElementById('expenseRecurring')?.checked;
+            if (recurHint) recurHint.hidden = !recurOn;
+        }
+
+        window.addCustomRecurInterval = function() {
+            const box = document.getElementById('expenseCustomRecurBox');
+            if (!box) return;
+            box.hidden = !box.hidden;
+            if (!box.hidden) document.getElementById('customRecurN')?.focus();
+        };
+        window.saveCustomRecurInterval = function() {
+            const n = parseInt(document.getElementById('customRecurN')?.value, 10);
+            const unit = document.getElementById('customRecurUnit')?.value;
+            if (!n || n < 1) {
+                showToast('Введите число ≥ 1', 'error');
+                return;
+            }
+            if (!['day', 'week', 'month', 'year'].includes(unit)) {
+                showToast('Выберите единицу', 'error');
+                return;
+            }
+            const value = `every:${n}:${unit}`;
+            const label = `Каждые ${n} ${unitWord(n, unit)}`;
+            const list = loadCustomRecur().filter(x => x.value !== value);
+            list.push({ value, label });
+            saveCustomRecur(list);
+            const sel = document.getElementById('expenseRecurInterval');
+            if (sel) sel.innerHTML = recurOptionsHtml(value);
+            const box = document.getElementById('expenseCustomRecurBox');
+            if (box) box.hidden = true;
+            showToast('Период добавлен: ' + label, 'success');
+        };
+
+        function collectExpenseDraft() {
+            return {
+                category: document.getElementById('expenseCategory')?.value || '',
+                salaryUser: document.getElementById('salaryUser')?.value || '',
+                salaryMethod: document.getElementById('salaryMethod')?.value || '',
+                aiSub: document.getElementById('expenseAiSub')?.value || '',
+                explanation: document.getElementById('expenseExplanation')?.value || '',
+                projectId: document.getElementById('expenseProject')?.value || '',
+                description: document.getElementById('expenseDesc')?.value || '',
+                amount: document.getElementById('expenseAmount')?.value || '',
+                date: document.getElementById('expenseDate')?.value || '',
+                recurring: !!document.getElementById('expenseRecurring')?.checked,
+                recurInterval: document.getElementById('expenseRecurInterval')?.value || 'month',
+                note: document.getElementById('expenseNote')?.value || ''
+            };
+        }
+
+        window.showAddExpenseModal = function() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const draftKey = 'new_expense';
+            const d = (typeof DraftStore !== 'undefined' && DraftStore.load(draftKey)) || {};
+            const pref = (d.category && CATEGORIES.includes(d.category))
+                ? d.category
+                : (categoryFilter && CATEGORIES.includes(categoryFilter) ? categoryFilter : 'Сервера');
+            const projectOpts = '<option value="">Выберите проект…</option>' +
+                projects.map(p => `<option value="${esc(p.id)}"${d.projectId === p.id ? ' selected' : ''}>${esc((p.client ? p.client + ' — ' : '') + p.name)}</option>`).join('');
+            const overlay = document.getElementById('modalOverlay');
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()" data-draft-key="${draftKey}">
+                    <div class="modal-header"><h3 class="modal-title">Новый расход</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label" for="expenseCategory">Категория *</label>
+                            <select class="form-select" id="expenseCategory">
+                                ${CATEGORIES.map(c => `<option${c === pref ? ' selected' : ''}>${c}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="money-salary-fields" id="moneySalaryFields" hidden>
+                            <div class="form-group"><label class="form-label" for="salaryUser">Сотрудник *</label>
+                                <select class="form-select" id="salaryUser">
+                                    ${['Костя','Максим','Андрей'].map(u => `<option${(d.salaryUser || '') === u ? ' selected' : ''}>${u}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label" for="salaryMethod">Способ выплаты *</label>
+                                <select class="form-select" id="salaryMethod">
+                                    <option value="cash"${d.salaryMethod === 'cash' ? ' selected' : ''}>Наличка</option>
+                                    <option value="transfer"${(!d.salaryMethod || d.salaryMethod === 'transfer') ? ' selected' : ''}>Перевод</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="moneyAiFields" hidden>
+                            <div class="form-group"><label class="form-label" for="expenseAiSub">Подгруппа ИИ *</label>
+                                <select class="form-select" id="expenseAiSub">
+                                    ${AI_SUBGROUPS.map(s => `<option${(d.aiSub || '') === s ? ' selected' : ''}>${s}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label" for="expenseExplanation">Пояснение</label>
+                                <input type="text" class="form-input" id="expenseExplanation" value="${esc(d.explanation || '')}" placeholder="Для чего / какой сервис">
+                            </div>
+                        </div>
+                        <div id="moneyProjectFields" hidden>
+                            <div class="form-group"><label class="form-label" for="expenseProject">Проект *</label>
+                                <select class="form-select" id="expenseProject">${projectOpts}</select>
+                            </div>
+                        </div>
+                        <div class="form-group" id="expenseDescGroup"><label class="form-label" for="expenseDesc">Описание *</label>
+                            <input type="text" class="form-input" id="expenseDesc" value="${esc(d.description || '')}" placeholder="На что потрачено?">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="expenseAmount">Сумма *</label><input type="number" class="form-input" id="expenseAmount" value="${esc(d.amount || '')}" placeholder="0"></div>
+                            <div class="form-group"><label class="form-label" for="expenseDate">Дата *</label><input type="date" class="form-input" id="expenseDate" value="${esc(d.date || todayStr)}"></div>
+                        </div>
+                        <div class="form-group" id="expenseRecurBox">
+                            <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="checkbox" id="expenseRecurring"${d.recurring ? ' checked' : ''}> Повторяющийся расход
+                            </label>
+                            <div id="expenseRecurHint" class="text-sm text-muted" style="margin-top:6px;" hidden>
+                                Напоминание придёт за 3 дня до следующего списания.
+                                <div class="form-group" style="margin-top:8px;margin-bottom:0;">
+                                    <label class="form-label" for="expenseRecurInterval">Период</label>
+                                    <div class="recur-interval-row">
+                                        <select class="form-select" id="expenseRecurInterval">
+                                            ${recurOptionsHtml(d.recurInterval || 'month')}
+                                        </select>
+                                        <button type="button" class="btn btn-secondary" onclick="addCustomRecurInterval()" title="Новый период" aria-label="Новый период">+</button>
+                                    </div>
+                                    <div id="expenseCustomRecurBox" hidden style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                        <span>Каждые</span>
+                                        <input type="number" min="1" value="2" class="form-input" id="customRecurN" style="width:80px;">
+                                        <select class="form-select" id="customRecurUnit" style="width:auto;">
+                                            <option value="day">день</option>
+                                            <option value="week" selected>неделя</option>
+                                            <option value="month">месяц</option>
+                                            <option value="year">год</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="saveCustomRecurInterval()">Добавить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group"><label class="form-label" for="expenseNote">Комментарий</label>
+                            <input type="text" class="form-input" id="expenseNote" value="${esc(d.note || '')}" placeholder="Комментарий">
+                        </div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(true)">Отмена</button><button class="btn btn-primary" onclick="addExpense()">Добавить</button></div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('expenseCategory')?.addEventListener('change', syncExpenseFormFields);
+            document.getElementById('expenseRecurring')?.addEventListener('change', syncExpenseFormFields);
+            syncExpenseFormFields();
+            if (typeof DraftStore !== 'undefined') {
+                DraftStore.bind(draftKey, collectExpenseDraft, () => {});
+            }
+        };
+
+        window.addExpense = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                const category = document.getElementById('expenseCategory').value;
+                const amount = parseFloat(document.getElementById('expenseAmount').value);
+                const date = document.getElementById('expenseDate').value;
+                const note = document.getElementById('expenseNote').value.trim();
+                const is_recurring = !!document.getElementById('expenseRecurring')?.checked;
+                const recur_interval = document.getElementById('expenseRecurInterval')?.value || 'month';
+
+                if (category === 'Зарплата') {
+                    if (!validateForm([
+                        { id: 'expenseAmount', required: true, message: 'Введите сумму' },
+                        { id: 'expenseDate', required: true, message: 'Выберите дату' }
+                    ])) return;
+                    const user_name = document.getElementById('salaryUser').value;
+                    const payment_method = document.getElementById('salaryMethod').value;
+                    const month = String(date || '').slice(0, 7) || String(dateFrom || isoToday()).slice(0, 7);
+                    await API.post('/api/salaries', {
+                        user_name, amount, month, note,
+                        pay_date: date, payment_method
+                    });
+                    if (typeof DraftStore !== 'undefined') DraftStore.clear('new_expense');
+                    closeModal();
+                    showToast('Зарплата добавлена', 'success');
+                    loadData();
+                    return;
+                }
+
+                if (!validateForm([
+                    { id: 'expenseAmount', required: true, message: 'Введите сумму' },
+                    { id: 'expenseDate', required: true, message: 'Выберите дату' }
+                ])) return;
+
+                let description = (document.getElementById('expenseDesc')?.value || '').trim();
+                let subcategory = '';
+                let explanation = '';
+                let project_id = null;
+
+                if (category === 'ИИ') {
+                    subcategory = document.getElementById('expenseAiSub').value;
+                    explanation = (document.getElementById('expenseExplanation')?.value || '').trim();
+                    if (!description) description = subcategory;
+                }
+                if (category === 'Возврат') {
+                    project_id = document.getElementById('expenseProject').value || null;
+                    if (!project_id) {
+                        showToast('Выберите проект для возврата', 'error');
+                        return;
+                    }
+                    if (!description) description = 'Возврат';
+                }
+                if (!description) description = category;
+
+                await API.post('/api/expenses', {
+                    category, description, amount, date, note,
+                    subcategory, explanation, project_id,
+                    is_recurring, recur_interval
+                });
+                if (typeof DraftStore !== 'undefined') DraftStore.clear('new_expense');
+                closeModal();
+                showToast(is_recurring ? 'Расход добавлен · напоминание за 3 дня' : 'Расход добавлен', 'success');
+                loadData();
+            });
+        };
+
+        window.toggleSalaryPaid = async function(id, paid) {
+            const salary = salaries.find(s => s.id === id);
+            if (!salary) return;
+            try {
+                await API.put(`/api/salaries/${id}`, { ...salary, paid });
+                showToast(paid ? 'Зарплата выплачена' : 'Отменено', 'success');
+                loadData();
+            } catch (err) {
+                showToast('Ошибка: ' + err.message, 'error');
+            }
+        };
+
+        window.deleteExpense = async function(id) {
+            confirmDelete('Расход удалён', {
+                optimistic: () => {
+                    document.querySelector(`.expense-card[data-kind="expense"][data-id="${id}"]`)?.remove();
+                },
+                commit: async () => {
+                    await API.delete(`/api/expenses/${id}`);
+                    loadData();
+                },
+                undo: () => loadData()
+            });
+        };
+
+        window.deleteSalary = async function(id) {
+            confirmDelete('Запись о зарплате удалена', {
+                optimistic: () => {
+                    document.querySelector(`.expense-card[data-kind="salary"][data-id="${id}"]`)?.remove();
+                },
+                commit: async () => {
+                    await API.delete(`/api/salaries/${id}`);
+                    loadData();
+                },
+                undo: () => loadData()
+            });
+        };
+
+        await loadCategories();
+        await loadData();
+        render();
+        
+        window.refreshPageData = async function() {
+            await loadCategories();
+            await loadData();
+            renderTabContent();
+        };
+    })();
+    </script>
+</body>
+</html>

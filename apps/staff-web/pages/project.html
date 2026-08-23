@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проект — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+    <style>
+        .proj-stat-card { position: relative; }
+        .proj-stat-card .edit-pencil {
+            position: absolute; top: 10px; right: 10px;
+            width: 28px; height: 28px; border: none; background: transparent;
+            color: var(--gray-400); cursor: pointer; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s;
+        }
+        .proj-stat-card:hover .edit-pencil { opacity: 1; }
+        .proj-stat-card .edit-pencil:hover { color: var(--primary); background: var(--primary-light); }
+        .proj-stat-card.editing .edit-pencil { opacity: 1; color: var(--primary); }
+        .click-edit {
+            cursor: text; border-radius: 6px; padding: 2px 4px; margin: -2px -4px;
+            transition: background 0.15s;
+        }
+        .click-edit:hover { background: var(--gray-100); }
+        .click-edit.editing { background: transparent; padding: 0; margin: 0; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=18"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+        
+        // Get project ID from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('id');
+        
+        if (!projectId) {
+            window.location.href = '/pages/projects.html';
+            return;
+        }
+        
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('projects') + renderHeader() + `
+            <div id="projectContent">
+                <div style="text-align:center;padding:60px;"><p class="text-muted">Загрузка...</p></div>
+            </div>
+            </div></div></div>
+        `;
+        
+        initCommonUI();
+        await CRM.load();
+        
+        const project = CRM.getProject(projectId);
+        if (!project) {
+            document.getElementById('projectContent').innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:60px;"><p class="text-muted">Проект не найден</p><a href="/pages/projects.html" class="btn btn-primary" style="margin-top:16px;">Вернуться к проектам</a></div></div>';
+            return;
+        }
+        
+        const tasks = CRM.getTasks(projectId);
+        const docs = await API.getDocuments(projectId);
+        const calls = await API.getCalls(projectId);
+
+        // Dynamic columns from settings (not hardcoded)
+        let taskColumns = [];
+        let projectColumns = [];
+        let teamUsers = [];
+        try { taskColumns = await API.get('/task-columns') || []; } catch (e) { taskColumns = []; }
+        try { projectColumns = await API.get('/kanban-columns') || []; } catch (e) { projectColumns = []; }
+        try { teamUsers = await API.get('/users') || []; } catch (e) { teamUsers = []; }
+
+        if (!taskColumns.length) {
+            taskColumns = [
+                { name: 'Ожидает', color: 'gray' },
+                { name: 'В работе', color: 'green' },
+                { name: 'Простой', color: 'yellow' },
+                { name: 'Готово', color: 'gray' }
+            ];
+        }
+        if (!projectColumns.length) {
+            projectColumns = [
+                { name: 'Новый', color: 'blue' },
+                { name: 'Переговоры', color: 'yellow' },
+                { name: 'В работе', color: 'green' },
+                { name: 'Выполнено', color: 'gray' }
+            ];
+        }
+        
+        // Realtime refresh hook: the page renders from top-level data, so reload
+        window.refreshPageData = function() { location.reload(); };
+        
+        const colorHexMap = { blue: '#3B82F6', yellow: '#F59E0B', green: '#10B981', gray: '#9CA3AF', red: '#EF4444', purple: '#8B5CF6', pink: '#EC4899', orange: '#F97316', teal: '#14B8A6', indigo: '#6366F1', lime: '#84CC16', cyan: '#06B6D4' };
+        const colorBgMap = { blue: 'var(--info-light)', yellow: 'var(--warning-light)', green: 'var(--success-light)', gray: 'var(--gray-100)', red: 'var(--danger-light)', purple: '#F3E8FF', orange: '#FFF7ED', teal: '#F0FDFA' };
+        function getColHex(color) { return colorHexMap[color] || (color && String(color).startsWith('#') ? color : '#9CA3AF'); }
+        function getColBg(color) { return colorBgMap[color] || 'var(--gray-100)'; }
+        function badgeForStatus(status) {
+            const col = projectColumns.find(c => c.name === status);
+            const c = col ? col.color : 'gray';
+            if (c === 'green') return 'badge-success';
+            if (c === 'yellow' || c === 'orange') return 'badge-warning';
+            if (c === 'red') return 'badge-danger';
+            if (c === 'blue' || c === 'indigo' || c === 'cyan') return 'badge-primary';
+            if (c === 'purple' || c === 'pink') return 'badge-info';
+            return 'badge-gray';
+        }
+
+        const payIcons = { 'unpaid': 'unpaid', 'pending': 'pending', 'paid': 'paid' };
+        const adeqEmoji = { 'good': '😊', 'warn': '😐', 'bad': '😡' };
+        const adeqLabel = { 'good': 'Нормальный', 'warn': 'Осторожно', 'bad': 'Не работаем' };
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            return dateStr;
+        }
+        
+        function isPaymentDueSoon(dateStr) {
+            if (!dateStr) return false;
+            const due = new Date(dateStr);
+            const now = new Date();
+            const diff = (due - now) / (1000 * 60 * 60 * 24);
+            return diff >= 0 && diff <= 3;
+        }
+
+        // Status options for project (from kanban column settings)
+        let statusSelectOpts = projectColumns.map(c =>
+            `<option value="${c.name}"${c.name === project.status ? ' selected' : ''}>${c.name}</option>`
+        ).join('');
+        if (project.status && !projectColumns.some(c => c.name === project.status)) {
+            statusSelectOpts = `<option value="${project.status}" selected>${project.status}</option>` + statusSelectOpts;
+        }
+        
+        // Kanban for tasks — columns from task status settings
+        const childrenMap = {};
+        tasks.filter(t => t.parent_id).forEach(t => {
+            if (!childrenMap[t.parent_id]) childrenMap[t.parent_id] = [];
+            childrenMap[t.parent_id].push(t);
+        });
+
+        let kanbanHtml = '<div class="kanban-board" style="min-height:200px;">';
+        taskColumns.forEach(col => {
+            const colTasks = tasks.filter(t => t.column_status === col.name && !t.parent_id);
+            const hex = getColHex(col.color);
+            const bg = getColBg(col.color);
+
+            kanbanHtml += `<div class="kanban-column" style="background:${bg};">
+                <div class="kanban-column-header">
+                    <div class="kanban-column-title"><span class="status-dot" style="background:${hex}"></span> ${col.name} <span class="kanban-count">${colTasks.length}</span></div>
+                </div>
+                <div class="kanban-column-body" data-column="${col.name}" style="min-height:60px;">`;
+            
+            colTasks.forEach(t => {
+                const children = childrenMap[t.id] || [];
+                const statusHex = getColHex(col.color);
+                const isPaused = t.column_status === 'Простой';
+                const menuItems = buildProjectTaskMenu(t);
+                const range = formatTaskDateRange(t);
+                kanbanHtml += `<div class="kanban-card${t.done ? ' done' : ''}" data-task-id="${t.id}" draggable="true" style="border-left-color:${statusHex};" onclick="if(!event.target.closest('.task-actions') && !event.target.closest('.desc-clamp-wrap'))crmGo('/pages/task.html?id=' + '${t.id}', '${(t.name || '').replace(/'/g, '')}')">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                        <div style="flex:1;min-width:0;">
+                            <div class="task-title-row">
+                                ${renderPriorityMark(t.priority)}
+                                <div style="font-weight:600;font-size:0.85rem;${t.done ? 'text-decoration:line-through;color:var(--gray-400);' : ''}">${String(t.name || '').replace(/</g,'&lt;')}</div>
+                            </div>
+                            ${t.description ? renderDescClamp(t.description, { lines: 2, id: 'dpk_' + t.id }) : ''}
+                            <div style="font-size:0.7rem;color:var(--gray-500);margin-top:4px;">${t.person || ''}${range ? ' · ' + range : ''}</div>
+                            ${children.length > 0 ? '<span class="task-nest-badge" style="margin-top:4px;display:inline-block;">' + children.length + '</span>' : ''}
+                            ${isPaused ? '<span class="badge badge-warning" style="font-size:0.65rem;margin-top:4px;">ПРОСТОЙ</span>' : ''}
+                        </div>
+                        <div class="task-actions" onclick="event.stopPropagation()">
+                            <div class="task-menu-tray">${menuItems}</div>
+                            <button type="button" class="task-action-btn task-menu-btn" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();toggleTaskMenu(this)" title="Действия" aria-label="Меню действий"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                        </div>
+                    </div>`;
+                if (children.length > 0) {
+                    kanbanHtml += '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--gray-100);">';
+                    children.forEach(child => {
+                        kanbanHtml += `<div class="kanban-subtask${child.done ? ' done' : ''}" style="display:flex;align-items:center;gap:4px;padding:2px 0;cursor:pointer;" onclick="event.stopPropagation();crmGo('/pages/task.html?id=' + '${child.id}', '${(child.name || '').replace(/'/g, '')}')">
+                            ${renderPriorityMark(child.priority)}
+                            <span style="font-size:0.75rem;${child.done ? 'text-decoration:line-through;color:var(--gray-400);' : ''}">${String(child.name || '').replace(/</g,'&lt;')}</span>
+                        </div>`;
+                    });
+                    kanbanHtml += '</div>';
+                }
+                kanbanHtml += '</div>';
+            });
+            
+            kanbanHtml += '</div></div>';
+        });
+        kanbanHtml += '</div>';
+        
+        // Documents list
+        let docsHtml = '';
+        if (docs && docs.length > 0) {
+            docsHtml = '<div class="docs-list">';
+            docs.forEach(d => {
+                const colors = { PDF: '#EF4444', DOCX: '#3B82F6', XLSX: '#10B981', ZIP: '#F59E0B', PNG: '#8B5CF6' };
+                const color = colors[d.type] || '#6B7280';
+                docsHtml += `<div class="doc-item"><div style="display:flex;align-items:center;gap:12px;"><div style="width:36px;height:36px;border-radius:8px;background:${color}15;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div><div><div class="fw-600">${d.name}</div><div class="text-sm text-muted">${d.type} · ${d.size || ''}</div></div></div><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteDoc(${d.id})">Удалить</button></div>`;
+            });
+            docsHtml += '</div>';
+        } else {
+            docsHtml = '<p class="text-muted text-sm" style="padding:12px;">Нет документов</p>';
+        }
+        
+        // Calls list
+        let callsHtml = '';
+        if (calls && calls.length > 0) {
+            calls.forEach(c => {
+                callsHtml += `<div class="call-item"><div class="call-item-header"><span class="fw-600">Звонок</span><span class="call-item-date">${c.date}</span></div><div class="call-item-text">${c.text}</div></div>`;
+            });
+        } else {
+            callsHtml = '<p class="text-muted text-sm" style="padding:12px;">Нет звонков</p>';
+        }
+        
+        const pencilSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+        const personNames = teamUsers.length ? teamUsers.map(u => u.name) : ['Костя', 'Максим', 'Андрей'];
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // Render project page
+        document.getElementById('projectContent').innerHTML = `
+            ${typeof NavTrail !== 'undefined' ? NavTrail.render(project.name + (project.client ? ' — ' + project.client : '')) : ''}
+            
+            <div class="page-header">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <h1 class="page-title click-edit" id="projectTitle" data-field="name" title="Кликните, чтобы изменить">${escapeHtml(project.name)}</h1>
+                        ${project.urgent ? '<span class="badge badge-danger">СРОЧНО</span>' : ''}
+                        <span class="badge ${badgeForStatus(project.status)}" id="projectStatusBadge">${escapeHtml(project.status)}</span>
+                        <span class="pay-icon ${payIcons[project.pay_status] || 'unpaid'}" title="${project.pay_status}">$</span>
+                        <span class="adequacy-icon ${project.adequacy || 'good'}" title="${adeqLabel[project.adequacy] || 'Нормальный'}">${adeqEmoji[project.adequacy] || '😊'}</span>
+                    </div>
+                    <p class="page-subtitle" style="margin-top:6px;">
+                        <strong class="click-edit" data-field="client" title="Кликните, чтобы изменить">${escapeHtml(project.client)}</strong>
+                        · Дедлайн: ${project.deadline || '—'}
+                        ${project.payment_due_date ? ' · Оплата: ' + formatDate(project.payment_due_date) : ''}
+                        ${project.assignee ? ' · Исполнитель: ' + escapeHtml(project.assignee) : ''}
+                    </p>
+                    <div class="hashtags" style="margin-top:6px;" id="projectHashtagsWrap">
+                        ${(project.hashtags || []).length
+                            ? (project.hashtags || []).map(h => '<span class="hashtag">' + escapeHtml(h) + '</span>').join('')
+                            : '<span class="text-muted text-sm click-edit" data-field="hashtags" title="Кликните, чтобы добавить">Добавить хештеги</span>'}
+                        ${(project.hashtags || []).length ? '<button class="btn btn-ghost btn-sm edit-pencil" style="opacity:1;position:static;width:auto;height:auto;padding:2px 6px;margin-left:4px;" onclick="editField(\'hashtags\')" title="Редактировать хештеги">' + pencilSvg + '</button>' : ''}
+                    </div>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-secondary" onclick="previewAsClient()" title="Открыть клиентский вид">Как видит клиент</button>
+                    <button class="btn btn-primary" onclick="document.querySelector('[data-tab=tabAccess]')?.click(); setTimeout(()=>document.getElementById('btnClientLink')?.focus(),100)" title="Ссылка для клиента">Клиенту</button>
+                    <button class="btn btn-secondary" onclick="editProject()" title="Полная форма"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Всё</button>
+                    <button class="btn btn-danger" onclick="deleteProject()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Удалить</button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+                <div class="stat-card proj-stat-card" id="cardAmount">
+                    <button class="edit-pencil" onclick="editField('amount')" title="Изменить сумму">${pencilSvg}</button>
+                    <div class="stat-info"><div class="stat-label">Сумма</div><div class="stat-value" style="font-size:1.3rem;">${formatAmount(project.amount)}</div></div>
+                </div>
+                <div class="stat-card proj-stat-card" id="cardStatus">
+                    <button class="edit-pencil" onclick="editField('status')" title="Изменить статус">${pencilSvg}</button>
+                    <div class="stat-info">
+                        <div class="stat-label">Статус</div>
+                        <div style="margin-top:6px;font-weight:600;">${escapeHtml(project.status || '—')}</div>
+                    </div>
+                </div>
+                <div class="stat-card proj-stat-card" id="cardPay">
+                    <button class="edit-pencil" onclick="editField('pay_status')" title="Изменить оплату">${pencilSvg}</button>
+                    <div class="stat-info"><div class="stat-label">Оплата</div><div style="display:flex;align-items:center;gap:8px;margin-top:4px;"><span class="pay-icon ${payIcons[project.pay_status]}">$</span><span class="fw-600">${escapeHtml(project.pay_method || 'По счёту')}</span></div></div>
+                </div>
+                <div class="stat-card proj-stat-card" id="cardSource">
+                    <button class="edit-pencil" onclick="editField('source')" title="Изменить источник">${pencilSvg}</button>
+                    <div class="stat-info"><div class="stat-label">Источник</div><div style="margin-top:6px;"><span class="source-tag">${escapeHtml(project.source || '—')}</span></div></div>
+                </div>
+                <div class="stat-card proj-stat-card" id="cardDeadline">
+                    <button class="edit-pencil" onclick="editField('deadline')" title="Изменить дедлайн">${pencilSvg}</button>
+                    <div class="stat-info"><div class="stat-label">Дедлайн</div><div style="margin-top:6px;font-weight:600;">${escapeHtml(project.deadline || '—')}</div></div>
+                </div>
+                <div class="stat-card proj-stat-card" id="cardPayDate">
+                    <button class="edit-pencil" onclick="editField('payment_due_date')" title="Изменить дату оплаты">${pencilSvg}</button>
+                    <div class="stat-info"><div class="stat-label">Дата оплаты</div><div style="margin-top:6px;font-weight:600;${isPaymentDueSoon(project.payment_due_date) ? 'color:var(--danger);' : ''}">${project.payment_due_date ? formatDate(project.payment_due_date) : '—'}</div></div>
+                </div>
+                <div class="stat-card proj-stat-card" id="cardAssignee">
+                    <button class="edit-pencil" onclick="editField('assignee')" title="Изменить исполнителя">${pencilSvg}</button>
+                    <div class="stat-info"><div class="stat-label">Исполнитель</div><div style="margin-top:6px;font-weight:600;">${escapeHtml(project.assignee || '—')}</div></div>
+                </div>
+                <div class="stat-card proj-stat-card" id="cardAdequacy">
+                    <button class="edit-pencil" onclick="editField('adequacy')" title="Изменить адекватность">${pencilSvg}</button>
+                    <div class="stat-info"><div class="stat-label">Адекватность</div><div style="margin-top:6px;font-weight:600;">${adeqEmoji[project.adequacy] || '😊'} ${adeqLabel[project.adequacy] || 'Нормальный'}</div></div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header"><h3 class="card-title">Описание</h3></div>
+                <div class="card-body" id="projectDescWrap">
+                    ${renderRichEditor('projectDescEditor', project.description || '', 'Описание проекта…', { fullPreview: true })}
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="tabTasks">Задачи</button>
+                <button class="tab-btn" data-tab="tabDocs">Документы</button>
+                <button class="tab-btn" data-tab="tabCalls">Звонки</button>
+                <button class="tab-btn" data-tab="tabAccess">Клиенту</button>
+            </div>
+            
+            <div class="tab-content active" id="tabTasks">
+                <div style="margin-bottom:12px;display:flex;gap:8px;">
+                    <button class="btn btn-primary btn-sm" onclick="showAddTaskModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Добавить задачу</button>
+                </div>
+                ${kanbanHtml}
+            </div>
+            
+            <div class="tab-content" id="tabDocs">
+                <div style="margin-bottom:12px;display:flex;gap:8px;">
+                    <button class="btn btn-primary btn-sm" onclick="showUploadDocModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Загрузить файл</button>
+                </div>
+                ${docsHtml}
+            </div>
+            
+            <div class="tab-content" id="tabCalls">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Записи звонков</h3><span class="badge badge-gray">Скоро</span></div>
+                    <div class="card-body">${callsHtml}</div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="tabAccess">
+                <div class="card" style="border:2px solid var(--primary);">
+                    <div class="card-header" style="background:var(--primary-light);">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                            <span class="card-title" style="color:var(--primary);">Ссылка для клиента</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-sm text-muted" style="margin:0 0 12px;">Клиент видит прогресс %, этапы задач и ленту «что сделано». Без сумм и внутренних заметок.</p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                            <button class="btn btn-primary" id="btnClientLink" onclick="enableClientLink()">Включить / получить ссылку</button>
+                            <button class="btn btn-secondary" id="btnCopyClientLink" onclick="copyClientLink()" style="display:none;">Копировать</button>
+                            <button class="btn btn-ghost" id="btnOpenClientLink" onclick="openClientLink()" style="display:none;">Открыть</button>
+                            <button class="btn btn-secondary" id="btnPreviewClientLink" onclick="previewAsClient()" style="display:none;">Как видит клиент</button>
+                            <button class="btn btn-ghost" id="btnRegenClientLink" onclick="regenClientLink()" style="display:none;">Новая ссылка</button>
+                            <button class="btn btn-ghost" id="btnRevokeClientLink" onclick="revokeClientLink()" style="display:none;">Отозвать</button>
+                            <label style="display:flex;align-items:center;gap:6px;margin-left:auto;font-size:0.9rem;">
+                                <input type="checkbox" id="chkClientPortal" onchange="toggleClientPortal(this.checked)"> Включено
+                            </label>
+                        </div>
+                        <input class="form-input" id="clientLinkUrl" readonly placeholder="Ссылка появится здесь" style="margin-bottom:16px;">
+
+                        <div id="clientStatsBox" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 16px;margin-bottom:14px;border:2px solid var(--primary);border-radius:12px;background:var(--primary-light);">
+                            <div style="min-width:200px;flex:1;">
+                                <div class="fw-600" style="color:var(--primary);font-size:1rem;">Собирать статистику с этой ссылки</div>
+                                <div class="text-sm text-muted" style="margin-top:2px;">Сохраняется сразу. Выключено — заходы не считаются.</div>
+                            </div>
+                            <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+                                <span class="text-sm fw-600" id="clientStatsLabel">Выкл</span>
+                                <span style="position:relative;width:52px;height:30px;display:inline-block;">
+                                    <input type="checkbox" id="chkClientStats" onchange="toggleClientStats(this.checked)" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2;">
+                                    <span id="clientStatsSwitch" style="position:absolute;inset:0;border-radius:999px;background:var(--gray-300);transition:background .2s;"></span>
+                                    <span id="clientStatsKnob" style="position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s;"></span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="text-sm text-muted" id="clientSiteUrlInfo" style="margin-bottom:12px;">Сайт клиента: —</div>
+                        <div class="text-sm fw-600" style="margin-bottom:6px;">Заходы по ссылке</div>
+                        <div class="text-sm text-muted" id="clientLinkStats" style="margin-bottom:6px;">—</div>
+                        <div id="clientLinkChart" style="display:flex;align-items:flex-end;gap:2px;height:72px;margin-bottom:14px;padding:8px;border:1px solid var(--gray-200);border-radius:10px;background:var(--gray-50);"></div>
+
+                        <div id="clientChartsMore" style="border:1px solid var(--gray-200);border-radius:10px;padding:14px;background:var(--white);">
+                            <div class="fw-600" style="margin-bottom:8px;">Диаграммы клиента</div>
+                            <div id="mgrClientCharts" class="text-sm text-muted">Загрузка…</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Init tabs
+        document.querySelectorAll('.tabs').forEach(group => {
+            const btns = group.querySelectorAll('.tab-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.tab;
+                    if (!target) return;
+                    btns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    const el = document.getElementById(target);
+                    if (el) el.classList.add('active');
+                    if (target === 'tabAccess' && window.loadClientLink) window.loadClientLink();
+                });
+            });
+        });
+        
+        // Init kanban drag and drop for tasks
+        initKanban();
+        
+        // Nesting via drag: drop one card onto another (same project)
+        function initKanbanNest() {
+            document.querySelectorAll('.kanban-card[data-task-id]').forEach(card => {
+                card.ondragover = (e) => {
+                    const dragging = document.querySelector('.kanban-card.dragging');
+                    if (!dragging || dragging === card) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.add('drop-target');
+                };
+                card.ondragleave = () => card.classList.remove('drop-target');
+                card.ondrop = async (e) => {
+                    const dragging = document.querySelector('.kanban-card.dragging');
+                    card.classList.remove('drop-target');
+                    if (!dragging || dragging === card) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const draggedId = dragging.dataset.taskId;
+                    const targetId = card.dataset.taskId;
+                    if (!draggedId || !targetId || draggedId === targetId) return;
+                    try {
+                        const task = CRM.getTasks().find(t => t.id === draggedId);
+                        const target = CRM.getTasks().find(t => t.id === targetId);
+                        if (!task || !target) return;
+                        if ((task.project_id || '') !== (target.project_id || '')) {
+                            showToast('Только задачи одного проекта', 'error');
+                            return;
+                        }
+                        await CRM.updateTask(draggedId, { parent_id: targetId });
+                        showToast('Задача вложена', 'success');
+                        setTimeout(() => location.reload(), 400);
+                    } catch (err) {
+                        showToast(err.message || 'Ошибка', 'error');
+                    }
+                };
+            });
+        }
+        initKanbanNest();
+
+        async function patchProject(updates, { silent } = {}) {
+            try {
+                const payload = {
+                    ...project,
+                    ...updates,
+                    hashtags: updates.hashtags !== undefined ? updates.hashtags : (project.hashtags || [])
+                };
+                const updated = await API.updateProject(projectId, payload);
+                Object.assign(project, updated || payload);
+                if (!silent) showToast('Сохранено', 'success');
+                return true;
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+                return false;
+            }
+        }
+
+        function refreshAfterEdit() {
+            setTimeout(() => location.reload(), 350);
+        }
+
+        function openInlineSelect(card, info, label, options, current, onSave) {
+            const opts = options.map(o =>
+                `<option value="${escapeHtml(o.value)}"${String(o.value) === String(current || '') ? ' selected' : ''}>${escapeHtml(o.label)}</option>`
+            ).join('');
+            info.innerHTML = `
+                <div class="stat-label">${label}</div>
+                <div style="margin-top:6px;">
+                    <select class="form-select" id="inlineSelect" style="padding:6px 28px 6px 8px;font-size:0.85rem;">${opts}</select>
+                </div>`;
+            const sel = info.querySelector('#inlineSelect');
+            sel.focus();
+            sel.addEventListener('change', async () => {
+                const ok = await onSave(sel.value);
+                if (ok !== false) refreshAfterEdit();
+            });
+            sel.addEventListener('blur', () => {
+                setTimeout(() => { if (card.classList.contains('editing')) refreshAfterEdit(); }, 200);
+            });
+        }
+
+        function startTextEdit(el, field) {
+            if (!el || el.classList.contains('editing')) return;
+            el.classList.add('editing');
+            const current = field === 'hashtags'
+                ? (project.hashtags || []).join(', ')
+                : (project[field] || '');
+            const input = document.createElement('input');
+            input.type = field === 'amount' ? 'number' : 'text';
+            input.className = 'form-input';
+            input.value = current;
+            input.style.cssText = 'padding:4px 8px;font-size:inherit;font-weight:inherit;min-width:160px;';
+            el.replaceWith(input);
+            input.focus();
+            input.select();
+            async function finish(save) {
+                if (!save) { refreshAfterEdit(); return; }
+                let val = input.value.trim();
+                if (field === 'name' || field === 'client') {
+                    if (!val) { showToast('Не может быть пустым', 'error'); input.focus(); return; }
+                    await patchProject({ [field]: val });
+                } else if (field === 'hashtags') {
+                    const tags = val.split(/[,\s]+/).map(t => t.replace(/^#/, '').trim()).filter(Boolean);
+                    await patchProject({ hashtags: tags });
+                } else if (field === 'amount') {
+                    await patchProject({ amount: parseInt(val, 10) || 0 });
+                } else if (field === 'deadline') {
+                    await patchProject({ deadline: val });
+                } else {
+                    await patchProject({ [field]: val });
+                }
+                refreshAfterEdit();
+            }
+            input.addEventListener('blur', () => finish(true));
+            input.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+            });
+        }
+
+        window.editField = function(field) {
+            const cardMap = {
+                amount: 'cardAmount', status: 'cardStatus', pay_status: 'cardPay',
+                source: 'cardSource', deadline: 'cardDeadline', payment_due_date: 'cardPayDate',
+                assignee: 'cardAssignee', adequacy: 'cardAdequacy', hashtags: null
+            };
+            if (field === 'hashtags') {
+                const wrap = document.getElementById('projectHashtagsWrap');
+                if (!wrap) return;
+                const fake = document.createElement('span');
+                fake.className = 'click-edit';
+                fake.dataset.field = 'hashtags';
+                wrap.innerHTML = '';
+                wrap.appendChild(fake);
+                startTextEdit(fake, 'hashtags');
+                return;
+            }
+            if (field === 'name' || field === 'client') {
+                const el = document.querySelector('#projectContent .click-edit[data-field="' + field + '"]');
+                if (el) startTextEdit(el, field);
+                return;
+            }
+            const card = document.getElementById(cardMap[field]);
+            if (!card || card.classList.contains('editing')) return;
+            card.classList.add('editing');
+            const info = card.querySelector('.stat-info');
+            const label = info.querySelector('.stat-label').textContent;
+
+            if (field === 'status') {
+                openInlineSelect(card, info, label, projectColumns.map(c => ({ value: c.name, label: c.name })), project.status, async (v) => {
+                    await patchProject({ status: v });
+                });
+            } else if (field === 'amount') {
+                info.innerHTML = `<div class="stat-label">${label}</div><div style="margin-top:6px;"><input type="number" class="form-input" id="inlineAmount" value="${project.amount || 0}" style="padding:6px 8px;font-size:0.85rem;"></div>`;
+                const inp = info.querySelector('#inlineAmount');
+                inp.focus(); inp.select();
+                inp.addEventListener('change', async () => { await patchProject({ amount: parseInt(inp.value, 10) || 0 }); refreshAfterEdit(); });
+                inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') inp.blur(); if (ev.key === 'Escape') refreshAfterEdit(); });
+                inp.addEventListener('blur', () => setTimeout(() => { if (card.classList.contains('editing')) refreshAfterEdit(); }, 200));
+            } else if (field === 'pay_status') {
+                openInlineSelect(card, info, label, [
+                    { value: 'unpaid', label: 'Не оплачено' },
+                    { value: 'pending', label: 'Ждём' },
+                    { value: 'paid', label: 'Оплачено' }
+                ], project.pay_status, async (v) => { await patchProject({ pay_status: v }); });
+            } else if (field === 'source') {
+                openInlineSelect(card, info, label, ['Сайт','Авито','Telegram','Реклама','Знакомые'].map(n => ({ value: n, label: n })), project.source, async (v) => {
+                    await patchProject({ source: v });
+                });
+            } else if (field === 'assignee') {
+                openInlineSelect(card, info, label, personNames.map(n => ({ value: n, label: n })), project.assignee, async (v) => {
+                    await patchProject({ assignee: v });
+                });
+            } else if (field === 'adequacy') {
+                openInlineSelect(card, info, label, [
+                    { value: 'good', label: 'Нормальный' },
+                    { value: 'warn', label: 'Осторожно' },
+                    { value: 'bad', label: 'Не работаем' }
+                ], project.adequacy || 'good', async (v) => { await patchProject({ adequacy: v }); });
+            } else if (field === 'deadline' || field === 'payment_due_date') {
+                const isDate = field === 'payment_due_date';
+                info.innerHTML = `<div class="stat-label">${label}</div><div style="margin-top:6px;"><input type="${isDate ? 'date' : 'text'}" class="form-input" id="inlineDate" value="${escapeHtml(project[field] || '')}" style="padding:6px 8px;font-size:0.85rem;"></div>`;
+                const inp = info.querySelector('#inlineDate');
+                inp.focus();
+                inp.addEventListener('change', async () => { await patchProject({ [field]: inp.value }); refreshAfterEdit(); });
+                inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') inp.blur(); if (ev.key === 'Escape') refreshAfterEdit(); });
+                inp.addEventListener('blur', () => setTimeout(() => { if (card.classList.contains('editing')) refreshAfterEdit(); }, 200));
+            }
+        };
+
+        document.querySelectorAll('#projectContent .click-edit[data-field]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startTextEdit(el, el.dataset.field);
+            });
+        });
+
+        let descSaveTimer = null;
+        bindRichEditor('projectDescEditor', {
+            onBlur: async (html) => {
+                if ((project.description || '') === html) return;
+                await patchProject({ description: html }, { silent: true });
+            },
+            onChange: (html) => {
+                clearTimeout(descSaveTimer);
+                descSaveTimer = setTimeout(async () => {
+                    if ((project.description || '') === html) return;
+                    project.description = html;
+                    try { await patchProject({ description: html }, { silent: true }); } catch (e) {}
+                }, 900);
+            }
+        });
+
+        // Change project status from dropdown (uses kanban column settings)
+        window.changeProjectStatus = async function(newStatus) {
+            await patchProject({ status: newStatus });
+            const badge = document.getElementById('projectStatusBadge');
+            if (badge) {
+                badge.textContent = newStatus;
+                badge.className = 'badge ' + badgeForStatus(newStatus);
+            }
+        };
+
+        // Toggle task done
+        window.toggleTask = async function(taskId, done) {
+            try {
+                const doneCol = taskColumns.find(c => /готов|done|выполн/i.test(c.name)) || taskColumns[taskColumns.length - 1];
+                const workCol = taskColumns.find(c => /работ/i.test(c.name)) || taskColumns[0];
+                await CRM.updateTask(taskId, { done: done, column_status: done ? (doneCol?.name || 'Готово') : (workCol?.name || 'В работе') });
+                showToast(done ? 'Выполнено' : 'В работе', 'success');
+                setTimeout(() => location.reload(), 500);
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+        
+        // Delete project
+        window.deleteProject = async function() {
+            confirmDelete('Проект удалён', {
+                optimistic: () => {
+                    const main = document.querySelector('.main-content .content-wrapper');
+                    if (main) main.style.opacity = '0.35';
+                },
+                commit: async () => {
+                    await API.deleteProject(projectId);
+                    window.location.href = '/pages/projects.html';
+                },
+                undo: () => {
+                    const main = document.querySelector('.main-content .content-wrapper');
+                    if (main) main.style.opacity = '';
+                }
+            });
+        };
+        
+        // Delete document
+        window.deleteDoc = async function(id) {
+            confirmDelete('Документ удалён', {
+                optimistic: () => {
+                    const btn = document.querySelector(`[onclick="deleteDoc(${id})"]`);
+                    if (btn) btn.closest('.doc-item')?.remove();
+                },
+                commit: async () => {
+                    await API.deleteDocument(id);
+                },
+                undo: () => location.reload()
+            });
+        };
+        
+        // Edit project modal
+        window.editProject = function() {
+            const overlay = document.getElementById('modalOverlay');
+            overlay.innerHTML = `
+                <div class="modal modal-lg" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Редактировать — ${project.name}</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="editName">Название</label><input type="text" class="form-input" id="editName" value="${project.name}" onclick="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="editClient">Клиент</label><input type="text" class="form-input" id="editClient" value="${project.client}" onclick="event.stopPropagation()"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="editStatus">Статус</label><select class="form-select" id="editStatus" onclick="event.stopPropagation()">${statusSelectOpts}</select></div>
+                            <div class="form-group"><label class="form-label" for="editAmount">Сумма (₽)</label><input type="number" class="form-input" id="editAmount" value="${project.amount}" onclick="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="editDeadline">Дедлайн</label><input type="text" class="form-input" id="editDeadline" value="${project.deadline || ''}" onclick="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="editPayDate">Дата оплаты</label><input type="date" class="form-input" id="editPayDate" value="${project.payment_due_date || ''}" onclick="event.stopPropagation()"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="editPayStatus">Оплата</label><select class="form-select" id="editPayStatus" onclick="event.stopPropagation()"><option value="unpaid"${project.pay_status==='unpaid'?' selected':''}>Не оплачено</option><option value="pending"${project.pay_status==='pending'?' selected':''}>Ждём</option><option value="paid"${project.pay_status==='paid'?' selected':''}>Оплачено</option></select></div>
+                            <div class="form-group"><label class="form-label" for="editPayMethod">Способ</label><select class="form-select" id="editPayMethod" onclick="event.stopPropagation()"><option${project.pay_method==='Наличные'?' selected':''}>Наличные</option><option${project.pay_method==='По счёту'?' selected':''}>По счёту</option><option${project.pay_method==='Рассрочка'?' selected':''}>Рассрочка</option></select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="editAdequacy">Адекватность</label><select class="form-select" id="editAdequacy" onclick="event.stopPropagation()"><option value="good"${project.adequacy==='good'?' selected':''}>Нормальный</option><option value="warn"${project.adequacy==='warn'?' selected':''}>Осторожно</option><option value="bad"${project.adequacy==='bad'?' selected':''}>Не работаем</option></select></div>
+                            <div class="form-group"><label class="form-label" for="editSource">Источник</label><select class="form-select" id="editSource" onclick="event.stopPropagation()"><option${project.source==='Сайт'?' selected':''}>Сайт</option><option${project.source==='Авито'?' selected':''}>Авито</option><option${project.source==='Telegram'?' selected':''}>Telegram</option><option${project.source==='Реклама'?' selected':''}>Реклама</option><option${project.source==='Знакомые'?' selected':''}>Знакомые</option></select></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Описание</label>${renderRichEditor('editDescription', project.description || '', 'Описание проекта…')}</div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Отмена</button><button class="btn btn-primary" onclick="saveProject()">Сохранить</button></div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            bindRichEditor('editDescription');
+        };
+        
+        window.saveProject = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([
+                    { id: 'editName', required: true, message: 'Введите название' },
+                    { id: 'editClient', required: true, message: 'Введите клиента' }
+                ])) return;
+                
+                await API.updateProject(projectId, {
+                    name: document.getElementById('editName').value,
+                    client: document.getElementById('editClient').value,
+                    status: document.getElementById('editStatus').value,
+                    amount: parseInt(document.getElementById('editAmount').value) || 0,
+                    deadline: document.getElementById('editDeadline').value,
+                    payment_due_date: document.getElementById('editPayDate').value || '',
+                    pay_status: document.getElementById('editPayStatus').value,
+                    pay_method: document.getElementById('editPayMethod').value,
+                    adequacy: document.getElementById('editAdequacy').value,
+                    source: document.getElementById('editSource').value,
+                    description: getDescValue('editDescription'),
+                    urgent: project.urgent,
+                    progress: 0,
+                    discount: project.discount,
+                    discount_val: project.discount_val,
+                    work_types: project.work_types,
+                    hashtags: project.hashtags
+                });
+                closeModal();
+                showToast('Проект обновлён', 'success');
+                setTimeout(() => location.reload(), 500);
+            });
+        };
+        
+        // Burger menu items for project kanban tasks
+        function buildProjectTaskMenu(t) {
+            const isPaused = t.column_status === 'Простой';
+            let items = '';
+            if (t.done) {
+                items += `<button type="button" class="task-action-btn restart" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();projectRestartTask('${t.id}')" title="Вернуть в работу" aria-label="Вернуть в работу"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 105.93-12.55L1 10"/></svg></button>`;
+            } else {
+                items += `<button type="button" class="task-action-btn done" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();projectCompleteTask('${t.id}')" title="Выполнено" aria-label="Выполнено"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg></button>`;
+                items += isPaused
+                    ? `<button type="button" class="task-action-btn play" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();projectPauseTask('${t.id}')" title="Продолжить" aria-label="Продолжить"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>`
+                    : `<button type="button" class="task-action-btn pause" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();projectPauseTask('${t.id}')" title="Пауза" aria-label="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button>`;
+            }
+            items += `<button type="button" class="task-action-btn gear" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();crmGo('/pages/task.html?id=' + '${t.id}', '${(t.name || '').replace(/'/g, '')}')" title="Открыть" aria-label="Открыть"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>`;
+            items += `<button type="button" class="task-action-btn delete" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();projectDeleteTask('${t.id}')" title="Удалить" aria-label="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+            return items;
+        }
+
+        window.projectCompleteTask = async function(id) {
+            const doneCol = taskColumns.find(c => /готов|done|выполн/i.test(c.name)) || taskColumns[taskColumns.length - 1];
+            try {
+                await CRM.updateTask(id, { done: true, column_status: doneCol?.name || 'Готово' });
+                showToast('Задача выполнена', 'success');
+                setTimeout(() => location.reload(), 400);
+            } catch (e) { showToast('Ошибка', 'error'); }
+        };
+        window.projectRestartTask = async function(id) {
+            const workCol = taskColumns.find(c => /работ/i.test(c.name)) || taskColumns[0];
+            try {
+                await CRM.updateTask(id, { done: false, column_status: workCol?.name || 'В работе' });
+                showToast('Задача в работе', 'success');
+                setTimeout(() => location.reload(), 400);
+            } catch (e) { showToast('Ошибка', 'error'); }
+        };
+        window.projectPauseTask = async function(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            const pauseCol = taskColumns.find(c => /прост/i.test(c.name));
+            const workCol = taskColumns.find(c => /работ/i.test(c.name)) || taskColumns[0];
+            const newStatus = task.column_status === (pauseCol?.name || 'Простой')
+                ? (workCol?.name || 'В работе')
+                : (pauseCol?.name || 'Простой');
+            try {
+                await CRM.updateTask(id, { column_status: newStatus });
+                showToast('Статус: ' + newStatus, 'success');
+                setTimeout(() => location.reload(), 400);
+            } catch (e) { showToast('Ошибка', 'error'); }
+        };
+        window.projectDeleteTask = function(id) {
+            confirmDelete('Задача удалена', {
+                optimistic: () => {
+                    if (CRM._cache && Array.isArray(CRM._cache.tasks)) {
+                        CRM._cache.tasks = CRM._cache.tasks.filter(t => t.id !== id);
+                    }
+                    if (typeof renderProjectTasks === 'function') renderProjectTasks();
+                    else {
+                        const card = document.querySelector(`[onclick*="deleteTask('${id}')"], [onclick*='projectDeleteTask('${id}')']`);
+                        card?.closest('.task-card, .kanban-card')?.remove();
+                    }
+                },
+                commit: async () => {
+                    await API.deleteTask(id);
+                    await CRM.load();
+                    if (typeof render === 'function') render();
+                    else location.reload();
+                },
+                undo: async () => {
+                    await CRM.load();
+                    if (typeof render === 'function') render();
+                    else location.reload();
+                }
+            });
+        };
+
+        const draftKeyProjTask = 'new_task_proj_' + projectId;
+        function collectProjTaskDraft() {
+            return {
+                name: document.getElementById('newTaskName')?.value || '',
+                description: getDescValue('newTaskDesc'),
+                person: document.getElementById('newTaskPerson')?.value || '',
+                priority: document.getElementById('newTaskPriority')?.value || 'medium',
+                status: document.getElementById('newTaskStatus')?.value || '',
+                date: document.getElementById('newTaskDate')?.value || '',
+                dateEnd: document.getElementById('newTaskDateEnd')?.value || ''
+            };
+        }
+
+        // Add task modal — same fields as on Tasks page
+        window.showAddTaskModal = function() {
+            const overlay = document.getElementById('modalOverlay');
+            const currentUser = API.getCurrentUser();
+            const d = DraftStore.load(draftKeyProjTask) || {};
+            const names = teamUsers.length ? teamUsers.map(u => u.name) : ['Костя', 'Максим', 'Андрей'];
+            const personOpts = names.map(p => {
+                const sel = (d.person || (currentUser && currentUser.name) || '') === p ? ' selected' : '';
+                return `<option${sel}>${p}</option>`;
+            }).join('');
+            const defaultStatus = d.status || taskColumns[0]?.name || 'Ожидает';
+            const statusOpts = taskColumns.map(c =>
+                `<option value="${c.name}"${c.name === defaultStatus ? ' selected' : ''}>${c.name}</option>`
+            ).join('');
+            const prio = d.priority || 'medium';
+            const esc = (s) => String(s || '').replace(/"/g, '&quot;');
+
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Новая задача</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label" for="newTaskName">Название *</label><input type="text" class="form-input" id="newTaskName" value="${esc(d.name)}" placeholder="Что сделать?" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        <div class="form-group"><label class="form-label">Описание</label>${renderRichEditor('newTaskDesc', d.description || '', 'Подробности задачи…')}</div>
+                        <div class="form-group"><label class="form-label">Проект</label><input type="text" class="form-input" value="${escapeHtml(project.client)} — ${escapeHtml(project.name)}" readonly style="opacity:0.7;cursor:not-allowed;"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newTaskPerson">Исполнитель</label><select class="form-select" id="newTaskPerson" onclick="event.stopPropagation()">${personOpts}</select></div>
+                            <div class="form-group"><label class="form-label" for="newTaskPriority">Приоритет</label>
+                                <select class="form-select" id="newTaskPriority" onclick="event.stopPropagation()">
+                                    <option value="low"${prio==='low'?' selected':''}>Низкий</option>
+                                    <option value="medium"${prio==='medium'?' selected':''}>Средний</option>
+                                    <option value="high"${prio==='high'?' selected':''}>Высокий</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newTaskStatus">Статус</label><select class="form-select" id="newTaskStatus" onclick="event.stopPropagation()">${statusOpts}</select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newTaskDate">Начало</label><input type="datetime-local" class="form-input" id="newTaskDate" value="${d.date || todayDatetimeLocal()}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="newTaskDateEnd">Окончание</label><input type="datetime-local" class="form-input" id="newTaskDateEnd" value="${d.dateEnd || ''}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(true)">Отмена</button><button class="btn btn-primary" onclick="addTask()">Создать</button></div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            bindRichEditor('newTaskDesc', { onChange: () => DraftStore.save(draftKeyProjTask, collectProjTaskDraft()) });
+            DraftStore.bind(draftKeyProjTask, collectProjTaskDraft, () => {});
+        };
+        
+        window.addTask = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([
+                    { id: 'newTaskName', required: true, message: 'Введите название' }
+                ])) return;
+                const name = document.getElementById('newTaskName').value.trim();
+                const column_status = document.getElementById('newTaskStatus').value;
+                const doneCol = taskColumns.find(c => /готов|done|выполн/i.test(c.name));
+                
+                await CRM.addTask({
+                    project_id: projectId,
+                    name: name,
+                    description: getDescValue('newTaskDesc'),
+                    column_status: column_status,
+                    person: document.getElementById('newTaskPerson').value,
+                    priority: document.getElementById('newTaskPriority').value,
+                    date: document.getElementById('newTaskDate').value || todayDatetimeLocal(),
+                    date_end: document.getElementById('newTaskDateEnd').value || '',
+                    time: '',
+                    done: doneCol ? column_status === doneCol.name : false,
+                    urgent: false,
+                    hashtags: []
+                });
+                DraftStore.clear(draftKeyProjTask);
+                closeModal();
+                showToast('Задача создана', 'success');
+                setTimeout(() => location.reload(), 500);
+            });
+        };
+        
+        // Upload document modal
+        window.showUploadDocModal = function() {
+            const overlay = document.getElementById('modalOverlay');
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Загрузить файл</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label" for="docName">Название файла *</label><input type="text" class="form-input" id="docName" placeholder="Договор.pdf" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="docType">Тип</label><select class="form-select" id="docType" onclick="event.stopPropagation()"><option>PDF</option><option>DOCX</option><option>XLSX</option><option>ZIP</option><option>PNG</option></select></div>
+                            <div class="form-group"><label class="form-label" for="docSize">Размер</label><input type="text" class="form-input" id="docSize" placeholder="245 KB" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fileInput">Файл</label>
+                            <div style="border:2px dashed var(--gray-300);border-radius:12px;padding:32px;text-align:center;cursor:pointer;" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--primary)'" ondragleave="this.style.borderColor='var(--gray-300)'" ondrop="event.preventDefault();this.style.borderColor='var(--gray-300)';handleFileDrop(event)">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="1.5" style="margin:0 auto 8px;display:block;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <p class="fw-600 text-muted" id="fileLabel">Нажмите или перетащите файл</p>
+                            </div>
+                            <input type="file" id="fileInput" style="display:none" onchange="handleFileSelect(this)">
+                        </div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Отмена</button><button class="btn btn-primary" onclick="uploadDocument()">Загрузить</button></div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+        
+        let selectedFile = null;
+        
+        window.handleFileSelect = function(input) {
+            if (input.files.length > 0) {
+                selectedFile = input.files[0];
+                document.getElementById('fileLabel').textContent = selectedFile.name;
+                // Auto-fill name and type
+                const nameInput = document.getElementById('docName');
+                if (!nameInput.value) nameInput.value = selectedFile.name;
+                const ext = selectedFile.name.split('.').pop().toUpperCase();
+                const typeSelect = document.getElementById('docType');
+                if (['PDF','DOCX','XLSX','ZIP','PNG','JPG','JPEG'].includes(ext)) {
+                    typeSelect.value = ext;
+                }
+            }
+        };
+        
+        window.handleFileDrop = function(e) {
+            if (e.dataTransfer.files.length > 0) {
+                selectedFile = e.dataTransfer.files[0];
+                document.getElementById('fileLabel').textContent = selectedFile.name;
+                const nameInput = document.getElementById('docName');
+                if (!nameInput.value) nameInput.value = selectedFile.name;
+            }
+        };
+        
+        window.uploadDocument = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([
+                    { id: 'docName', required: true, message: 'Введите название файла' }
+                ])) return;
+                const name = document.getElementById('docName').value.trim();
+                
+                if (selectedFile) {
+                    const formData = new FormData();
+                    formData.append('file', selectedFile);
+                    formData.append('project_id', projectId);
+                    formData.append('name', name);
+                    formData.append('type', document.getElementById('docType').value);
+                    formData.append('size', document.getElementById('docSize').value || formatFileSize(selectedFile.size));
+                    
+                    await fetch('/api/documents/upload', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${API.token}` },
+                        body: formData
+                    });
+                } else {
+                    await API.addDocument({
+                        project_id: projectId,
+                        name: name,
+                        type: document.getElementById('docType').value,
+                        size: document.getElementById('docSize').value || ''
+                    });
+                }
+                
+                closeModal();
+                showToast('Документ загружен', 'success');
+                setTimeout(() => location.reload(), 500);
+            });
+        };
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+            return Math.round(bytes / (1024 * 1024)) + ' MB';
+        }
+
+        let _clientLink = { url: '', previewUrl: '', enabled: false, stats_enabled: true, visits: [] };
+
+        function paintStatsSwitch(on) {
+            const sw = document.getElementById('clientStatsSwitch');
+            const knob = document.getElementById('clientStatsKnob');
+            const label = document.getElementById('clientStatsLabel');
+            if (sw) sw.style.background = on ? 'var(--primary)' : 'var(--gray-300)';
+            if (knob) knob.style.left = on ? '25px' : '3px';
+            if (label) label.textContent = on ? 'Вкл' : 'Выкл';
+        }
+
+        function renderClientLinkUI(data) {
+            _clientLink = Object.assign(_clientLink, data || {});
+            const urlEl = document.getElementById('clientLinkUrl');
+            const chk = document.getElementById('chkClientPortal');
+            const chkStats = document.getElementById('chkClientStats');
+            const stats = document.getElementById('clientLinkStats');
+            const chart = document.getElementById('clientLinkChart');
+            const more = document.getElementById('mgrClientCharts');
+            const has = !!(_clientLink.url);
+            const statsOn = _clientLink.stats_enabled !== false;
+            if (urlEl) urlEl.value = _clientLink.url || '';
+            if (chk) chk.checked = !!_clientLink.enabled;
+            if (chkStats) chkStats.checked = statsOn;
+            paintStatsSwitch(statsOn);
+            ['btnCopyClientLink', 'btnOpenClientLink', 'btnPreviewClientLink', 'btnRegenClientLink', 'btnRevokeClientLink'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = has ? '' : 'none';
+            });
+            const siteInfo = document.getElementById('clientSiteUrlInfo');
+            if (siteInfo) {
+                siteInfo.innerHTML = _clientLink.site_url
+                    ? ('Сайт клиента: <a href="' + String(_clientLink.site_url).replace(/"/g, '') + '" target="_blank" rel="noopener" style="color:var(--primary);">' + String(_clientLink.site_url).replace(/[<>&]/g, '') + '</a>')
+                    : 'Сайт клиента: ещё не указал в кабинете';
+            }
+            if (stats) {
+                stats.textContent = !statsOn
+                    ? 'Сбор выключен'
+                    : ('Всего за 30 дней: ' + (_clientLink.visitsTotal ?? 0));
+            }
+            if (chart) {
+                if (!statsOn) {
+                    chart.innerHTML = '<div class="text-sm text-muted" style="padding:18px 0;width:100%;text-align:center;">Включите сбор статистики выше</div>';
+                } else {
+                    const visits = _clientLink.visits || [];
+                    const max = Math.max(1, ...visits.map(v => v.count || 0));
+                    chart.innerHTML = visits.map(v => {
+                        const h = v.count ? Math.max(8, Math.round((v.count / max) * 100)) : 4;
+                        return `<div title="${v.day}: ${v.count}" style="flex:1;height:${h}%;background:${v.count ? 'var(--primary)' : 'var(--gray-200)'};border-radius:2px 2px 0 0;"></div>`;
+                    }).join('');
+                }
+            }
+            if (more) {
+                more.innerHTML = 'На странице клиента: кольцо готовности, статусы этапов, заходы по дням.'
+                    + (has ? ' <a href="#" onclick="previewAsClient();return false;" style="color:var(--primary);">Открыть предпросмотр</a>' : '');
+            }
+        }
+
+        window.loadClientLink = async function() {
+            try {
+                const data = await API.get('/api/projects/' + projectId + '/client-link');
+                renderClientLinkUI(data);
+            } catch (e) {
+                /* ignore until enabled */
+            }
+        };
+
+        window.enableClientLink = async function() {
+            try {
+                const data = await API.post('/api/projects/' + projectId + '/client-link', {});
+                renderClientLinkUI(data);
+                showToast('Ссылка готова', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.regenClientLink = async function() {
+            if (!confirm('Старая ссылка перестанет работать. Продолжить?')) return;
+            try {
+                const data = await API.post('/api/projects/' + projectId + '/client-link', { regenerate: true });
+                renderClientLinkUI(data);
+                showToast('Новая ссылка', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.toggleClientPortal = async function(enabled) {
+            try {
+                const data = await API.put('/api/projects/' + projectId + '/client-link', { enabled: !!enabled });
+                renderClientLinkUI(data);
+                showToast(enabled ? 'Портал включён' : 'Портал выключен', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+                const chk = document.getElementById('chkClientPortal');
+                if (chk) chk.checked = !!_clientLink.enabled;
+            }
+        };
+
+        window.toggleClientStats = async function(enabled) {
+            try {
+                const data = await API.put('/api/projects/' + projectId + '/client-link', { stats_enabled: !!enabled });
+                renderClientLinkUI(data);
+                showToast(enabled ? 'Сбор статистики включён' : 'Сбор статистики выключен', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+                const chk = document.getElementById('chkClientStats');
+                if (chk) chk.checked = _clientLink.stats_enabled !== false;
+            }
+        };
+
+        window.copyClientLink = async function() {
+            const url = _clientLink.url || document.getElementById('clientLinkUrl')?.value;
+            if (!url) return showToast('Сначала получите ссылку', 'error');
+            try {
+                await navigator.clipboard.writeText(url);
+                showToast('Ссылка скопирована', 'success');
+            } catch (e) {
+                document.getElementById('clientLinkUrl')?.select();
+                showToast('Скопируйте вручную', 'error');
+            }
+        };
+
+        window.openClientLink = function() {
+            if (_clientLink.url) window.open(_clientLink.url, '_blank');
+        };
+
+        window.previewAsClient = async function() {
+            try {
+                if (!_clientLink.url && !_clientLink.previewUrl) {
+                    const data = await API.get('/api/projects/' + projectId + '/client-link');
+                    renderClientLinkUI(data);
+                }
+                let url = _clientLink.previewUrl || '';
+                if (!url) {
+                    const data = await API.post('/api/projects/' + projectId + '/client-link', {});
+                    renderClientLinkUI(data);
+                    url = data.previewUrl || '';
+                }
+                if (!_clientLink.enabled) {
+                    await API.put('/api/projects/' + projectId + '/client-link', { enabled: true });
+                    _clientLink.enabled = true;
+                    const chk = document.getElementById('chkClientPortal');
+                    if (chk) chk.checked = true;
+                }
+                window.open(url, '_blank');
+            } catch (e) {
+                showToast(e.message || 'Нет ссылки клиента', 'error');
+            }
+        };
+
+        window.revokeClientLink = async function() {
+            if (!confirm('Клиент больше не откроет эту ссылку. Продолжить?')) return;
+            try {
+                const data = await API.put('/api/projects/' + projectId + '/client-link', { revoke: true, enabled: false });
+                renderClientLinkUI(data);
+                showToast('Ссылка отозвана', 'success');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+
+        loadClientLink();
+    })();
+    </script>
+</body>
+</html>

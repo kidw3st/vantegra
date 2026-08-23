@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дашборд — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=60">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=24"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script src="/assets/js/dashboard-board.js?v=7"></script>
+    <script>
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const parts = String(dateStr).split('-');
+        if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+        return dateStr;
+    }
+
+    function isOverdue(dateStr) {
+        if (!dateStr) return false;
+        return new Date(dateStr) < new Date();
+    }
+
+    window.dismissReminder = async function(id) {
+        try {
+            await API.put(`/api/reminders/${id}/sent`);
+            if (typeof window.refreshPageData === 'function') window.refreshPageData();
+            else location.reload();
+        } catch (err) {
+            showToast('Ошибка', 'error');
+        }
+    };
+
+    (async function() {
+        if (!API.requireAuth()) return;
+
+        const user = API.getCurrentUser();
+        const app = document.getElementById('app');
+        let editMode = false;
+        let showAddPanel = false;
+        let config = DashBoard.loadConfig(user);
+        let wikiPages = [];
+        let expenseStats = { total: 0, refund_total: 0, categories: [] };
+        let salariesMonth = [];
+        let dragState = null;
+        let resizeState = null;
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function persist(force) {
+            try {
+                if (!force && DashBoard.hasOverlaps(config.widgets)) return false;
+                DashBoard.saveConfig(user, config);
+                return true;
+            } catch (e) {
+                console.error(e);
+                return false;
+            }
+        }
+
+        function taskStatusOptions() {
+            const set = new Set(['Ожидает', 'В работе', 'Простой', 'Готово']);
+            CRM.getTasks().forEach(t => { if (t.column_status) set.add(t.column_status); });
+            return Array.from(set);
+        }
+
+        function projectStatusOptions() {
+            const set = new Set(['Новый', 'Переговоры', 'В работе', 'Готово']);
+            CRM.getProjects().forEach(p => { if (p.status) set.add(p.status); });
+            return Array.from(set);
+        }
+
+        function shell() {
+            app.innerHTML = renderSidebar('dashboard') + renderHeader() + `
+                <div class="page-header db-page-header">
+                    <div>
+                        <h1 class="page-title">Добрый день, ${esc(user ? user.name : 'Админ')}</h1>
+                        <p class="page-subtitle" id="currentDate"></p>
+                    </div>
+                    <div class="page-actions db-header-actions">
+                        <button type="button" class="btn ${editMode ? 'btn-primary' : 'btn-secondary'} tip" id="dbSettingsBtn" data-tip="Режим раскладки: двигать и менять размер блоков" title="Настройки дашборда">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                            ${editMode ? 'Готово' : 'Настройки'}
+                        </button>
+                        ${editMode ? `<button type="button" class="btn btn-primary tip" id="dbAddBtn" data-tip="Добавить виджет на дашборд" title="Добавить блок">+</button>` : ''}
+                    </div>
+                </div>
+                <div class="db-add-panel" id="dbAddPanel" ${showAddPanel && editMode ? '' : 'hidden'}></div>
+                <div class="db-board-wrap" id="dbBoardWrap">
+                    <div class="db-board ${editMode ? 'db-edit' : ''}" id="dbBoard"></div>
+                </div>
+            `;
+            initCommonUI();
+            const now = new Date();
+            const dateEl = document.getElementById('currentDate');
+            if (dateEl) dateEl.textContent = 'Сегодня, ' + now.toLocaleDateString('ru-RU');
+
+            document.getElementById('dbSettingsBtn')?.addEventListener('click', () => {
+                if (editMode) {
+                    // Exit edit: block save if widgets overlap
+                    if (DashBoard.hasOverlaps(config.widgets)) {
+                        showToast('Уберите наложение блоков, чтобы сохранить', 'error');
+                        return;
+                    }
+                    if (!persist(true)) {
+                        showToast('Не удалось сохранить раскладку', 'error');
+                        return;
+                    }
+                    editMode = false;
+                    showAddPanel = false;
+                } else {
+                    editMode = true;
+                }
+                shell();
+                renderBoard();
+                fillAllWidgets();
+            });
+            document.getElementById('dbAddBtn')?.addEventListener('click', () => {
+                showAddPanel = !showAddPanel;
+                renderAddPanel();
+            });
+            renderAddPanel();
+            renderBoard();
+        }
+
+        function renderAddPanel() {
+            const panel = document.getElementById('dbAddPanel');
+            if (!panel) return;
+            if (!(showAddPanel && editMode)) {
+                panel.hidden = true;
+                panel.innerHTML = '';
+                return;
+            }
+            panel.hidden = false;
+            panel.innerHTML = `
+                <div class="db-add-title">Добавить блок</div>
+                <div class="db-add-grid">
+                    ${DashBoard.ALLOWED_TYPES.map(type => {
+                        const meta = DashBoard.WIDGET_META[type];
+                        return `<button type="button" class="db-add-tile" data-type="${type}">
+                            <div class="db-add-preview card">
+                                <div class="db-add-preview-head">
+                                    <span class="card-title">${esc(meta.title)}</span>
+                                </div>
+                                <div class="db-add-preview-body" id="dbPrev_${type}"></div>
+                            </div>
+                            <div class="db-add-label">Добавить: ${esc(meta.title)}</div>
+                        </button>`;
+                    }).join('')}
+                </div>
+            `;
+            panel.querySelectorAll('.db-add-tile').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.getAttribute('data-type');
+                    const w = DashBoard.nextPlacement(config.widgets, type);
+                    config.widgets.push(w);
+                    persist();
+                    renderBoard();
+                    fillWidget(w);
+                    showToast('Блок добавлен: ' + DashBoard.WIDGET_META[type].title, 'success');
+                });
+            });
+            // Real previews (same renderers as live widgets)
+            DashBoard.ALLOWED_TYPES.forEach(type => {
+                const body = document.getElementById('dbPrev_' + type);
+                if (!body) return;
+                const fake = { id: 'preview_' + type, type, filter: '' };
+                fillWidgetInto(body, fake, true);
+            });
+        }
+
+        function fitBoardScale() {
+            const wrap = document.getElementById('dbBoardWrap');
+            const board = document.getElementById('dbBoard');
+            if (!wrap || !board) return;
+            // Design: 96 cols × ~12px + gaps ≈ comfortable desktop width
+            const designMin = 96 * 10 + 95 * 4; // ~1340px
+            const avail = wrap.clientWidth || wrap.getBoundingClientRect().width;
+            board.style.transform = '';
+            board.style.width = '';
+            wrap.style.height = '';
+            wrap.classList.remove('is-scaled');
+            if (editMode || !avail || avail >= designMin) return;
+            const scale = Math.max(0.55, Math.min(1, avail / designMin));
+            board.style.transformOrigin = 'top left';
+            board.style.transform = 'scale(' + scale + ')';
+            board.style.width = (100 / scale) + '%';
+            const h = board.scrollHeight * scale;
+            wrap.style.height = Math.ceil(h) + 'px';
+            wrap.classList.add('is-scaled');
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('dbBoard');
+            if (!board) return;
+            board.className = 'db-board' + (editMode ? ' db-edit' : '');
+            board.innerHTML = config.widgets.map(w => widgetShell(w)).join('');
+            bindBoardInteractions(board);
+            requestAnimationFrame(fitBoardScale);
+        }
+
+        function widgetShell(w) {
+            const meta = DashBoard.WIDGET_META[w.type] || { title: w.type };
+            let filterHtml = '';
+            if (w.type === 'tasks' || w.type === 'projects') {
+                filterHtml = `
+                <select class="form-select db-filter tip" data-wid="${esc(w.id)}" aria-label="Фильтр статуса" title="Фильтр по статусу" data-tip="Фильтр по статусу">
+                    <option value="">Все статусы</option>
+                    ${(w.type === 'tasks' ? taskStatusOptions() : projectStatusOptions()).map(s =>
+                        `<option value="${esc(s)}"${w.filter === s ? ' selected' : ''}>${esc(s)}</option>`
+                    ).join('')}
+                </select>`;
+            } else if (w.type === 'calendar') {
+                const cal = parseCalFilter(w.filter);
+                filterHtml = `
+                <select class="form-select db-filter db-cal-period" data-wid="${esc(w.id)}" aria-label="Период календаря">
+                    <option value="1"${cal.days === 1 ? ' selected' : ''}>1 день</option>
+                    <option value="3"${cal.days === 3 ? ' selected' : ''}>3 дня</option>
+                    <option value="7"${cal.days === 7 ? ' selected' : ''}>Неделя</option>
+                </select>
+                <button type="button" class="btn btn-ghost btn-sm db-cal-grid-btn${cal.grid ? ' active' : ''}" data-cal-grid="${esc(w.id)}" title="Вид сеткой" aria-label="Вид сеткой" aria-pressed="${cal.grid ? 'true' : 'false'}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                </button>`;
+            }
+            const quickAdd = (w.type === 'documents' || w.type === 'projects' || w.type === 'calendar' || w.type === 'tasks' || w.type === 'goals' || w.type === 'reminders' || w.type === 'finances')
+                ? `<button type="button" class="btn btn-ghost btn-sm db-quick-add tip" data-add="${w.type}" data-wid="${esc(w.id)}" data-tip="Быстро добавить" title="Добавить" aria-label="Добавить" style="padding:2px 8px;font-size:1.1rem;line-height:1;">+</button>`
+                : '';
+            const link = {
+                documents: '/pages/documents.html',
+                tasks: '/pages/tasks.html',
+                projects: '/pages/projects.html',
+                goals: '/pages/goals.html',
+                calendar: '/pages/calendar.html',
+                finances: '/pages/money.html',
+                reminders: '',
+                stats: ''
+            }[w.type] || '';
+
+            return `
+            <section class="db-widget card" data-id="${esc(w.id)}" data-type="${w.type}"
+                style="grid-column:${w.x + 1} / span ${w.w}; grid-row:${w.y + 1} / span ${w.h};">
+                <button type="button" class="db-widget-remove" data-remove="${esc(w.id)}" title="Удалить" aria-label="Удалить">&times;</button>
+                <div class="db-widget-head card-header">
+                    <div class="db-widget-title-row">
+                        <h3 class="card-title">${esc(meta.title)}</h3>
+                        ${filterHtml}
+                        ${quickAdd}
+                    </div>
+                    ${link ? `<a href="${link}" class="btn btn-ghost btn-sm db-link-all">Все</a>` : '<span></span>'}
+                </div>
+                <div class="db-widget-body card-body" id="dbBody_${esc(w.id)}"></div>
+                <div class="db-resize" title="Размер"></div>
+            </section>`;
+        }
+
+        function parseCalFilter(raw) {
+            const s = String(raw || '7');
+            const grid = s.includes(':grid') || s.endsWith('g');
+            let days = parseInt(s, 10);
+            if (![1, 3, 7].includes(days)) days = 7;
+            return { days, grid };
+        }
+        function packCalFilter(days, grid) {
+            const d = [1, 3, 7].includes(days) ? days : 7;
+            return grid ? d + ':grid' : String(d);
+        }
+
+        function bindBoardInteractions(board) {
+            board.querySelectorAll('.db-filter').forEach(sel => {
+                sel.addEventListener('change', () => {
+                    if (editMode) return;
+                    const id = sel.getAttribute('data-wid');
+                    const w = config.widgets.find(x => x.id === id);
+                    if (!w) return;
+                    if (w.type === 'calendar') {
+                        const cur = parseCalFilter(w.filter);
+                        const days = parseInt(sel.value, 10) || 7;
+                        w.filter = packCalFilter(days, cur.grid);
+                    } else {
+                        w.filter = sel.value || '';
+                    }
+                    persist();
+                    fillWidget(w);
+                });
+            });
+            board.querySelectorAll('[data-cal-grid]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (editMode) return;
+                    const id = btn.getAttribute('data-cal-grid');
+                    const w = config.widgets.find(x => x.id === id);
+                    if (!w) return;
+                    const cur = parseCalFilter(w.filter);
+                    w.filter = packCalFilter(cur.days, !cur.grid);
+                    persist();
+                    // refresh header button state + body
+                    renderBoard();
+                    fillAllWidgets();
+                });
+            });
+            board.querySelectorAll('[data-remove]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.getAttribute('data-remove');
+                    config.widgets = config.widgets.filter(x => x.id !== id);
+                    persist();
+                    renderBoard();
+                    fillAllWidgets();
+                    showToast('Блок удалён', 'success');
+                });
+            });
+            board.querySelectorAll('.db-quick-add').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (editMode) return;
+                    const t = btn.getAttribute('data-add');
+                    if (t === 'tasks') showNewTaskModal();
+                    else if (t === 'projects') showNewProjectModal();
+                    else if (t === 'documents') showNewDocModal();
+                    else if (t === 'calendar') {
+                        const d = new Date().toISOString().slice(0, 10);
+                        location.href = '/pages/calendar-day.html?date=' + encodeURIComponent(d);
+                    }
+                    else if (t === 'goals') location.href = '/pages/goals.html';
+                    else if (t === 'finances') location.href = '/pages/money.html';
+                    else if (t === 'reminders') {
+                        showNoteReminderModal({
+                            date: '',
+                            onCreated: () => fillAllWidgets()
+                        });
+                    }
+                });
+            });
+
+            if (!editMode) return;
+
+            board.querySelectorAll('.db-widget').forEach(el => {
+                el.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    if (e.target.closest('.db-resize, .db-widget-remove')) return;
+                    startDrag(e, el);
+                });
+                el.querySelector('.db-resize')?.addEventListener('mousedown', (e) => startResize(e, el));
+            });
+        }
+
+        function applyWidgetPos(el, widget) {
+            el.style.gridColumn = `${widget.x + 1} / span ${widget.w}`;
+            el.style.gridRow = `${widget.y + 1} / span ${widget.h}`;
+        }
+
+        function startDrag(e, el) {
+            if (!editMode) return;
+            e.preventDefault();
+            const id = el.getAttribute('data-id');
+            const w = config.widgets.find(x => x.id === id);
+            if (!w) return;
+            const elRect = el.getBoundingClientRect();
+            const offX = e.clientX - elRect.left;
+            const offY = e.clientY - elRect.top;
+            dragState = { id, offX, offY, lastX: w.x, lastY: w.y };
+            el.classList.add('db-dragging');
+            document.body.style.userSelect = 'none';
+            const onMove = (ev) => {
+                if (!dragState) return;
+                const boardEl = document.getElementById('dbBoard');
+                const metrics = DashBoard.boardMetrics(boardEl);
+                const widget = config.widgets.find(x => x.id === dragState.id);
+                if (!widget) return;
+                const left = ev.clientX - metrics.rect.left - dragState.offX;
+                const top = ev.clientY - metrics.rect.top - dragState.offY;
+                let nx = Math.round(left / metrics.stepX);
+                let ny = Math.round(top / metrics.stepY);
+                nx = Math.max(0, Math.min(DashBoard.COLS - widget.w, nx));
+                ny = Math.max(0, Math.min(1200, ny));
+                if (nx === dragState.lastX && ny === dragState.lastY) return;
+                dragState.lastX = nx;
+                dragState.lastY = ny;
+                widget.x = nx;
+                widget.y = ny;
+                const overlap = DashBoard.hasOverlaps(config.widgets);
+                el.classList.toggle('db-collision', overlap);
+                applyWidgetPos(el, widget);
+            };
+            const onUp = () => {
+                el.classList.remove('db-dragging');
+                el.classList.toggle('db-collision', DashBoard.hasOverlaps(config.widgets));
+                dragState = null;
+                document.body.style.userSelect = '';
+                persist(); // skipped automatically if overlap
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        }
+
+        function startResize(e, el) {
+            if (!editMode) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const id = el.getAttribute('data-id');
+            const w = config.widgets.find(x => x.id === id);
+            if (!w) return;
+            const meta = DashBoard.WIDGET_META[w.type];
+            const board = document.getElementById('dbBoard');
+            const m0 = DashBoard.boardMetrics(board);
+            const originX = w.x * m0.stepX;
+            const originY = w.y * m0.stepY;
+            resizeState = { id, originX, originY, lastW: w.w, lastH: w.h };
+            el.classList.add('db-resizing');
+            document.body.style.userSelect = 'none';
+            const onMove = (ev) => {
+                const boardEl = document.getElementById('dbBoard');
+                const metrics = DashBoard.boardMetrics(boardEl);
+                const widget = config.widgets.find(x => x.id === resizeState.id);
+                if (!widget) return;
+                const relRight = ev.clientX - metrics.rect.left - resizeState.originX;
+                const relBottom = ev.clientY - metrics.rect.top - resizeState.originY;
+                let nw = Math.round(relRight / metrics.stepX);
+                let nh = Math.round(relBottom / metrics.stepY);
+                nw = Math.max(meta.minW, Math.min(DashBoard.COLS - widget.x, nw));
+                nh = Math.max(meta.minH, Math.min(120, nh));
+                if (nw === resizeState.lastW && nh === resizeState.lastH) return;
+                resizeState.lastW = nw;
+                resizeState.lastH = nh;
+                widget.w = nw;
+                widget.h = nh;
+                el.classList.toggle('db-collision', DashBoard.hasOverlaps(config.widgets));
+                applyWidgetPos(el, widget);
+            };
+            const onUp = () => {
+                el.classList.remove('db-resizing');
+                el.classList.toggle('db-collision', DashBoard.hasOverlaps(config.widgets));
+                resizeState = null;
+                document.body.style.userSelect = '';
+                persist();
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        }
+
+        function fillAllWidgets() {
+            config.widgets.forEach(fillWidget);
+        }
+
+        function fillWidget(w) {
+            const body = document.getElementById('dbBody_' + w.id);
+            if (!body) return;
+            fillWidgetInto(body, w, false);
+        }
+
+        function fillWidgetInto(body, w, isPreview) {
+            if (w.type === 'stats') renderStats(body, isPreview);
+            else if (w.type === 'documents') renderDocs(body, w, isPreview);
+            else if (w.type === 'tasks') renderTasks(body, w, isPreview);
+            else if (w.type === 'projects') renderProjects(body, w, isPreview);
+            else if (w.type === 'goals') renderGoals(body, isPreview);
+            else if (w.type === 'reminders') renderReminders(body, w, isPreview);
+            else if (w.type === 'calendar') renderCalendar(body, isPreview, w);
+            else if (w.type === 'finances') renderFinances(body, isPreview);
+        }
+
+        function fitStatsScale(root) {
+            if (!root) return;
+            const grid = root.querySelector('.db-stats-inner') || root;
+            const cards = grid.querySelectorAll('.stat-card');
+            if (!cards.length) return;
+            // Reset to CSS fluid scale, then shrink until each card fits its content
+            grid.style.removeProperty('--stat-scale');
+            const base = parseFloat(getComputedStyle(grid).fontSize) || 14;
+            let scalePx = base;
+            const minPx = 13;
+            const overflows = () => Array.from(cards).some(card => {
+                const info = card.querySelector('.stat-info');
+                if (!info) return card.scrollWidth > card.clientWidth + 1 || card.scrollHeight > card.clientHeight + 1;
+                return info.scrollWidth > info.clientWidth + 1
+                    || card.scrollWidth > card.clientWidth + 1
+                    || card.scrollHeight > card.clientHeight + 1;
+            });
+            let guard = 0;
+            while (overflows() && scalePx > minPx && guard < 40) {
+                scalePx -= 0.5;
+                grid.style.setProperty('--stat-scale', scalePx + 'px');
+                guard += 1;
+            }
+        }
+
+        async function renderStats(body, isPreview) {
+            try {
+                const stats = await API.getStats();
+                body.innerHTML = `
+                <div class="stats-grid db-stats-inner">
+                    <div class="stat-card"><div class="stat-icon blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div><div class="stat-info"><div class="stat-label">Проекты</div><div class="stat-value">${stats.totalProjects || 0}</div></div></div>
+                    <div class="stat-card"><div class="stat-icon yellow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></div><div class="stat-info"><div class="stat-label">Задачи</div><div class="stat-value">${stats.pendingTasks || 0}</div></div></div>
+                    <div class="stat-card"><div class="stat-icon green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="stat-info"><div class="stat-label">Оплата</div><div class="stat-value">${formatAmount(stats.pendingPayments || 0)}</div></div></div>
+                    <div class="stat-card"><div class="stat-icon purple"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-info"><div class="stat-label">Клиенты</div><div class="stat-value">${stats.totalClients || 0}</div></div></div>
+                </div>`;
+                requestAnimationFrame(() => fitStatsScale(body));
+                if (!body._statsFitObs) {
+                    body._statsFitObs = new ResizeObserver(() => {
+                        clearTimeout(body._statsFitTimer);
+                        body._statsFitTimer = setTimeout(() => fitStatsScale(body), 40);
+                    });
+                    body._statsFitObs.observe(body);
+                    const widget = body.closest('.db-widget');
+                    if (widget) body._statsFitObs.observe(widget);
+                }
+            } catch (e) {
+                body.innerHTML = '<p class="text-muted">Не удалось загрузить</p>';
+            }
+        }
+
+        function renderDocs(body, w, isPreview) {
+            const key = 'dashDocId_' + w.id;
+            let selectedDocId = Number(localStorage.getItem(key) || localStorage.getItem('dashDocId') || 0) || null;
+            if (selectedDocId && !wikiPages.some(p => Number(p.id) === Number(selectedDocId))) {
+                selectedDocId = wikiPages[0] ? wikiPages[0].id : null;
+            }
+            if (!selectedDocId && wikiPages.length) selectedDocId = wikiPages[0].id;
+            const opts = ['<option value="">Выберите документ…</option>'].concat(
+                wikiPages.slice(0, isPreview ? 4 : 999).map(p => {
+                    const prefix = p.parent_id != null ? '↳ ' : '';
+                    return `<option value="${p.id}"${Number(selectedDocId) === Number(p.id) ? ' selected' : ''}>${prefix}${esc(p.title)}</option>`;
+                })
+            );
+            const page = wikiPages.find(p => Number(p.id) === Number(selectedDocId));
+            let viewHtml = '<p class="text-muted" style="text-align:center;padding:16px;">Выберите документ</p>';
+            if (page) {
+                const content = (typeof renderRichHtml === 'function')
+                    ? renderRichHtml(page.content || '')
+                    : esc(page.content || '');
+                viewHtml = `
+                    <div class="dash-doc-head">
+                        <h2 class="dash-doc-title">${esc(page.title)}</h2>
+                        ${isPreview ? '' : `<a class="btn btn-secondary btn-sm" href="/pages/documents.html?id=${page.id}">Открыть</a>`}
+                    </div>
+                    <div class="dash-doc-content rich-content">${content || '<p class="text-muted">Пустой документ</p>'}</div>`;
+            }
+            body.innerHTML = `
+                <div class="dash-docs-body" style="padding:0;height:100%;">
+                    <select class="form-select" id="docSel_${esc(w.id)}" aria-label="Документ"${isPreview ? ' disabled' : ''}>${opts.join('')}</select>
+                    <div class="dash-doc-view" id="docView_${esc(w.id)}">${viewHtml}</div>
+                </div>`;
+            if (!isPreview) {
+                body.querySelector('select')?.addEventListener('change', (e) => {
+                    const id = e.target.value ? Number(e.target.value) : null;
+                    if (id) localStorage.setItem(key, String(id));
+                    else localStorage.removeItem(key);
+                    renderDocs(body, w, false);
+                });
+            }
+        }
+
+        function renderTasks(body, w, isPreview) {
+            let tasks = CRM.getTasks().filter(t => !t.done && user && t.person === user.name);
+            if (w.filter) tasks = tasks.filter(t => t.column_status === w.filter);
+            tasks = tasks.slice(0, isPreview ? 2 : 8);
+            if (!tasks.length) {
+                body.innerHTML = '<p class="text-muted" style="text-align:center;padding:16px;">Нет задач</p>';
+                return;
+            }
+            body.innerHTML = tasks.map(t => {
+                const project = CRM.getProject(t.project_id);
+                const isPaused = t.column_status === 'Простой';
+                const desc = t.description && typeof renderDescClamp === 'function'
+                    ? renderDescClamp(t.description, { lines: 2, id: 'ddash_' + w.id + '_' + t.id, compactFiles: true }) : '';
+                return `<div class="task-card${isPaused ? ' paused' : ''}" style="cursor:pointer;" onclick="if(!event.target.closest('.desc-clamp-wrap,.desc-clamp-btn,a'))crmGo('/pages/task.html?id=' + '${t.id}', '${(t.name || '').replace(/'/g, '')}')">
+                    <div style="flex:1;min-width:0;">
+                        <div class="task-title-row">
+                            ${typeof renderPriorityMark === 'function' ? renderPriorityMark(t.priority) : ''}
+                            <div class="task-name" style="font-weight:600;font-size:0.95rem;">${esc(t.name)}</div>
+                        </div>
+                        ${desc}
+                        <div style="display:flex;gap:8px;margin-top:6px;font-size:0.8rem;color:var(--gray-500);flex-wrap:wrap;">
+                            ${project ? '<a href="/pages/project.html?id=' + t.project_id + '" onclick="event.stopPropagation()" class="tip" data-tip="Открыть проект" title="Открыть проект" style="color:var(--primary);text-decoration:none;">' + esc(project.name) + '</a>' : ''}
+                            ${t.column_status ? '<span class="badge badge-gray tip" data-tip="Статус задачи" title="Статус: ' + esc(t.column_status) + '" style="font-size:0.65rem;">' + esc(t.column_status) + '</span>' : ''}
+                            ${isPaused ? '<span class="badge badge-warning tip" data-tip="Задача на паузе" style="font-size:0.65rem;">ПРОСТОЙ</span>' : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderProjects(body, w, isPreview) {
+            let projects = CRM.getProjects();
+            if (w.filter) projects = projects.filter(p => p.status === w.filter);
+            projects = projects.slice(0, isPreview ? 2 : 8);
+            if (!projects.length) {
+                body.innerHTML = '<p class="text-muted" style="text-align:center;padding:16px;">Нет проектов</p>';
+                return;
+            }
+            body.innerHTML = '<div class="table-wrapper"><table class="table"><thead><tr><th>Проект</th><th>Статус</th><th>Сумма</th></tr></thead><tbody>' +
+                projects.map(p => `<tr>
+                    <td><a href="/pages/project.html?id=${p.id}" style="text-decoration:none;color:inherit;"><div class="table-cell-name">${esc(p.client)} — ${esc(p.name)}</div></a></td>
+                    <td><span class="badge ${getStatusClass(p.status)}">${esc(p.status)}</span></td>
+                    <td class="table-cell-amount">${formatAmount(p.amount)}</td>
+                </tr>`).join('') +
+                '</tbody></table></div>';
+        }
+
+        async function renderGoals(body, isPreview) {
+            try {
+                const allGoals = await API.get('/goals') || [];
+                const activeGoals = allGoals.filter(g => g.status !== 'done').slice(0, isPreview ? 2 : 4);
+                if (!activeGoals.length) {
+                    body.innerHTML = '<p class="text-muted" style="text-align:center;padding:16px;">Нет активных целей</p>';
+                    return;
+                }
+                body.innerHTML = activeGoals.map(g => {
+                    let cdText = 'Без срока', cdCls = '';
+                    if (g.date_end) {
+                        const end = new Date(g.date_end + 'T23:59:59');
+                        const diff = end - new Date();
+                        if (diff <= 0) { cdText = 'Просрочено'; cdCls = 'overdue'; }
+                        else {
+                            const days = Math.floor(diff / 86400000);
+                            const hours = Math.floor((diff % 86400000) / 3600000);
+                            cdText = days > 0 ? days + 'д ' + hours + 'ч' : hours + 'ч';
+                            cdCls = days < 3 ? 'urgent' : 'ok';
+                        }
+                    }
+                    const progress = typeof goalTimeProgress === 'function'
+                        ? goalTimeProgress(g.date_start, g.date_end, g.status)
+                        : Math.min(100, Math.max(0, g.progress || 0));
+                    return `<div class="goal-card tip" data-tip="Прогресс по сроку: ${progress}%" style="margin-bottom:8px;padding:12px;cursor:pointer;" onclick="location.href='/pages/goals.html?goal=${g.id}'">
+                        <div style="display:flex;justify-content:space-between;gap:10px;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;">${esc(g.name)}</div>
+                                <div class="goal-progress-bar" title="По сроку ${progress}%"><span style="width:${progress}%"></span></div>
+                            </div>
+                            <div class="goal-countdown ${cdCls}">${cdText}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                body.innerHTML = '<p class="text-muted">Не удалось загрузить цели</p>';
+            }
+        }
+
+        async function renderReminders(body, w, isPreview) {
+            try {
+                const reminders = await API.get('/api/reminders?active=true');
+                if (!reminders || !reminders.length) {
+                    body.innerHTML = '<p class="text-muted" style="text-align:center;padding:16px;">Нет напоминаний</p>';
+                    return;
+                }
+                body.innerHTML = reminders.slice(0, isPreview ? 2 : 99).map(r => {
+                    if (r.type === 'note') {
+                        const text = (typeof renderDescClamp === 'function')
+                            ? renderDescClamp(r.message, { lines: 4, id: 'nr_' + r.id })
+                            : esc(String(r.message || '').replace(/<[^>]+>/g, ''));
+                        const meta = (typeof formatNoteReminderMeta === 'function') ? formatNoteReminderMeta(r) : '';
+                        return `<div style="display:flex;gap:12px;padding:10px;margin-bottom:8px;border-radius:var(--radius-md);background:var(--gray-50);">
+                            <div style="flex:1;min-width:0;">
+                                <div class="rich-content" style="font-size:0.9rem;">${text}</div>
+                                ${meta ? `<div style="font-size:0.8rem;color:var(--gray-500);margin-top:4px;">${esc(meta)}</div>` : ''}
+                            </div>
+                            <button class="btn btn-sm btn-ghost" onclick="dismissReminder(${r.id})">✓</button>
+                        </div>`;
+                    }
+                    if (r.type === 'expense') {
+                        const title = [r.expense_category, r.expense_subcategory, r.expense_description].filter(Boolean).join(' · ') || 'Расход';
+                        return `<div style="display:flex;gap:12px;padding:10px;margin-bottom:8px;border-radius:var(--radius-md);background:var(--warning-light);">
+                            <div style="flex:1;">
+                                <div style="font-weight:600;">${esc(title)}</div>
+                                <div style="font-size:0.8rem;color:var(--danger);">Списание: ${formatDate(r.expense_next_date || r.remind_date)}</div>
+                            </div>
+                            <button class="btn btn-sm btn-ghost" onclick="dismissReminder(${r.id})">✓</button>
+                        </div>`;
+                    }
+                    return `<div style="display:flex;gap:12px;padding:10px;margin-bottom:8px;border-radius:var(--radius-md);background:${isOverdue(r.payment_due_date) ? 'var(--danger-light)' : 'transparent'};">
+                        <div style="flex:1;">
+                            <div style="font-weight:600;">${esc(r.project_name)}</div>
+                            <div style="font-size:0.85rem;color:var(--gray-500);">${esc(r.project_client)} · ${formatAmount(r.project_amount)}</div>
+                            <div style="font-size:0.8rem;color:var(--danger);">Оплата: ${formatDate(r.payment_due_date)}</div>
+                        </div>
+                        <button class="btn btn-sm btn-ghost" onclick="dismissReminder(${r.id})">✓</button>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                body.innerHTML = '<p class="text-muted">Нет напоминаний</p>';
+            }
+        }
+
+        function renderCalendar(body, isPreview, widget) {
+            const today = new Date();
+            const days = [];
+            const cal = parseCalFilter(widget && widget.filter);
+            let dayCount = cal.days;
+            if (isPreview) dayCount = Math.min(dayCount, 3);
+            for (let i = 0; i < dayCount; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                days.push(d);
+            }
+            const tasks = CRM.getTasks().filter(t => !t.done && t.date && t.date !== '—');
+            const cells = days.map(d => {
+                const iso = d.toISOString().slice(0, 10);
+                const label = d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
+                const dayTasks = tasks.filter(t => String(t.date).slice(0, 10) === iso);
+                const shown = dayTasks.slice(0, isPreview ? 2 : 4);
+                return { iso, label, dayTasks, shown };
+            });
+            if (cal.grid) {
+                body.innerHTML = `
+                <div class="db-cal-grid db-cal-cols-${dayCount}">
+                    ${cells.map(c => `
+                        <a class="db-cal-cell" href="/pages/calendar-day.html?date=${c.iso}">
+                            <div class="db-cal-cell-head">${esc(c.label)}</div>
+                            <div class="db-cal-cell-body">
+                                ${c.shown.length
+                                    ? c.shown.map(t => `<div class="db-cal-chip">${esc(t.name)}</div>`).join('')
+                                    : '<div class="db-cal-empty">—</div>'}
+                                ${c.dayTasks.length > c.shown.length ? `<div class="db-cal-more">+${c.dayTasks.length - c.shown.length}</div>` : ''}
+                            </div>
+                        </a>`).join('')}
+                </div>`;
+            } else {
+                body.innerHTML = `
+                <div class="db-cal-list">
+                    ${cells.map(c => `
+                        <div class="db-cal-day">
+                            <a class="db-cal-day-title" href="/pages/calendar-day.html?date=${c.iso}">${esc(c.label)}</a>
+                            ${c.dayTasks.length
+                                ? c.dayTasks.slice(0, isPreview ? 2 : 5).map(t => `<div class="db-cal-item" onclick="crmGo('/pages/task.html?id=' + '${t.id}', '${(t.name || '').replace(/'/g, '')}')">${esc(t.name)}</div>`).join('')
+                                : '<div class="text-muted" style="font-size:0.8rem;">—</div>'}
+                        </div>`).join('')}
+                </div>`;
+            }
+        }
+
+        function renderFinances(body, isPreview) {
+            const refund = expenseStats.refund_total || 0;
+            const expenseTotal = expenseStats.total || 0;
+            const salaryTotal = salariesMonth.reduce((s, x) => s + (x.amount || 0), 0);
+            const top = (expenseStats.categories || []).filter(c => c.category !== 'Возврат').slice(0, isPreview ? 2 : 4);
+            body.innerHTML = `
+                <div class="db-fin-grid">
+                    <div><div class="text-muted text-sm">Расходы</div><div class="stat-value expense" style="font-size:1.2rem;">${formatAmount(expenseTotal)}</div></div>
+                    <div><div class="text-muted text-sm">Возвраты</div><div class="stat-value income" style="font-size:1.2rem;">+${formatAmount(refund)}</div></div>
+                    <div><div class="text-muted text-sm">Зарплаты</div><div class="stat-value" style="font-size:1.2rem;">${formatAmount(salaryTotal)}</div></div>
+                </div>
+                <div style="margin-top:12px;">
+                    ${top.map(c => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:0.85rem;">
+                        <span>${esc(c.category)}</span><span style="font-weight:600;">${formatAmount(c.total)}</span>
+                    </div>`).join('') || '<p class="text-muted text-sm">Нет данных за месяц</p>'}
+                </div>`;
+        }
+
+        // ===== Quick-add modals =====
+        window.showNewTaskModal = function() {
+            const overlay = document.getElementById('modalOverlay');
+            const d = (typeof DraftStore !== 'undefined' && DraftStore.load('new_task_dash')) || {};
+            let projectOptions = '';
+            CRM.getProjects().forEach(p => {
+                projectOptions += `<option value="${p.id}"${d.projectId === p.id ? ' selected' : ''}>${esc(p.client)} — ${esc(p.name)}</option>`;
+            });
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()" data-draft-key="new_task_dash">
+                    <div class="modal-header"><h3 class="modal-title">Новая задача</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть">&times;</button></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label" for="newTaskName">Название</label><input type="text" class="form-input" id="newTaskName" value="${esc(d.name || '')}" placeholder="Что сделать?"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newTaskProject">Проект</label><select class="form-select" id="newTaskProject">${projectOptions}</select></div>
+                            <div class="form-group"><label class="form-label" for="newTaskPerson">Исполнитель</label><select class="form-select" id="newTaskPerson">${['Костя','Максим','Андрей'].map(p => `<option${(d.person || (user && user.name)) === p ? ' selected' : ''}>${p}</option>`).join('')}</select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newTaskDate">Дата</label><input type="date" class="form-input" id="newTaskDate" value="${esc(d.date || '')}"></div>
+                            <div class="form-group"><label class="form-label" for="newTaskTime">Время</label><input type="time" class="form-input" id="newTaskTime" value="${esc(d.time || '')}"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(true)">Отмена</button><button class="btn btn-primary" onclick="createTask()">Создать</button></div>
+                </div>`;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            if (typeof DraftStore !== 'undefined') {
+                DraftStore.bind('new_task_dash', () => ({
+                    name: document.getElementById('newTaskName')?.value || '',
+                    projectId: document.getElementById('newTaskProject')?.value || '',
+                    person: document.getElementById('newTaskPerson')?.value || '',
+                    date: document.getElementById('newTaskDate')?.value || '',
+                    time: document.getElementById('newTaskTime')?.value || ''
+                }), () => {});
+            }
+        };
+
+        window.createTask = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([{ id: 'newTaskName', required: true, message: 'Введите название' }])) return;
+                await CRM.addTask({
+                    project_id: document.getElementById('newTaskProject').value,
+                    name: document.getElementById('newTaskName').value.trim(),
+                    column_status: 'Ожидает',
+                    person: document.getElementById('newTaskPerson').value,
+                    date: document.getElementById('newTaskDate').value || '—',
+                    time: document.getElementById('newTaskTime').value || '',
+                    done: false, urgent: false, hashtags: []
+                });
+                if (typeof DraftStore !== 'undefined') DraftStore.clear('new_task_dash');
+                closeModal();
+                showToast('Задача создана', 'success');
+                await CRM.load();
+                fillAllWidgets();
+            });
+        };
+
+        window.showNewProjectModal = function() {
+            const overlay = document.getElementById('modalOverlay');
+            const d = (typeof DraftStore !== 'undefined' && DraftStore.load('new_project_dash')) || {};
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()" data-draft-key="new_project_dash">
+                    <div class="modal-header"><h3 class="modal-title">Новый проект</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть">&times;</button></div>
+                    <div class="modal-body">
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="dashProjName">Название *</label><input class="form-input" id="dashProjName" value="${esc(d.name || '')}" placeholder="Название"></div>
+                            <div class="form-group"><label class="form-label" for="dashProjClient">Клиент *</label><input class="form-input" id="dashProjClient" value="${esc(d.client || '')}" placeholder="Клиент"></div>
+                        </div>
+                        <div class="form-group"><label class="form-label" for="dashProjStatus">Статус</label>
+                            <select class="form-select" id="dashProjStatus">${projectStatusOptions().map(s => `<option${(d.status || '') === s ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select>
+                        </div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(true)">Отмена</button><button class="btn btn-primary" onclick="createDashProject()">Создать</button></div>
+                </div>`;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            if (typeof DraftStore !== 'undefined') {
+                DraftStore.bind('new_project_dash', () => ({
+                    name: document.getElementById('dashProjName')?.value || '',
+                    client: document.getElementById('dashProjClient')?.value || '',
+                    status: document.getElementById('dashProjStatus')?.value || ''
+                }), () => {});
+            }
+        };
+
+        window.createDashProject = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([
+                    { id: 'dashProjName', required: true, message: 'Введите название' },
+                    { id: 'dashProjClient', required: true, message: 'Введите клиента' }
+                ])) return;
+                await CRM.createProject({
+                    name: document.getElementById('dashProjName').value.trim(),
+                    client: document.getElementById('dashProjClient').value.trim(),
+                    status: document.getElementById('dashProjStatus').value,
+                    assignee: user?.name || 'Костя',
+                    phone: '', amount: 0, deadline: '—', payment_due_date: '',
+                    source: 'Сайт', adequacy: 'good', description: '',
+                    urgent: false, progress: 0, pay_status: 'unpaid',
+                    pay_method: 'По счёту', discount: 'no', discount_val: '', hashtags: []
+                });
+                if (typeof DraftStore !== 'undefined') DraftStore.clear('new_project_dash');
+                closeModal();
+                showToast('Проект создан', 'success');
+                await CRM.load();
+                fillAllWidgets();
+            });
+        };
+
+        window.showNewDocModal = function() {
+            const overlay = document.getElementById('modalOverlay');
+            const d = (typeof DraftStore !== 'undefined' && DraftStore.load('new_doc_dash')) || {};
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()" data-draft-key="new_doc_dash">
+                    <div class="modal-header"><h3 class="modal-title">Новый документ</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть">&times;</button></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label" for="dashDocTitle">Название *</label><input class="form-input" id="dashDocTitle" value="${esc(d.title || '')}" placeholder="Название документа"></div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(true)">Отмена</button><button class="btn btn-primary" onclick="createDashDoc()">Создать</button></div>
+                </div>`;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            if (typeof DraftStore !== 'undefined') {
+                DraftStore.bind('new_doc_dash', () => ({
+                    title: document.getElementById('dashDocTitle')?.value || ''
+                }), () => {});
+            }
+        };
+
+        window.createDashDoc = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([{ id: 'dashDocTitle', required: true, message: 'Введите название' }])) return;
+                const title = document.getElementById('dashDocTitle').value.trim();
+                const payload = { title, content: '', kind: 'page', parent_id: null };
+                if (typeof API.createWikiPage === 'function') await API.createWikiPage(payload);
+                else await API.post('/wiki-pages', payload);
+                if (typeof DraftStore !== 'undefined') DraftStore.clear('new_doc_dash');
+                closeModal();
+                showToast('Документ создан', 'success');
+                await loadWiki();
+                fillAllWidgets();
+            });
+        };
+
+        async function loadWiki() {
+            try {
+                if (typeof API.getWikiPages === 'function') wikiPages = await API.getWikiPages() || [];
+                else wikiPages = await API.get('/wiki-pages') || [];
+                wikiPages.sort((a, b) =>
+                    (Number(a.sort_order) - Number(b.sort_order)) ||
+                    String(a.title || '').localeCompare(String(b.title || ''), 'ru')
+                );
+            } catch (e) { wikiPages = []; }
+        }
+
+        async function loadFinance() {
+            const month = new Date().toISOString().slice(0, 7);
+            try {
+                expenseStats = await API.get(`/api/expenses/stats?month=${month}`) || { total: 0, categories: [] };
+            } catch (e) { expenseStats = { total: 0, categories: [], refund_total: 0 }; }
+            try {
+                salariesMonth = await API.get(`/api/salaries?month=${month}`) || [];
+            } catch (e) { salariesMonth = []; }
+        }
+
+        async function loadDashboardData() {
+            await CRM.load();
+            await loadWiki();
+            await loadFinance();
+            fillAllWidgets();
+            if (showAddPanel && editMode) renderAddPanel();
+        }
+
+        shell();
+        await loadDashboardData();
+        window.refreshPageData = loadDashboardData;
+        window.addEventListener('resize', () => requestAnimationFrame(fitBoardScale));
+        window.addEventListener('crm-theme-change', () => requestAnimationFrame(fitBoardScale));
+        // Keep goal progress bars moving
+        setInterval(() => {
+            if (editMode) return;
+            document.querySelectorAll('.db-widget[data-type="goals"]').forEach(el => {
+                const id = el.dataset.id;
+                const w = config.widgets.find(x => x.id === id);
+                const body = document.getElementById('dbBody_' + id);
+                if (w && body) renderGoals(body, false);
+            });
+        }, 60000);
+    })();
+    </script>
+</body>
+</html>

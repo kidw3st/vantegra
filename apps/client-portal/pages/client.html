@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Прогресс проекта</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="/assets/js/client-portal-all.js?v=4"></script>
+    <style>
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { margin: 0; min-height: 100vh; font-family: Outfit, system-ui, sans-serif; background: #111; color: #fff; }
+        .cp-loading, .cp-err { text-align: center; padding: 80px 20px; color: #9ca3af; }
+        .cp-err h2 { color: #fff; margin: 0 0 8px; }
+        .msg-ok { color: #16a34a !important; }
+        .msg-err { color: #dc2626 !important; }
+        .cp-theme-bar {
+            position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
+            z-index: 200; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center;
+            max-width: min(980px, calc(100% - 16px)); max-height: 30vh; overflow: auto;
+            padding: 8px; background: rgba(0,0,0,.9); border: 1px solid rgba(255,255,255,.15);
+            border-radius: 16px; backdrop-filter: blur(12px);
+        }
+        .cp-theme-bar[hidden] { display: none !important; }
+        .cp-theme-bar .hint {
+            width: 100%; text-align: center; font-size: 10px; letter-spacing: .08em;
+            text-transform: uppercase; color: #9ca3af; padding: 2px 4px 4px;
+        }
+        .cp-theme-bar button {
+            border: 1px solid rgba(255,255,255,.15); background: transparent; color: #fff;
+            font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+            padding: 7px 10px; border-radius: 999px; cursor: pointer;
+        }
+        .cp-theme-bar button.active { background: #fff; color: #000; }
+    </style>
+</head>
+<body>
+    <div id="app"><p class="cp-loading">Загрузка кабинета…</p></div>
+    <div class="cp-theme-bar" id="cpThemeBar" hidden>
+        <div class="hint">17 дизайнов · один функционал · разная вёрстка</div>
+    </div>
+    <script>
+    (async function () {
+        const API = window.ClientPortalAll;
+        if (!API) {
+            document.getElementById('app').innerHTML = '<div class="cp-err"><h2>Не загрузился модуль тем</h2></div>';
+            return;
+        }
+
+        const THEMES = API.themes;
+        const root = document.getElementById('app');
+        const params = new URLSearchParams(location.search);
+        const token = (params.get('t') || params.get('token') || '').trim();
+        const isPreview = params.get('preview') === '1';
+        const showPicker = isPreview || params.get('picker') === '1';
+
+        let theme = String(params.get('theme') || '').toLowerCase();
+        if (!theme || !THEMES.includes(theme)) {
+            if (showPicker) {
+                theme = localStorage.getItem('cp_theme') || 'basic';
+                if (!THEMES.includes(theme)) theme = 'basic';
+            } else {
+                theme = token ? API.themeFromToken(token) : 'basic';
+            }
+        }
+
+        const themeBar = document.getElementById('cpThemeBar');
+        if (showPicker) {
+            themeBar.hidden = false;
+            THEMES.forEach(id => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.setAttribute('data-theme-pick', id);
+                btn.textContent = API.labels[id] || id;
+                themeBar.appendChild(btn);
+            });
+            const paint = () => {
+                themeBar.querySelectorAll('[data-theme-pick]').forEach(b => {
+                    b.classList.toggle('active', b.getAttribute('data-theme-pick') === theme);
+                });
+            };
+            paint();
+            themeBar.querySelectorAll('[data-theme-pick]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    theme = btn.getAttribute('data-theme-pick');
+                    localStorage.setItem('cp_theme', theme);
+                    const url = new URL(location.href);
+                    url.searchParams.set('theme', theme);
+                    history.replaceState(null, '', url.toString());
+                    paint();
+                    if (window.__cpData) render(window.__cpData);
+                });
+            });
+        }
+
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[c]);
+        }
+        function statusCounts(tasks) {
+            const map = new Map();
+            tasks.forEach(t => {
+                const key = t.done ? 'Готово' : (t.status || 'Ожидает');
+                map.set(key, (map.get(key) || 0) + 1);
+            });
+            return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+        }
+        function weekBuckets(activity) {
+            const weeks = [];
+            const now = new Date();
+            now.setHours(12, 0, 0, 0);
+            for (let i = 5; i >= 0; i--) {
+                const end = new Date(now);
+                end.setDate(now.getDate() - i * 7);
+                const start = new Date(end);
+                start.setDate(end.getDate() - 6);
+                weeks.push({
+                    label: start.toISOString().slice(0, 10),
+                    start: start.getTime(),
+                    end: end.getTime() + 86400000 - 1,
+                    count: 0
+                });
+            }
+            (activity || []).forEach(a => {
+                if (a.action !== 'complete_task') return;
+                const t = new Date(a.created_at).getTime();
+                if (!t) return;
+                const w = weeks.find(x => t >= x.start && t <= x.end);
+                if (w) w.count += 1;
+            });
+            return weeks;
+        }
+
+        function bindSite() {
+            const input = document.getElementById('cpSiteUrl');
+            const btn = document.getElementById('cpSiteSave');
+            const msg = document.getElementById('cpSiteMsg');
+            const cur = document.getElementById('cpSiteCurrent');
+            async function save() {
+                if (!msg) return;
+                msg.className = 'cp-msg';
+                msg.textContent = 'Сохраняем…';
+                try {
+                    const r = await fetch('/api/public/client/' + encodeURIComponent(token) + '/site', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ site_url: (input && input.value || '').trim() })
+                    });
+                    const j = await r.json();
+                    if (!r.ok) throw new Error(j.error || 'Ошибка');
+                    if (input) input.value = j.site_url || '';
+                    if (cur) {
+                        cur.innerHTML = j.site_url
+                            ? 'Сейчас: <a href="' + esc(j.site_url) + '" target="_blank" rel="noopener">' + esc(j.site_url) + '</a>'
+                            : 'Сайт ещё не указан';
+                    }
+                    msg.className = 'cp-msg msg-ok';
+                    msg.textContent = j.site_url ? 'Сайт сохранён' : 'Адрес очищен';
+                } catch (e) {
+                    msg.className = 'cp-msg msg-err';
+                    msg.textContent = e.message || 'Ошибка';
+                }
+            }
+            if (btn) btn.addEventListener('click', save);
+            if (input) input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); save(); }
+            });
+        }
+
+        function render(data) {
+            const p = data.project || {};
+            const st = data.stats || {};
+            const pct = Math.max(0, Math.min(100, st.progress ?? p.progress ?? 0));
+            const tasks = data.tasks || [];
+            const visits = data.visits || [];
+            const docs = data.documents || [];
+            const acts = data.activity || [];
+            const ctx = {
+                p, pct,
+                done: st.done || 0,
+                total: st.total || 0,
+                left: Math.max(0, (st.total || 0) - (st.done || 0)),
+                byStatus: statusCounts(tasks),
+                weeks: weekBuckets(acts),
+                tasks, acts, docs,
+                showVisits: data.stats_enabled !== false,
+                visits,
+                visitsTotal: data.visitsTotal || 0,
+                siteUrl: data.site_url || '',
+                isPreview
+            };
+            document.title = (p.name || 'Проект') + ' — ' + (API.labels[theme] || theme);
+            document.body.style.background = '';
+            API.clearAnims();
+            root.innerHTML = API.render(theme, ctx);
+            bindSite();
+            requestAnimationFrame(() => API.animate(theme, root));
+        }
+
+        if (!token) {
+            root.innerHTML = '<div class="cp-err"><h2>Ссылка неполная</h2><p>Откройте полную ссылку от менеджера.</p></div>';
+            return;
+        }
+
+        try {
+            if (!isPreview) {
+                fetch('/api/public/client/' + encodeURIComponent(token) + '/visit', { method: 'POST' }).catch(() => {});
+            }
+            const res = await fetch('/api/public/client/' + encodeURIComponent(token));
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Не найдено');
+            window.__cpData = data;
+            render(data);
+        } catch (e) {
+            root.innerHTML = `<div class="cp-err"><h2>Не удалось открыть</h2><p>${esc(e.message || e)}</p></div>`;
+        }
+    })();
+    </script>
+</body>
+</html>

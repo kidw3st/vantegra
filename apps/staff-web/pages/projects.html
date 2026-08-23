@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проекты — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=18"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+        
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('projects') + renderHeader() + `
+            <div class="page-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <h1 class="page-title">Проекты</h1>
+                    <button class="btn btn-ghost btn-icon" onclick="showColumnConfigModal()" title="Настройки колонок" aria-label="Настройки колонок" style="width:32px;height:32px;color:var(--gray-400);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+                <div class="page-actions">
+                    <div style="display:flex;gap:4px;">
+                        <button class="btn btn-secondary btn-sm" id="viewKanban" onclick="switchView('kanban')" style="background:var(--primary-light);color:var(--primary);border-color:var(--primary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Канбан</button>
+                        <button class="btn btn-secondary btn-sm" id="viewTable" onclick="switchView('table')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg> Таблица</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="showNewProjectModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Новый проект</button>
+                </div>
+            </div>
+            <div class="filter-bar" id="statusFilters" style="flex-wrap:wrap;"></div>
+            <div id="kanbanView"></div>
+            <div id="tableView" class="hidden"></div>
+            </div></div></div>
+        `;
+        
+        initCommonUI();
+        // Make content full-width for projects page
+        const contentWrapper = document.querySelector('.content-wrapper');
+        if (contentWrapper) contentWrapper.classList.add('full-width');
+        await CRM.load();
+        
+        // Load hashtags for autocomplete
+        let allHashtags = [];
+        try {
+            const h = await API.gethashtags();
+            if (Array.isArray(h)) allHashtags = h;
+        } catch (err) {}
+
+        let currentFilter = 'all';
+        let currentHashtag = '';
+        let currentView = 'kanban';
+        let kanbanColumns = [];
+
+        // Load kanban columns from API
+        async function loadColumns() {
+            try {
+                kanbanColumns = await API.get('/api/kanban-columns');
+            } catch (err) {
+                // Fallback to defaults
+                kanbanColumns = [
+                    { id: 1, name: 'Новый', color: 'blue', sort_order: 0 },
+                    { id: 2, name: 'Переговоры', color: 'yellow', sort_order: 1 },
+                    { id: 3, name: 'В работе', color: 'green', sort_order: 2 },
+                    { id: 4, name: 'Абонемент', color: 'blue', sort_order: 3 },
+                    { id: 5, name: 'Выполнено', color: 'gray', sort_order: 4 }
+                ];
+            }
+        }
+        await loadColumns();
+
+        // Render dynamic status filters from kanban columns (only for table view)
+        function renderStatusFilters() {
+            const container = document.getElementById('statusFilters');
+            let html = '';
+            // Show status filters only in table view
+            if (currentView === 'table') {
+                html += '<span class="text-sm text-muted" style="margin-right:4px;">Статус:</span>';
+                html += `<button class="filter-chip${currentFilter === 'all' ? ' active' : ''}" onclick="filterProjects('all', this)">Все</button>`;
+                kanbanColumns.forEach(col => {
+                    html += `<button class="filter-chip${currentFilter === col.name ? ' active' : ''}" onclick="filterProjects('${col.name}', this)">${col.name}</button>`;
+                });
+            }
+            html += '<span class="text-sm text-muted" style="margin-left:12px;margin-right:4px;">Хештег:</span>';
+            html += `<div class="hashtag-search-wrapper"><input type="text" class="form-input" id="hashtagFilter" placeholder="Поиск по хештегу..." style="width:180px;padding:4px 28px 4px 8px;font-size:0.8rem;" autocomplete="off"><button class="hashtag-arrow" id="hashtagArrow" aria-label="Показать все хештеги"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg></button><div class="hashtag-dropdown" id="hashtagDropdown"></div></div>`;
+            container.innerHTML = html;
+            initHashtagSearch();
+        }
+
+        // Hashtag search initialization (called after renderStatusFilters)
+        function initHashtagSearch() {
+            const hashtagInput = document.getElementById('hashtagFilter');
+            const hashtagDropdown = document.getElementById('hashtagDropdown');
+            const hashtagArrow = document.getElementById('hashtagArrow');
+            if (!hashtagInput || !hashtagDropdown || !hashtagArrow) return;
+
+            function showAllHashtags() {
+                if (allHashtags.length > 0) {
+                    hashtagDropdown.innerHTML = allHashtags.map(h =>
+                        `<div class="hashtag-dropdown-item${currentHashtag === h ? ' active' : ''}" data-tag="${h}">${h}</div>`
+                    ).join('');
+                    hashtagDropdown.classList.add('show');
+                    hashtagArrow.classList.add('open');
+                }
+            }
+
+            function hideHashtags() {
+                hashtagDropdown.classList.remove('show');
+                hashtagArrow.classList.remove('open');
+            }
+
+            hashtagArrow.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (hashtagDropdown.classList.contains('show')) hideHashtags();
+                else showAllHashtags();
+            });
+
+            hashtagInput.addEventListener('focus', function() {
+                if (this.value.trim()) {
+                    const val = this.value.trim().toLowerCase();
+                    const matches = allHashtags.filter(h => h.toLowerCase().includes(val));
+                    if (matches.length > 0) {
+                        hashtagDropdown.innerHTML = matches.map(h => `<div class="hashtag-dropdown-item" data-tag="${h}">${h}</div>`).join('');
+                        hashtagDropdown.classList.add('show');
+                        hashtagArrow.classList.add('open');
+                    }
+                }
+            });
+
+            hashtagInput.addEventListener('input', function() {
+                const val = this.value.trim().toLowerCase();
+                if (!val) { hideHashtags(); currentHashtag = ''; renderProjects(); return; }
+                const matches = allHashtags.filter(h => h.toLowerCase().includes(val));
+                if (matches.length > 0) {
+                    hashtagDropdown.innerHTML = matches.map(h => `<div class="hashtag-dropdown-item" data-tag="${h}">${h}</div>`).join('');
+                    hashtagDropdown.classList.add('show');
+                    hashtagArrow.classList.add('open');
+                } else { hideHashtags(); }
+            });
+
+            hashtagInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const val = this.value.trim();
+                    if (val) { currentHashtag = val.startsWith('#') ? val : '#' + val; this.value = currentHashtag; hideHashtags(); renderProjects(); }
+                }
+                if (e.key === 'Escape') { this.value = ''; currentHashtag = ''; hideHashtags(); renderProjects(); }
+            });
+
+            hashtagDropdown.addEventListener('click', function(e) {
+                const item = e.target.closest('.hashtag-dropdown-item');
+                if (item) { currentHashtag = item.dataset.tag; hashtagInput.value = currentHashtag; hideHashtags(); renderProjects(); }
+            });
+        }
+
+        // Close hashtag dropdown on outside click
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('hashtagDropdown');
+            if (dropdown && !e.target.closest('.hashtag-search-wrapper')) {
+                dropdown.classList.remove('show');
+                const arrow = document.getElementById('hashtagArrow');
+                if (arrow) arrow.classList.remove('open');
+            }
+        });
+
+        renderStatusFilters();
+        
+        window.switchView = function(view) {
+            currentView = view;
+            const kanban = document.getElementById('kanbanView');
+            const table = document.getElementById('tableView');
+            const btnKanban = document.getElementById('viewKanban');
+            const btnTable = document.getElementById('viewTable');
+            
+            if (view === 'kanban') {
+                kanban.classList.remove('hidden');
+                table.classList.add('hidden');
+                btnKanban.style.background = 'var(--primary-light)';
+                btnKanban.style.color = 'var(--primary)';
+                btnKanban.style.borderColor = 'var(--primary)';
+                btnTable.style.background = '';
+                btnTable.style.color = '';
+                btnTable.style.borderColor = '';
+            } else {
+                kanban.classList.add('hidden');
+                table.classList.remove('hidden');
+                btnTable.style.background = 'var(--primary-light)';
+                btnTable.style.color = 'var(--primary)';
+                btnTable.style.borderColor = 'var(--primary)';
+                btnKanban.style.background = '';
+                btnKanban.style.color = '';
+                btnKanban.style.borderColor = '';
+            }
+            renderStatusFilters();
+        };
+        
+        window.filterProjects = function(status, btn) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-bar .filter-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            renderProjects();
+        };
+        
+        window.filterByHashtag = function(tag) {
+            currentHashtag = tag;
+            renderProjects();
+        };
+        
+        window.deleteProject = async function(id) {
+            const project = CRM.getProject ? CRM.getProject(id) : (CRM.getProjects() || []).find(p => p.id === id);
+            const name = project ? project.name : 'Проект';
+            confirmDelete('Проект «' + name + '» удалён', {
+                optimistic: () => {
+                    if (CRM._cache && Array.isArray(CRM._cache.projects)) {
+                        CRM._cache.projects = CRM._cache.projects.filter(p => p.id !== id);
+                    }
+                    renderProjects();
+                },
+                commit: async () => {
+                    await API.deleteProject(id);
+                    await CRM.load();
+                    renderProjects();
+                },
+                undo: async () => {
+                    await CRM.load();
+                    renderProjects();
+                }
+            });
+        };
+        
+        function getFilteredProjects() {
+            let projects = CRM.getProjects();
+            if (currentFilter !== 'all') {
+                projects = projects.filter(p => p.status === currentFilter);
+            }
+            if (currentHashtag) {
+                projects = projects.filter(p => p.hashtags && p.hashtags.includes(currentHashtag));
+            }
+            return projects;
+        }
+        
+        function formatAmountInput(value) {
+            return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
+        
+        const colorDots = { blue: 'blue', yellow: 'yellow', green: 'green', gray: 'gray', red: 'red', purple: 'blue' };
+        const colorHexMap = { blue: '#3B82F6', yellow: '#F59E0B', green: '#10B981', gray: '#9CA3AF', red: '#EF4444', purple: '#8B5CF6', pink: '#EC4899', orange: '#F97316', teal: '#14B8A6', indigo: '#6366F1', lime: '#84CC16', cyan: '#06B6D4' };
+        function getColHex(color) { return colorHexMap[color] || (color && color.startsWith('#') ? color : '#9CA3AF'); }
+        function isHexColor(color) { return color && color.startsWith('#'); }
+        function dotStyle(color) { return isHexColor(color) ? `background:${color}` : ''; }
+        function dotClass(color) { return isHexColor(color) ? '' : (colorDots[color] || 'gray'); }
+        const avatarColors = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+        function getAvatarColor(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            return avatarColors[Math.abs(hash) % avatarColors.length];
+        }
+        function renderTeamAvatars(team, small) {
+            if (!team || team.length === 0) return '';
+            const cls = small ? 'team-avatar team-avatar-sm' : 'team-avatar';
+            return '<div class="team-avatars">' + team.map(name => {
+                const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+                return `<div class="${cls}" style="background:${getAvatarColor(name)};" title="${name}">${initials}</div>`;
+            }).join('') + '</div>';
+        }
+
+        function renderProjects() {
+            const projects = getFilteredProjects();
+
+            let kanbanHtml = '<div class="kanban-board">';
+            kanbanColumns.forEach(col => {
+                const colProjects = projects.filter(p => p.status === col.name);
+                const hex = getColHex(col.color);
+                kanbanHtml += `<div class="kanban-column"><div class="kanban-column-header"><div class="kanban-column-title"><span class="status-dot" style="background:${hex}"></span> ${col.name} <span class="kanban-count">${colProjects.length}</span></div></div><div class="kanban-column-body" data-column="${col.name}">`;
+                colProjects.forEach(p => {
+                    const adeqEmoji = { 'good': '😊', 'warn': '😐', 'bad': '😡' };
+                    kanbanHtml += `<div class="kanban-card${p.urgent ? ' urgent' : ''}" draggable="true" data-project-id="${p.id}">
+                        <a href="/pages/project.html?id=${p.id}" class="kanban-card-link" style="text-decoration:none;color:inherit;display:block;" onclick="if(event.target.closest('.desc-clamp-wrap,.desc-clamp-btn')){event.preventDefault();event.stopPropagation();}">
+                            <div style="display:flex;justify-content:space-between;align-items:start;">
+                                <div class="kanban-card-title">${p.name}</div>
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <span class="pay-icon ${p.pay_status || 'unpaid'}" title="${p.pay_status === 'paid' ? 'Оплачено' : p.pay_status === 'pending' ? 'Ждём оплату' : 'Не оплачено'}">$</span>
+                                    <span class="adequacy-icon ${p.adequacy || 'good'}" title="${p.adequacy === 'good' ? 'Нормальный' : p.adequacy === 'warn' ? 'Осторожно' : 'Не работаем'}">${adeqEmoji[p.adequacy] || '😊'}</span>
+                                    <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:0.7rem;" onclick="event.preventDefault();event.stopPropagation();deleteProject('${p.id}')" aria-label="Удалить">✕</button>
+                                </div>
+                            </div>
+                            <div class="kanban-card-client">${p.client}${p.phone ? ' · ' + p.phone : ''}</div>
+                        </a>
+                        ${p.description ? '<div class="kanban-card-desc" onclick="event.preventDefault();event.stopPropagation();">' + renderDescClamp(p.description, { lines: 2, id: 'dproj_' + p.id }) + '</div>' : ''}
+                        <a href="/pages/project.html?id=${p.id}" class="kanban-card-link" style="text-decoration:none;color:inherit;display:block;" onclick="if(event.target.closest('.desc-clamp-wrap,.desc-clamp-btn')){event.preventDefault();event.stopPropagation();}">
+                            ${renderTeamAvatars(p.team, false)}
+                            ${(p.hashtags && p.hashtags.length > 0) ? '<div class="hashtags" style="margin:4px 0;">' + p.hashtags.map(h => '<span class="hashtag">' + h + '</span>').join('') + '</div>' : ''}
+                            <div class="kanban-card-footer"><span class="kanban-card-status"><span class="status-dot" style="background:${hex}"></span> ${col.name}</span><span class="kanban-card-amount">${formatAmountInput(p.amount)} ₽</span></div>
+                        </a>
+                    </div>`;
+                });
+                kanbanHtml += '</div></div>';
+            });
+            kanbanHtml += '</div>';
+            document.getElementById('kanbanView').innerHTML = kanbanHtml;
+
+            let tableHtml = '<div class="card"><div class="table-wrapper"><table class="table"><thead><tr><th>Проект</th><th>Клиент</th><th>Команда</th><th>Статус</th><th>Оплата</th><th>Сумма</th><th></th></tr></thead><tbody>';
+            projects.forEach(p => {
+                const adeqEmoji = { 'good': '😊', 'warn': '😐', 'bad': '😡' };
+                tableHtml += `<tr>
+                    <td><a href="/pages/project.html?id=${p.id}" style="text-decoration:none;color:inherit;"><div class="table-cell-name">${p.name}</div>${(p.hashtags||[]).length > 0 ? '<div class="hashtags" style="margin-top:4px;">' + p.hashtags.map(h => '<span class="hashtag">'+h+'</span>').join('') + '</div>' : ''}</a></td>
+                    <td>${p.client}<br><span class="text-sm text-muted">${p.phone || ''}</span></td>
+                    <td>${renderTeamAvatars(p.team, true)}</td>
+                    <td><span class="badge ${getStatusClass(p.status)}">${p.status}</span></td>
+                    <td><span class="pay-icon ${p.pay_status || 'unpaid'}" title="${p.pay_status === 'paid' ? 'Оплачено' : p.pay_status === 'pending' ? 'Ждём' : 'Не оплачено'}">$</span> <span class="adequacy-icon ${p.adequacy || 'good'}" title="${p.adequacy === 'good' ? 'Нормальный' : p.adequacy === 'warn' ? 'Осторожно' : 'Не работаем'}">${adeqEmoji[p.adequacy] || '😊'}</span></td>
+                    <td class="table-cell-amount">${formatAmountInput(p.amount)} ₽</td>
+                    <td><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteProject('${p.id}')">Удалить</button></td>
+                </tr>`;
+            });
+            tableHtml += '</tbody></table></div></div>';
+            document.getElementById('tableView').innerHTML = tableHtml;
+
+            initDragDrop();
+        }
+        
+        renderProjects();
+        
+        // Realtime refresh hook
+        window.refreshPageData = async function() {
+            await CRM.load();
+            renderProjects();
+        };
+        
+        function initDragDrop() {
+            const cards = document.querySelectorAll('.kanban-card[draggable]');
+            const columns = document.querySelectorAll('.kanban-column-body');
+            
+            cards.forEach(card => {
+                card.addEventListener('dragstart', function(e) {
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', this.dataset.projectId);
+                });
+                card.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    document.querySelectorAll('.kanban-column-body').forEach(col => {
+                        col.style.background = '';
+                        col.style.minHeight = '';
+                    });
+                });
+            });
+            
+            columns.forEach(col => {
+                col.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    this.style.background = 'rgba(99,102,241,0.08)';
+                    this.style.minHeight = '100px';
+                });
+                col.addEventListener('dragleave', function() {
+                    this.style.background = '';
+                    this.style.minHeight = '';
+                });
+                col.addEventListener('drop', async function(e) {
+                    e.preventDefault();
+                    this.style.background = '';
+                    this.style.minHeight = '';
+                    
+                    const projectId = e.dataTransfer.getData('text/plain');
+                    const newStatus = this.dataset.column;
+                    
+                    if (projectId && newStatus) {
+                        try {
+                            const project = CRM.getProject(projectId);
+                            if (project && project.status !== newStatus) {
+                                await API.updateProject(projectId, {
+                                    ...project,
+                                    status: newStatus
+                                });
+                                showToast('Статус: ' + newStatus, 'success');
+                                await CRM.load();
+                                renderProjects();
+                            }
+                        } catch (err) {
+                            showToast('Ошибка', 'error');
+                        }
+                    }
+                });
+            });
+        }
+        
+        function collectNewProjectDraft() {
+            return {
+                name: document.getElementById('newProjectName')?.value || '',
+                client: document.getElementById('newProjectClient')?.value || '',
+                phone: document.getElementById('newProjectPhone')?.value || '',
+                amount: document.getElementById('newProjectAmount')?.value || '',
+                deadline: document.getElementById('newProjectDeadline')?.value || '',
+                payDate: document.getElementById('newProjectPayDate')?.value || '',
+                status: document.getElementById('newProjectStatus')?.value || '',
+                assignee: document.getElementById('newProjectAssignee')?.value || '',
+                source: document.getElementById('newProjectSource')?.value || '',
+                adequacy: document.getElementById('newProjectAdequacy')?.value || 'good',
+                hashtags: document.getElementById('newProjectHashtags')?.value || '',
+                description: getDescValue('newProjectDescription')
+            };
+        }
+
+        window.showNewProjectModal = function() {
+            const overlay = document.getElementById('modalOverlay');
+            const currentUser = API.getCurrentUser();
+            const d = DraftStore.load('new_project') || {};
+            const assigneeOpts = ['Костя', 'Максим', 'Андрей'].map(p => {
+                const sel = (d.assignee || (currentUser && currentUser.name) || '') === p ? ' selected' : '';
+                return `<option${sel}>${p}</option>`;
+            }).join('');
+            const statusOpts = (kanbanColumns.length ? kanbanColumns : [{name:'Новый'},{name:'Переговоры'},{name:'В работе'}])
+                .map(c => `<option${(d.status || '') === c.name ? ' selected' : ''}>${c.name}</option>`).join('');
+            const esc = (s) => String(s || '').replace(/"/g, '&quot;');
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Новый проект</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newProjectName">Название *</label><input type="text" class="form-input" id="newProjectName" value="${esc(d.name)}" placeholder="Название проекта" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="newProjectClient">Клиент *</label><input type="text" class="form-input" id="newProjectClient" value="${esc(d.client)}" placeholder="Имя клиента" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newProjectPhone">Телефон</label><input type="tel" class="form-input" id="newProjectPhone" value="${esc(d.phone)}" placeholder="+7 (999) 123-45-67" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="newProjectAmount">Сумма (₽)</label><input type="text" class="form-input" id="newProjectAmount" value="${esc(d.amount)}" placeholder="0" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" oninput="formatAmountField(this)"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newProjectDeadline">Дедлайн</label><input type="date" class="form-input" id="newProjectDeadline" value="${esc(d.deadline)}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="newProjectPayDate">Дата оплаты</label><input type="date" class="form-input" id="newProjectPayDate" value="${esc(d.payDate)}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="newProjectStatus">Статус</label><select class="form-select" id="newProjectStatus" onclick="event.stopPropagation()">${statusOpts}</select></div>
+                            <div class="form-group"><label class="form-label" for="newProjectAssignee">Исполнитель</label><select class="form-select" id="newProjectAssignee" onclick="event.stopPropagation()">${assigneeOpts}</select></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newProjectSource">Источник</label><select class="form-select" id="newProjectSource" onclick="event.stopPropagation()">${['Сайт','Авито','Telegram','Реклама','Знакомые'].map(s => `<option${(d.source||'Сайт')===s?' selected':''}>${s}</option>`).join('')}</select></div>
+                            <div class="form-group"><label class="form-label" for="newProjectAdequacy">Адекватность</label><select class="form-select" id="newProjectAdequacy" onclick="event.stopPropagation()"><option value="good"${(d.adequacy||'good')==='good'?' selected':''}>Нормальный</option><option value="warn"${d.adequacy==='warn'?' selected':''}>Осторожно</option><option value="bad"${d.adequacy==='bad'?' selected':''}>Не работаем</option></select></div>
+                        </div>
+                        <div class="form-group"><label class="form-label" for="newProjectHashtags">Хештеги (через запятую)</label><input type="text" class="form-input" id="newProjectHashtags" value="${esc(d.hashtags)}" placeholder="#wordpress, #сайт, #лендинг" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        <div class="form-group"><label class="form-label">Описание</label>${renderRichEditor('newProjectDescription', d.description || '', 'Описание проекта…')}</div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(true)">Отмена</button><button class="btn btn-primary" onclick="createProject()">Создать</button></div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            bindRichEditor('newProjectDescription', { onChange: () => DraftStore.save('new_project', collectNewProjectDraft()) });
+            DraftStore.bind('new_project', collectNewProjectDraft, () => {});
+        };
+        
+        window.formatAmountField = function(input) {
+            let value = input.value.replace(/\s/g, '').replace(/[^\d]/g, '');
+            if (value) {
+                input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            }
+        };
+        
+        window.createProject = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([
+                    { id: 'newProjectName', required: true, message: 'Введите название' },
+                    { id: 'newProjectClient', required: true, message: 'Введите клиента' }
+                ])) return;
+                const name = document.getElementById('newProjectName').value.trim();
+                const client = document.getElementById('newProjectClient').value.trim();
+                
+                const hashtagsRaw = document.getElementById('newProjectHashtags').value.trim();
+                const hashtags = hashtagsRaw ? hashtagsRaw.split(',').map(h => h.trim().startsWith('#') ? h.trim() : '#' + h.trim()).filter(h => h.length > 1) : [];
+                
+                const amountStr = document.getElementById('newProjectAmount').value.replace(/\s/g, '').replace(/[^\d]/g, '');
+                
+                await CRM.createProject({
+                    name: name,
+                    client: client,
+                    phone: document.getElementById('newProjectPhone').value.trim(),
+                    amount: parseInt(amountStr) || 0,
+                    deadline: document.getElementById('newProjectDeadline').value || '—',
+                    payment_due_date: document.getElementById('newProjectPayDate').value || '',
+                    status: document.getElementById('newProjectStatus').value,
+                    assignee: document.getElementById('newProjectAssignee').value,
+                    source: document.getElementById('newProjectSource').value,
+                    adequacy: document.getElementById('newProjectAdequacy').value,
+                    description: getDescValue('newProjectDescription'),
+                    urgent: false,
+                    progress: 0,
+                    pay_status: 'unpaid',
+                    pay_method: 'По счёту',
+                    discount: 'no',
+                    discount_val: '',
+                    hashtags: hashtags
+                });
+                
+                DraftStore.clear('new_project');
+                closeModal();
+                showToast('Проект создан', 'success');
+                await CRM.load();
+                renderProjects();
+            });
+        };
+
+        // Color presets — shared across modal and window functions
+        const presetColors = [
+            { name: 'blue', hex: '#3B82F6' }, { name: 'yellow', hex: '#F59E0B' },
+            { name: 'green', hex: '#10B981' }, { name: 'gray', hex: '#9CA3AF' },
+            { name: 'red', hex: '#EF4444' }, { name: 'purple', hex: '#8B5CF6' },
+            { name: 'pink', hex: '#EC4899' }, { name: 'orange', hex: '#F97316' },
+            { name: 'teal', hex: '#14B8A6' }, { name: 'indigo', hex: '#6366F1' },
+            { name: 'lime', hex: '#84CC16' }, { name: 'cyan', hex: '#06B6D4' }
+        ];
+
+        // ===== COLUMN CONFIGURATION =====
+        window.showColumnConfigModal = async function() {
+            await loadColumns();
+            const overlay = document.getElementById('modalOverlay');
+
+            function renderColList() {
+                return kanbanColumns.map(c => {
+                    const hex = getColHex(c.color);
+                    const swatchesHtml = presetColors.map(cl =>
+                        `<div class="color-swatch${c.color === cl.name ? ' active' : ''}" style="background:${cl.hex};" data-color="${cl.name}" data-col-id="${c.id}" onclick="event.stopPropagation();selectPresetColor(this,${c.id},'${cl.name}')" title="${cl.name}"></div>`
+                    ).join('');
+                    return `
+                    <div class="col-config-item" data-col-id="${c.id}" draggable="true">
+                        <div class="col-config-handle" title="Перетащить для изменения порядка">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+                        </div>
+                        <div class="col-config-dot" style="background:${hex}"></div>
+                        <div class="col-config-name" ondblclick="startRenameColumn(this, ${c.id})" title="Дважды кликните для переименования">${c.name}</div>
+                        <div class="color-palette-wrapper">
+                            <button class="color-palette-btn" onclick="toggleColorPalette(this, ${c.id})" title="Изменить цвет" style="background:${hex};">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.4-.13-.76-.38-1.04-.25-.28-.37-.6-.37-.96 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.5-4.5-9.5-10-9.5z"/></svg>
+                            </button>
+                            <div class="color-palette-dropdown" id="palette-${c.id}">
+                                <div class="color-palette-grid">
+                                    ${swatchesHtml}
+                                </div>
+                                <div class="color-custom-row">
+                                    <input type="color" class="color-custom-input" value="${hex}" data-col-id="${c.id}" onchange="saveCustomColor(${c.id},this.value)">
+                                    <span style="font-size:0.75rem;color:var(--gray-500);">Свой цвет</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);padding:2px 6px;" onclick="deleteColumn(${c.id})" aria-label="Удалить">✕</button>
+                    </div>`;
+                }).join('');
+            }
+
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Настройка колонок</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div style="font-size:0.8rem;color:var(--gray-500);margin-bottom:12px;">Перетащите для порядка · Двойной клик по названию для переименования</div>
+                        <div id="colConfigList">${renderColList()}</div>
+                        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                            <div style="font-weight:600;font-size:0.85rem;margin-bottom:8px;">Добавить колонку</div>
+                            <div style="display:flex;gap:8px;">
+                                <input type="text" class="form-input" id="newColName" placeholder="Название" style="flex:1;">
+                                <button class="btn btn-primary btn-sm" onclick="addColumn()">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            initColumnDragDrop();
+        };
+
+        window.toggleColorPalette = function(btn, colId) {
+            const dropdown = document.getElementById('palette-' + colId);
+            if (!dropdown) return;
+            const isOpen = dropdown.classList.contains('show');
+            document.querySelectorAll('.color-palette-dropdown.show').forEach(d => d.classList.remove('show'));
+            if (!isOpen) {
+                dropdown.classList.add('show');
+                event.stopPropagation();
+            }
+        };
+
+        // Select preset color swatch — update in-place, NO modal re-render
+        window.selectPresetColor = async function(swatchEl, colId, color) {
+            const grid = swatchEl.parentElement;
+            grid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            swatchEl.classList.add('active');
+            // Close dropdown
+            const dropdown = swatchEl.closest('.color-palette-dropdown');
+            if (dropdown) dropdown.classList.remove('show');
+            // Update API + views
+            try {
+                await API.put(`/api/kanban-columns/${colId}`, { color });
+                await loadColumns();
+                renderStatusFilters();
+                renderProjects();
+                // Update color in-place inside the modal
+                const item = document.querySelector(`.col-config-item[data-col-id="${colId}"]`);
+                if (item) {
+                    const hex = presetColors.find(c => c.name === color)?.hex || color;
+                    const dot = item.querySelector('.col-config-dot');
+                    if (dot) dot.style.background = hex;
+                    const btn = item.querySelector('.color-palette-btn');
+                    if (btn) btn.style.background = hex;
+                    // Update custom color input value
+                    const customInput = item.querySelector('.color-custom-input');
+                    if (customInput) customInput.value = hex;
+                }
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        // Save custom color — only fires on picker close (onchange), NOT oninput
+        window.saveCustomColor = async function(colId, hexColor) {
+            try {
+                await API.put(`/api/kanban-columns/${colId}`, { color: hexColor });
+                await loadColumns();
+                renderStatusFilters();
+                renderProjects();
+                // Update in-place
+                const item = document.querySelector(`.col-config-item[data-col-id="${colId}"]`);
+                if (item) {
+                    const dot = item.querySelector('.col-config-dot');
+                    if (dot) dot.style.background = hexColor;
+                    const btn = item.querySelector('.color-palette-btn');
+                    if (btn) btn.style.background = hexColor;
+                    // Update swatch active states
+                    item.querySelectorAll('.color-swatch').forEach(s => {
+                        s.classList.toggle('active', s.dataset.color === hexColor);
+                    });
+                }
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        // Close palettes on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.color-palette-wrapper')) {
+                document.querySelectorAll('.color-palette-dropdown.show').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        window.startRenameColumn = function(el, colId) {
+            const currentName = el.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'col-config-name-edit';
+            el.replaceWith(input);
+            input.focus();
+            input.select();
+
+            async function save() {
+                const newName = input.value.trim() || currentName;
+                try {
+                    await API.put(`/api/kanban-columns/${colId}`, { name: newName });
+                    await loadColumns();
+                    renderStatusFilters();
+                    renderProjects();
+                    showColumnConfigModal();
+                } catch (err) {
+                    showToast(err.message || 'Ошибка', 'error');
+                }
+            }
+
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+            });
+        };
+
+        function initColumnDragDrop() {
+            const list = document.getElementById('colConfigList');
+            if (!list) return;
+            let draggedEl = null;
+
+            list.querySelectorAll('.col-config-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedEl = item;
+                    item.classList.add('col-dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', item.dataset.colId);
+                });
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('col-dragging');
+                    document.querySelectorAll('.col-drag-over').forEach(el => el.classList.remove('col-drag-over'));
+                    draggedEl = null;
+                });
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (draggedEl && draggedEl !== item) {
+                        item.classList.add('col-drag-over');
+                    }
+                });
+                item.addEventListener('dragleave', () => {
+                    item.classList.remove('col-drag-over');
+                });
+                item.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    item.classList.remove('col-drag-over');
+                    if (!draggedEl || draggedEl === item) return;
+
+                    // Determine position
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        list.insertBefore(draggedEl, item);
+                    } else {
+                        list.insertBefore(draggedEl, item.nextSibling);
+                    }
+
+                    // Save new order
+                    await saveColumnOrder();
+                });
+            });
+        }
+
+        async function saveColumnOrder() {
+            const items = document.querySelectorAll('#colConfigList .col-config-item');
+            const updates = [];
+            items.forEach((item, index) => {
+                updates.push({ id: parseInt(item.dataset.colId), sort_order: index });
+            });
+
+            try {
+                for (const u of updates) {
+                    await API.put(`/api/kanban-columns/${u.id}`, { sort_order: u.sort_order });
+                }
+                await loadColumns();
+                renderStatusFilters();
+                renderProjects();
+            } catch (err) {
+                showToast('Ошибка сохранения порядка', 'error');
+            }
+        }
+
+        window.addColumn = async function() {
+            const name = document.getElementById('newColName').value.trim();
+            if (!name) { showToast('Введите название', 'error'); return; }
+            try {
+                await API.post('/api/kanban-columns', { name, color: 'blue' });
+                showToast('Колонка добавлена', 'success');
+                await loadColumns();
+                await CRM.load();
+                renderStatusFilters();
+                renderProjects();
+                showColumnConfigModal();
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.updateColumnColor = async function(id, color) {
+            try {
+                await API.put(`/api/kanban-columns/${id}`, { color });
+                await loadColumns();
+                renderStatusFilters();
+                renderProjects();
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+
+        window.deleteColumn = async function(id) {
+            const col = kanbanColumns.find(c => c.id === id);
+            if (!col) return;
+            try {
+                await API.delete(`/api/kanban-columns/${id}`);
+                showToast('Колонка удалена', 'success');
+                await loadColumns();
+                await CRM.load();
+                renderStatusFilters();
+                renderProjects();
+                showColumnConfigModal();
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        };
+    })();
+    </script>
+</body>
+</html>

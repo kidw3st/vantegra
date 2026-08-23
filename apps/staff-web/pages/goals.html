@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цели — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=17"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+
+        const user = API.getCurrentUser();
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('goals') + renderHeader() + `
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Цели</h1>
+                    <p class="page-subtitle">Общие задачи команды с дедлайном и таймером</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-primary" onclick="createNewGoal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Новая цель</button>
+                </div>
+            </div>
+            <div class="filter-bar" style="margin-bottom:16px;">
+                <button class="filter-chip active" data-status="active" onclick="filterGoals('active', this)">Активные</button>
+                <button class="filter-chip" data-status="done" onclick="filterGoals('done', this)">Выполненные</button>
+                <button class="filter-chip" data-status="all" onclick="filterGoals('all', this)">Все</button>
+            </div>
+            <div id="goalsList"></div>
+            </div></div></div>
+        `;
+
+        initCommonUI();
+
+        let goals = [];
+        let statusFilter = 'active';
+        let countdownTimer = null;
+
+        function formatDate(s) {
+            if (!s) return '—';
+            const p = s.split('-');
+            return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : s;
+        }
+
+        function countdownParts(dateEnd) {
+            if (!dateEnd) return { text: 'Без срока', cls: '' };
+            const end = new Date(dateEnd + 'T23:59:59');
+            const now = new Date();
+            let diff = end - now;
+            if (diff <= 0) return { text: 'Просрочено', cls: 'overdue' };
+            const days = Math.floor(diff / 86400000);
+            diff %= 86400000;
+            const hours = Math.floor(diff / 3600000);
+            diff %= 3600000;
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            const pad = n => String(n).padStart(2, '0');
+            let text;
+            if (days > 0) text = days + 'д ' + pad(hours) + ':' + pad(mins) + ':' + pad(secs);
+            else text = pad(hours) + ':' + pad(mins) + ':' + pad(secs);
+            const cls = days < 3 ? 'urgent' : 'ok';
+            return { text, cls };
+        }
+
+        function renderGoals() {
+            const list = document.getElementById('goalsList');
+            let filtered = goals;
+            if (statusFilter === 'active') filtered = goals.filter(g => g.status !== 'done');
+            else if (statusFilter === 'done') filtered = goals.filter(g => g.status === 'done');
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:40px;"><p class="text-muted">Нет целей</p><button class="btn btn-primary" style="margin-top:12px;" onclick="createNewGoal()">Создать первую цель</button></div></div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(g => {
+                const cd = countdownParts(g.date_end);
+                const assignees = (g.assignees || []).map(a => '<span class="goal-assignee-chip">' + a + '</span>').join('');
+                const progress = typeof goalTimeProgress === 'function'
+                    ? goalTimeProgress(g.date_start, g.date_end, g.status)
+                    : Math.min(100, Math.max(0, g.progress || 0));
+                return `<div class="goal-card${g.status === 'done' ? ' done' : ''} tip" data-tip="Прогресс по сроку до конечной даты" data-goal-id="${g.id}" style="cursor:pointer;" onclick="if(!event.target.closest('button'))location.href='/pages/goal.html?id=${g.id}'">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;font-size:1.05rem;margin-bottom:4px;">${g.name}</div>
+                            ${g.description ? '<div class="rich-content" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:8px;">' + renderRichHtml(g.description) + '</div>' : ''}
+                            <div class="goal-assignees" style="margin-bottom:8px;">${assignees || '<span class="text-muted text-sm">Без исполнителей</span>'}</div>
+                            <div style="font-size:0.8rem;color:var(--gray-500);">
+                                ${formatDate(g.date_start)} → ${formatDate(g.date_end)}
+                                ${g.status === 'done' ? ' · <span class="badge badge-success">Выполнено</span>' : ''}
+                            </div>
+                            <div class="goal-progress-bar" title="По сроку ${progress}%"><span style="width:${progress}%"></span></div>
+                            <div style="font-size:0.75rem;color:var(--gray-400);margin-top:4px;">По сроку: ${progress}%</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+                            <div class="goal-countdown ${cd.cls}" data-end="${g.date_end || ''}">${cd.text}</div>
+                            <div style="display:flex;gap:4px;" onclick="event.stopPropagation()">
+                                <button class="btn btn-ghost btn-sm" onclick="location.href='/pages/goal.html?id=${g.id}'" title="Редактировать" aria-label="Редактировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                ${g.status !== 'done'
+                                    ? '<button class="btn btn-ghost btn-sm" onclick="completeGoal(\'' + g.id + '\')" title="Выполнить" aria-label="Выполнить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg></button>'
+                                    : '<button class="btn btn-ghost btn-sm" onclick="reopenGoal(\'' + g.id + '\')" title="Вернуть" aria-label="Вернуть"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 105.93-12.55L1 10"/></svg></button>'}
+                                <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteGoal('${g.id}')" title="Удалить" aria-label="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function tickCountdowns() {
+            document.querySelectorAll('.goal-countdown[data-end]').forEach(el => {
+                const end = el.getAttribute('data-end');
+                if (!end) return;
+                const cd = countdownParts(end);
+                el.textContent = cd.text;
+                el.className = 'goal-countdown ' + cd.cls;
+            });
+        }
+
+        async function loadGoals() {
+            try {
+                goals = await API.get('/goals') || [];
+            } catch (e) {
+                goals = [];
+                showToast('Ошибка загрузки целей', 'error');
+            }
+            renderGoals();
+        }
+
+        window.filterGoals = function(status, btn) {
+            statusFilter = status;
+            document.querySelectorAll('.filter-bar .filter-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            renderGoals();
+        };
+
+        /** Create goal and open edit page immediately */
+        window.createNewGoal = async function() {
+            const today = new Date();
+            const iso = today.toISOString().slice(0, 10);
+            const week = new Date(today);
+            week.setDate(week.getDate() + 7);
+            const end = week.toISOString().slice(0, 10);
+            try {
+                const created = await API.post('/goals', {
+                    name: 'Новая цель',
+                    description: '',
+                    assignees: user?.name ? [user.name] : [],
+                    date_start: iso,
+                    date_end: end,
+                    progress: 0,
+                    status: 'active'
+                });
+                if (created && created.id) {
+                    location.href = '/pages/goal.html?id=' + created.id;
+                } else {
+                    showToast('Не удалось создать цель', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.completeGoal = async function(id) {
+            try {
+                await API.put('/goals/' + id, { status: 'done', progress: 100 });
+                showToast('Цель выполнена', 'success');
+                await loadGoals();
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        window.reopenGoal = async function(id) {
+            try {
+                await API.put('/goals/' + id, { status: 'active' });
+                showToast('Цель снова активна', 'success');
+                await loadGoals();
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        window.deleteGoal = async function(id) {
+            confirmDelete('Цель удалена', {
+                optimistic: () => {
+                    goals = (goals || []).filter(g => g.id !== id);
+                    renderGoals();
+                },
+                commit: async () => {
+                    await API.delete('/goals/' + id);
+                    await loadGoals();
+                },
+                undo: async () => { await loadGoals(); }
+            });
+        };
+
+        await loadGoals();
+        countdownTimer = setInterval(tickCountdowns, 1000);
+
+        // Deep link ?goal=id → open goal page
+        const goalParam = new URLSearchParams(location.search).get('goal');
+        if (goalParam) {
+            location.replace('/pages/goal.html?id=' + encodeURIComponent(goalParam));
+            return;
+        }
+
+        window.refreshPageData = async function() {
+            await loadGoals();
+        };
+    })();
+    </script>
+</body>
+</html>

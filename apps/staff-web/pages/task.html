@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Задача — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+    <style>
+        .task-stat-card { position: relative; }
+        .task-stat-card .edit-pencil {
+            position: absolute; top: 10px; right: 10px;
+            width: 28px; height: 28px; border: none; background: transparent;
+            color: var(--gray-400); cursor: pointer; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s;
+        }
+        .task-stat-card:hover .edit-pencil { opacity: 1; }
+        .task-stat-card .edit-pencil:hover { color: var(--primary); background: var(--primary-light); }
+        .task-stat-card.editing .edit-pencil { opacity: 1; color: var(--primary); }
+        .click-edit {
+            cursor: text; border-radius: 6px; padding: 2px 4px; margin: -2px -4px;
+            transition: background 0.15s;
+        }
+        .click-edit:hover { background: var(--gray-100); }
+        .click-edit.editing { background: transparent; padding: 0; margin: 0; }
+        .priority-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+        .child-add-row { display: flex; gap: 8px; margin-top: 12px; align-items: flex-start; }
+        .related-task-card { position: relative; margin-bottom: 8px; padding: 12px 14px; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=18"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get('id');
+        if (!taskId) { window.location.href = '/pages/tasks.html'; return; }
+
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('tasks') + renderHeader() + `
+            <div id="taskContent"><div style="text-align:center;padding:60px;"><p class="text-muted">Загрузка...</p></div></div>
+            </div></div></div>
+        `;
+        initCommonUI();
+        await CRM.load();
+
+        let taskColumns = [];
+        let teamUsers = [];
+        try { taskColumns = await API.get('/task-columns') || []; } catch (e) {}
+        try { teamUsers = await API.get('/users') || []; } catch (e) {}
+        if (!taskColumns.length) {
+            taskColumns = [
+                { name: 'Ожидает', color: 'gray' },
+                { name: 'В работе', color: 'green' },
+                { name: 'Простой', color: 'yellow' },
+                { name: 'Готово', color: 'gray' }
+            ];
+        }
+
+        const colorHexMap = { blue: '#3B82F6', yellow: '#F59E0B', green: '#10B981', gray: '#9CA3AF', red: '#EF4444', purple: '#8B5CF6', pink: '#EC4899', orange: '#F97316', teal: '#14B8A6', indigo: '#6366F1', lime: '#84CC16', cyan: '#06B6D4' };
+        function getColHex(color) { return colorHexMap[color] || (color && String(color).startsWith('#') ? color : '#9CA3AF'); }
+
+        let task = CRM.getTasks().find(t => t.id === taskId);
+        if (!task) {
+            document.getElementById('taskContent').innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:60px;"><p class="text-muted">Задача не найдена</p><a href="/pages/tasks.html" class="btn btn-primary" style="margin-top:16px;">К задачам</a></div></div>';
+            return;
+        }
+
+        const pencilSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+        const boltSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>';
+        const priorityLabel = { low: 'Низкий', medium: 'Средний', high: 'Высокий' };
+        const priorityColor = { low: '#10B981', medium: '#F59E0B', high: '#EF4444' };
+
+        const userName = (API.getCurrentUser() || {}).name || 'anon';
+        const recentKey = 'crm_recent_tasks_' + userName;
+        function getRecentIds() {
+            try { return JSON.parse(localStorage.getItem(recentKey) || '[]'); } catch (e) { return []; }
+        }
+        function touchRecent(id) {
+            if (!id) return;
+            let ids = getRecentIds().filter(x => x !== id);
+            ids.unshift(id);
+            localStorage.setItem(recentKey, JSON.stringify(ids.slice(0, 20)));
+        }
+        touchRecent(taskId);
+
+        const undoStack = [];
+        const redoStack = [];
+        const MAX_UNDO = 40;
+        let applyingHistory = false;
+        let descSaveTimer = null;
+
+        function snapshotTask(t) {
+            return {
+                name: t.name,
+                description: t.description || '',
+                project_id: t.project_id || '',
+                person: t.person || '',
+                column_status: t.column_status || '',
+                priority: t.priority || 'medium',
+                date: t.date || '',
+                date_end: t.date_end || '',
+                time: t.time || '',
+                done: !!t.done,
+                urgent: !!t.urgent,
+                hashtags: [...(t.hashtags || [])],
+                parent_id: t.parent_id || null,
+                is_epic: !!t.is_epic
+            };
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const p = dateStr.split('-');
+            return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : dateStr;
+        }
+        function formatDateTime(dt) {
+            if (!dt) return '—';
+            try {
+                const d = new Date(String(dt).replace(' ', 'T'));
+                if (isNaN(d.getTime())) return String(dt);
+                return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch (e) { return String(dt); }
+        }
+        function descPreview(html) {
+            const t = typeof stripHtmlText === 'function' ? stripHtmlText(html) : String(html || '').replace(/<[^>]+>/g, ' ');
+            return t.length > 120 ? t.slice(0, 120) + '…' : t;
+        }
+        function buildRelatedMenu(c) {
+            const isPaused = c.column_status === 'Простой';
+            let items = '';
+            if (c.done) {
+                items += `<button type="button" class="task-action-btn restart" onclick="event.stopPropagation();relatedRestart('${c.id}')" title="Вернуть в работу"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 105.93-12.55L1 10"/></svg></button>`;
+            } else {
+                items += `<button type="button" class="task-action-btn done" onclick="event.stopPropagation();relatedToggleDone('${c.id}')" title="Выполнено"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg></button>`;
+                items += isPaused
+                    ? `<button type="button" class="task-action-btn play" onclick="event.stopPropagation();relatedTogglePause('${c.id}')" title="Продолжить"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>`
+                    : `<button type="button" class="task-action-btn pause" onclick="event.stopPropagation();relatedTogglePause('${c.id}')" title="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button>`;
+            }
+            items += `<button type="button" class="task-action-btn gear" onclick="event.stopPropagation();crmGo('/pages/task.html?id=' + '${c.id}')" title="Открыть"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>`;
+            items += `<button type="button" class="task-action-btn add-child" onclick="event.stopPropagation();addNestedUnder('${c.id}')" title="Вложенная задача"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`;
+            items += `<button type="button" class="task-action-btn unparent" onclick="event.stopPropagation();relatedUnlink('${c.id}')" title="Отвязать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg></button>`;
+            items += `<button type="button" class="task-action-btn delete" onclick="event.stopPropagation();relatedDelete('${c.id}')" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+            return items;
+        }
+        function renderRelatedCard(c, depth) {
+            depth = depth || 0;
+            const hex = getColHex((taskColumns.find(x => x.name === c.column_status) || {}).color);
+            const kids = CRM.getTasks().filter(t => t.parent_id === c.id);
+            let html = `<div class="task-card related-task-card" style="border-left-color:${hex};margin-left:${depth * 16}px;" onclick="if(!event.target.closest('.task-actions') && !event.target.closest('.desc-clamp-wrap'))crmGo('/pages/task.html?id=' + '${c.id}')">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                    <div style="flex:1;min-width:0;">
+                        <div class="task-title-row">
+                            ${renderPriorityMark(c.priority)}
+                            <div style="font-weight:600;${c.done ? 'text-decoration:line-through;color:var(--gray-400);' : ''}">${escapeHtml(c.name)}</div>
+                        </div>
+                        <div class="text-sm text-muted" style="margin-top:4px;">
+                            ${escapeHtml(c.person || '')} · ${escapeHtml(c.column_status || '')}${formatTaskDateRange(c) ? ' · ' + formatTaskDateRange(c) : ''}
+                        </div>
+                        ${c.description ? renderDescClamp(c.description, { lines: 2, id: 'drel_' + c.id }) : ''}
+                    </div>
+                    <div class="task-actions" onclick="event.stopPropagation()">
+                        <div class="task-menu-tray">${buildRelatedMenu(c)}</div>
+                        <button type="button" class="task-action-btn task-menu-btn" onclick="event.stopPropagation();toggleTaskMenu(this)" title="Действия" aria-label="Меню">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+            kids.forEach(k => { html += renderRelatedCard(k, depth + 1); });
+            return html;
+        }
+
+        async function patchTask(updates, opts = {}) {
+            const skipHistory = opts.skipHistory || applyingHistory;
+            if (!skipHistory) {
+                undoStack.push(snapshotTask(task));
+                if (undoStack.length > MAX_UNDO) undoStack.shift();
+                redoStack.length = 0;
+            }
+            const updated = await CRM.updateTask(taskId, updates);
+            task = updated || { ...task, ...updates };
+            touchRecent(taskId);
+            if (updates.parent_id) touchRecent(updates.parent_id);
+            if (!opts.silent) showToast('Сохранено', 'success');
+            render();
+            return task;
+        }
+
+        async function undoChange() {
+            if (!undoStack.length) { showToast('Нечего отменять', 'info'); return; }
+            const prev = undoStack.pop();
+            redoStack.push(snapshotTask(task));
+            applyingHistory = true;
+            try {
+                await CRM.updateTask(taskId, prev);
+                task = { ...task, ...prev };
+                showToast('Отменено', 'success');
+                render();
+            } finally { applyingHistory = false; }
+        }
+
+        async function redoChange() {
+            if (!redoStack.length) { showToast('Нечего повторить', 'info'); return; }
+            const next = redoStack.pop();
+            undoStack.push(snapshotTask(task));
+            applyingHistory = true;
+            try {
+                await CRM.updateTask(taskId, next);
+                task = { ...task, ...next };
+                showToast('Повторено', 'success');
+                render();
+            } finally { applyingHistory = false; }
+        }
+
+        window.pageUndo = undoChange;
+        window.pageRedo = redoChange;
+
+        async function toggleEpic() {
+            // Nested (linked) tasks cannot be Epic
+            if (task.parent_id) {
+                showToast('Вложенная задача не может быть Epic', 'error');
+                return;
+            }
+            if (task.is_epic) {
+                await patchTask({ is_epic: false }, { silent: true });
+                showToast('Epic снят', 'success');
+            } else {
+                await patchTask({ is_epic: true, parent_id: null }, { silent: true });
+                showToast('Задача стала Epic', 'success');
+            }
+        }
+
+        function render() {
+            task = CRM.getTasks().find(t => t.id === taskId) || task;
+            const project = CRM.getProject(task.project_id);
+            const statusCol = taskColumns.find(c => c.name === task.column_status);
+            const statusHex = getColHex(statusCol?.color);
+            const childTasks = CRM.getTasks().filter(t => t.parent_id === taskId);
+            const isNested = !!task.parent_id;
+            // Epic only for top-level tasks (not linked under another)
+            const isEpic = !isNested && (!!task.is_epic || childTasks.length > 0);
+            if (!isNested && childTasks.length > 0 && !task.is_epic && !window._epicAutoing) {
+                window._epicAutoing = true;
+                CRM.updateTask(taskId, { is_epic: true, parent_id: null }).then(() => {
+                    task.is_epic = true;
+                }).catch(() => {}).finally(() => { window._epicAutoing = false; });
+            }
+            // If somehow nested + epic — clear it
+            if (isNested && task.is_epic && !window._epicAutoing) {
+                window._epicAutoing = true;
+                CRM.updateTask(taskId, { is_epic: false }).then(() => {
+                    task.is_epic = false;
+                }).catch(() => {}).finally(() => { window._epicAutoing = false; });
+            }
+            const dateRange = formatTaskDateRange(task) || '—';
+
+            document.title = (isEpic ? '⚡ ' : '') + (task.name || 'Задача') + ' — CRM System';
+
+            document.getElementById('taskContent').innerHTML = `
+                ${typeof NavTrail !== 'undefined' ? (NavTrail.syncTaskTrail(task, project), NavTrail.render(task.name)) : ''}
+
+                <div class="page-header">
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            ${isNested
+                                ? '<span class="badge badge-gray" title="Вложена в другую задачу — не может быть Epic">Вложена</span>'
+                                : `<button type="button" class="epic-badge${isEpic ? '' : ' inactive'}" id="epicToggleBtn" title="${isEpic ? 'Снять статус Epic' : 'Сделать задачу основной (Epic)'}">${boltSvg}${isEpic ? ' Epic' : ''}</button>`}
+                            ${renderPriorityMark(task.priority)}
+                            <h1 class="page-title click-edit" id="taskTitle" data-field="name" title="Кликните, чтобы изменить (F2)">${escapeHtml(task.name)}</h1>
+                            <span class="badge badge-gray" style="border-left:3px solid ${statusHex};">${escapeHtml(task.column_status || '—')}</span>
+                            ${task.urgent ? '<span class="badge badge-danger">СРОЧНО</span>' : ''}
+                            ${task.done ? '<span class="badge badge-success">Выполнено</span>' : ''}
+                        </div>
+                        <p class="page-subtitle" style="margin-top:6px;">
+                            ${project
+                                ? '<a href="/pages/project.html?id=' + project.id + '" style="color:var(--primary);text-decoration:none;font-weight:600;">' + escapeHtml(project.client + ' — ' + project.name) + '</a>'
+                                : '<span class="text-muted">Без проекта</span>'}
+                            · ${escapeHtml(task.person || '—')}
+                            ${dateRange !== '—' ? ' · ' + dateRange : ''}
+                        </p>
+                        <div class="hashtags" style="margin-top:6px;" id="taskHashtagsWrap">
+                            ${(task.hashtags || []).length
+                                ? (task.hashtags || []).map(h => '<span class="hashtag">' + escapeHtml(h) + '</span>').join('')
+                                : '<span class="text-muted text-sm click-edit" data-field="hashtags" title="Кликните, чтобы добавить">Добавить хештеги</span>'}
+                            ${(task.hashtags || []).length ? '<button class="btn btn-ghost btn-sm edit-pencil" style="opacity:1;position:static;width:auto;height:auto;padding:2px 6px;margin-left:4px;" onclick="editField(\'hashtags\')" title="Редактировать хештеги">' + pencilSvg + '</button>' : ''}
+                        </div>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-primary btn-sm" id="btnQuickNested" title="Создать вложенную задачу" aria-label="Создать вложенную">+</button>
+                        <button class="btn btn-secondary btn-sm" onclick="undoChange()" title="Ctrl+Z" ${undoStack.length ? '' : 'disabled'}>↩ Undo</button>
+                        <button class="btn btn-danger" onclick="deleteThisTask()" title="Ctrl+Backspace"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Удалить</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+                    <div class="stat-card task-stat-card" id="cardStatus">
+                        <button class="edit-pencil" onclick="editField('column_status')" title="Изменить статус">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Статус</div>
+                            <div style="margin-top:6px;font-weight:600;display:flex;align-items:center;gap:8px;">
+                                <span class="status-dot" style="background:${statusHex};width:10px;height:10px;"></span>
+                                <span>${escapeHtml(task.column_status || '—')}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card task-stat-card" id="cardPerson">
+                        <button class="edit-pencil" onclick="editField('person')" title="Изменить исполнителя">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Исполнитель</div>
+                            <div style="margin-top:6px;font-weight:600;">${escapeHtml(task.person || '—')}</div>
+                        </div>
+                    </div>
+                    <div class="stat-card task-stat-card" id="cardPriority">
+                        <button class="edit-pencil" onclick="editField('priority')" title="Изменить приоритет">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Приоритет</div>
+                            <div style="margin-top:6px;font-weight:600;">
+                                <span class="priority-dot" style="background:${priorityColor[task.priority] || priorityColor.medium};"></span>
+                                ${priorityLabel[task.priority] || 'Средний'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card task-stat-card" id="cardProject">
+                        <button class="edit-pencil" onclick="editField('project_id')" title="Изменить проект">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Проект</div>
+                            <div style="margin-top:6px;font-weight:600;font-size:0.9rem;">
+                                ${project
+                                    ? '<a href="/pages/project.html?id=' + project.id + '" style="color:inherit;text-decoration:none;" onclick="event.stopPropagation()">' + escapeHtml(project.name) + '</a>'
+                                    : '—'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card task-stat-card" id="cardDates">
+                        <button class="edit-pencil" onclick="editField('dates')" title="Изменить даты">${pencilSvg}</button>
+                        <div class="stat-info">
+                            <div class="stat-label">Сроки</div>
+                            <div style="margin-top:6px;font-weight:600;font-size:0.9rem;">${dateRange}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:16px;border-left:3px solid ${statusHex};">
+                    <div class="card-header"><h3 class="card-title">Описание</h3></div>
+                    <div class="card-body" id="taskDescWrap">
+                        ${renderRichEditor('taskDescEditor', task.description || '', 'Описание задачи…', { fullPreview: true })}
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:16px;border-left:3px solid #F59E0B;" id="epicChildrenCard">
+                    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                        <h3 class="card-title" style="display:flex;align-items:center;gap:8px;">${boltSvg} ${isNested ? 'Вложенные задачи' : 'Связанные задачи'}</h3>
+                        <button type="button" class="btn btn-primary btn-sm tip" id="btnAddChildHeader" data-tip="Создать вложенную и открыть" title="Создать вложенную" aria-label="Создать вложенную задачу" style="padding:2px 10px;font-size:1.1rem;line-height:1;">+</button>
+                    </div>
+                    <div class="card-body">
+                        ${childTasks.length ? childTasks.map(c => renderRelatedCard(c, 0)).join('') : '<p class="text-muted text-sm" style="margin:0 0 12px;">Пока нет вложенных задач</p>'}
+                        ${!isNested ? `
+                        <div class="child-add-row">
+                            <div class="related-search-wrap">
+                                <input type="text" class="form-input tip" id="newChildName" data-tip="Введите название новой или найдите существующую" placeholder="Поиск или новая связанная задача…" autocomplete="off" title="Поиск или новая задача">
+                                <div class="related-search-dd" id="relatedSearchDd"></div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm tip" id="btnAddChild" data-tip="Создать и открыть" title="Создать новую">+</button>
+                        </div>` : ''}
+                    </div>
+                </div>
+
+                <div class="service-accordion" id="serviceAccordion">
+                    <button type="button" class="service-accordion-head" id="serviceToggle">
+                        <span class="svc-title">Служебное</span>
+                        <svg class="svc-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+                    </button>
+                    <div class="service-accordion-body">
+                        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin:0;">
+                            <div class="stat-card"><div class="stat-info"><div class="stat-label">ID</div><div style="margin-top:6px;font-weight:600;font-size:0.85rem;word-break:break-all;">${escapeHtml(task.id)}</div></div></div>
+                            <div class="stat-card"><div class="stat-info"><div class="stat-label">Epic</div><div style="margin-top:6px;font-weight:600;">${isEpic ? 'да' : 'нет'}</div></div></div>
+                            <div class="stat-card"><div class="stat-info"><div class="stat-label">Создано</div><div style="margin-top:6px;font-weight:600;font-size:0.9rem;">${formatDateTime(task.created_at)}<div class="text-sm text-muted" style="font-weight:500;margin-top:2px;">${escapeHtml(task.created_by || task.person || '—')}</div></div></div></div>
+                            <div class="stat-card"><div class="stat-info"><div class="stat-label">Обновлено</div><div style="margin-top:6px;font-weight:600;font-size:0.9rem;">${formatDateTime(task.updated_at)}<div class="text-sm text-muted" style="font-weight:500;margin-top:2px;">${escapeHtml(task.updated_by || task.created_by || '—')}</div></div></div></div>
+                            <div class="stat-card"><div class="stat-info"><div class="stat-label">Epic ID</div><div style="margin-top:6px;font-weight:600;font-size:0.85rem;word-break:break-all;">${escapeHtml(task.parent_id || '—')}</div></div></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.querySelectorAll('#taskContent .click-edit[data-field]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    startTextEdit(el, el.dataset.field);
+                });
+            });
+
+            const epicBtn = document.getElementById('epicToggleBtn');
+            if (epicBtn) epicBtn.addEventListener('click', () => toggleEpic());
+
+            const svcToggle = document.getElementById('serviceToggle');
+            if (svcToggle) {
+                svcToggle.addEventListener('click', () => {
+                    document.getElementById('serviceAccordion')?.classList.toggle('open');
+                });
+            }
+
+            const btnAddChild = document.getElementById('btnAddChild');
+            if (btnAddChild) btnAddChild.addEventListener('click', () => addChildTask());
+            const btnAddChildHeader = document.getElementById('btnAddChildHeader');
+            if (btnAddChildHeader) {
+                btnAddChildHeader.addEventListener('click', () => createNestedAndOpen(taskId));
+            }
+            const btnQuickNested = document.getElementById('btnQuickNested');
+            if (btnQuickNested) {
+                btnQuickNested.addEventListener('click', () => createNestedAndOpen(taskId));
+            }
+            bindRelatedSearch();
+
+            bindRichEditor('taskDescEditor', {
+                onBlur: async (html) => {
+                    if ((task.description || '') === html) return;
+                    await patchTask({ description: html }, { silent: true, skipHistory: true });
+                },
+                onChange: (html) => {
+                    clearTimeout(descSaveTimer);
+                    descSaveTimer = setTimeout(async () => {
+                        if ((task.description || '') === html) return;
+                        task = { ...task, description: html };
+                        try { await CRM.updateTask(taskId, { description: html }); } catch (e) {}
+                    }, 900);
+                }
+            });
+        }
+
+        let relatedActiveIdx = -1;
+
+        function getLinkableTasks(query) {
+            const q = (query || '').trim().toLowerCase();
+            const childIds = new Set(CRM.getTasks().filter(t => t.parent_id === taskId).map(t => t.id));
+            // Same project preferred; if no project — show all other tasks
+            const all = CRM.getTasks().filter(t => {
+                if (t.id === taskId) return false;
+                if (childIds.has(t.id)) return false;
+                if (task.project_id && t.project_id && t.project_id !== task.project_id) return false;
+                return true;
+            });
+            const byId = Object.fromEntries(all.map(t => [t.id, t]));
+            const recent = getRecentIds().map(id => byId[id]).filter(Boolean);
+            const recentSet = new Set(recent.map(t => t.id));
+            const rest = all.filter(t => !recentSet.has(t.id))
+                .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
+
+            const filterFn = (t) => !q || (t.name || '').toLowerCase().includes(q);
+            return {
+                recent: recent.filter(filterFn).slice(0, 8),
+                rest: rest.filter(filterFn).slice(0, 20)
+            };
+        }
+
+        function renderRelatedDropdown(query) {
+            const dd = document.getElementById('relatedSearchDd');
+            if (!dd) return;
+            const { recent, rest } = getLinkableTasks(query);
+            const flat = [...recent, ...rest];
+            if (!flat.length) {
+                dd.innerHTML = '<div class="related-search-item text-muted" style="cursor:default;">Ничего не найдено — Enter создаст новую</div>';
+                dd.classList.add('show');
+                relatedActiveIdx = -1;
+                return;
+            }
+            let html = '';
+            if (recent.length) {
+                html += '<div class="related-search-group">Недавние</div>';
+                recent.forEach((t, i) => {
+                    html += `<div class="related-search-item${i === relatedActiveIdx ? ' active' : ''}" data-id="${escapeHtml(t.id)}" data-idx="${i}">
+                        <div class="rsi-name">${escapeHtml(t.name)}</div>
+                        <div class="rsi-meta">${escapeHtml(t.person || '')} · ${escapeHtml(t.column_status || '')}</div>
+                    </div>`;
+                });
+            }
+            if (rest.length) {
+                html += '<div class="related-search-group">Все задачи</div>';
+                rest.forEach((t, i) => {
+                    const idx = recent.length + i;
+                    html += `<div class="related-search-item${idx === relatedActiveIdx ? ' active' : ''}" data-id="${escapeHtml(t.id)}" data-idx="${idx}">
+                        <div class="rsi-name">${escapeHtml(t.name)}</div>
+                        <div class="rsi-meta">${escapeHtml(t.person || '')} · ${escapeHtml(t.column_status || '')}</div>
+                    </div>`;
+                });
+            }
+            dd.innerHTML = html;
+            dd.classList.add('show');
+            dd.querySelectorAll('.related-search-item[data-id]').forEach(el => {
+                el.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    linkRelatedTask(el.dataset.id);
+                });
+            });
+        }
+
+        function bindRelatedSearch() {
+            const input = document.getElementById('newChildName');
+            const dd = document.getElementById('relatedSearchDd');
+            if (!input || !dd) return;
+            relatedActiveIdx = -1;
+
+            input.addEventListener('focus', () => renderRelatedDropdown(input.value));
+            input.addEventListener('input', () => {
+                relatedActiveIdx = -1;
+                renderRelatedDropdown(input.value);
+            });
+            input.addEventListener('blur', () => {
+                setTimeout(() => dd.classList.remove('show'), 150);
+            });
+            input.addEventListener('keydown', (ev) => {
+                const items = [...dd.querySelectorAll('.related-search-item[data-id]')];
+                if (ev.key === 'ArrowDown') {
+                    ev.preventDefault();
+                    relatedActiveIdx = Math.min(items.length - 1, relatedActiveIdx + 1);
+                    renderRelatedDropdown(input.value);
+                    return;
+                }
+                if (ev.key === 'ArrowUp') {
+                    ev.preventDefault();
+                    relatedActiveIdx = Math.max(0, relatedActiveIdx - 1);
+                    renderRelatedDropdown(input.value);
+                    return;
+                }
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    if (relatedActiveIdx >= 0 && items[relatedActiveIdx]) {
+                        linkRelatedTask(items[relatedActiveIdx].dataset.id);
+                    } else {
+                        addChildTask();
+                    }
+                    return;
+                }
+                if (ev.key === 'Escape') {
+                    dd.classList.remove('show');
+                }
+            });
+        }
+
+        async function ensureEpicIfManyChildren() {
+            await CRM.load();
+            task = CRM.getTasks().find(t => t.id === taskId) || task;
+            // Only top-level tasks can become Epic
+            if (task.parent_id) return;
+            const count = CRM.getTasks().filter(t => t.parent_id === taskId).length;
+            if (count >= 1 && !task.is_epic) {
+                await patchTask({ is_epic: true, parent_id: null }, { silent: true, skipHistory: true });
+            }
+        }
+
+        async function linkRelatedTask(id) {
+            if (!id) return;
+            try {
+                await CRM.updateTask(id, { parent_id: taskId });
+                touchRecent(id);
+                showToast('Задача привязана', 'success');
+                await ensureEpicIfManyChildren();
+                render();
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        }
+
+        async function createNestedAndOpen(parentId, nameOverride) {
+            const parent = CRM.getTasks().find(t => t.id === parentId) || task;
+            if (!parent) return null;
+            const name = (nameOverride && String(nameOverride).trim()) || 'Новая задача';
+            try {
+                const created = await CRM.addTask({
+                    project_id: parent.project_id || task.project_id || '',
+                    name,
+                    column_status: parent.column_status || taskColumns[0]?.name || 'Ожидает',
+                    person: parent.person || task.person || (API.getCurrentUser() || {}).name || 'Костя',
+                    parent_id: parentId,
+                    priority: 'medium',
+                    date: todayDatetimeLocal(),
+                    date_end: '',
+                    time: '',
+                    done: false,
+                    urgent: false,
+                    hashtags: [],
+                    description: ''
+                });
+                if (!created || !created.id) throw new Error('Не удалось создать задачу');
+                touchRecent(created.id);
+                if (parentId === taskId) await ensureEpicIfManyChildren();
+                else if (parent && !parent.parent_id) {
+                    try { await CRM.updateTask(parentId, { is_epic: true }); } catch (e) {}
+                }
+                showToast('Вложенная задача создана', 'success');
+                crmGo('/pages/task.html?id=' + encodeURIComponent(created.id), created.name || name);
+                return created;
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+                return null;
+            }
+        }
+
+        async function addChildTask() {
+            const input = document.getElementById('newChildName');
+            const name = (input && input.value.trim()) || '';
+            if (!name) {
+                await createNestedAndOpen(taskId);
+                return;
+            }
+            await createNestedAndOpen(taskId, name);
+        }
+
+        window.addNestedUnder = async function(parentId) {
+            await createNestedAndOpen(parentId);
+        };
+
+        window.relatedToggleDone = async function(id) {
+            const t = CRM.getTasks().find(x => x.id === id);
+            if (!t) return;
+            const done = !t.done;
+            const doneCol = taskColumns.find(c => /готов|done|выполн/i.test(c.name));
+            const workCol = taskColumns.find(c => /работ/i.test(c.name)) || taskColumns[0];
+            const updates = { done };
+            if (done && doneCol) updates.column_status = doneCol.name;
+            else if (!done && doneCol && t.column_status === doneCol.name) updates.column_status = workCol?.name || t.column_status;
+            await CRM.updateTask(id, updates);
+            touchRecent(id);
+            await CRM.load();
+            render();
+        };
+        window.relatedRestart = async function(id) {
+            const workCol = taskColumns.find(c => /работ/i.test(c.name)) || taskColumns[0];
+            await CRM.updateTask(id, { done: false, column_status: workCol?.name || 'В работе' });
+            touchRecent(id);
+            await CRM.load();
+            render();
+        };
+        window.relatedTogglePause = async function(id) {
+            const t = CRM.getTasks().find(x => x.id === id);
+            if (!t) return;
+            const pauseCol = taskColumns.find(c => /прост/i.test(c.name));
+            const workCol = taskColumns.find(c => /работ/i.test(c.name)) || taskColumns[0];
+            const next = t.column_status === (pauseCol?.name || 'Простой')
+                ? (workCol?.name || 'В работе')
+                : (pauseCol?.name || 'Простой');
+            await CRM.updateTask(id, { column_status: next, done: false });
+            touchRecent(id);
+            await CRM.load();
+            render();
+        };
+        window.relatedUnlink = async function(id) {
+            await CRM.updateTask(id, { parent_id: null });
+            touchRecent(id);
+            showToast('Отвязано', 'success');
+            await CRM.load();
+            render();
+        };
+        window.relatedDelete = function(id) {
+            confirmDelete('Связанная задача удалена', {
+                optimistic: () => {
+                    if (CRM._cache && Array.isArray(CRM._cache.tasks)) {
+                        CRM._cache.tasks = CRM._cache.tasks.filter(t => t.id !== id);
+                    }
+                    render();
+                },
+                commit: async () => {
+                    await API.deleteTask(id);
+                    await CRM.load();
+                    render();
+                },
+                undo: async () => {
+                    await CRM.load();
+                    render();
+                }
+            });
+        };
+
+        function startTextEdit(el, field) {
+            if (el.classList.contains('editing')) return;
+            el.classList.add('editing');
+            let current = task[field] || '';
+            if (field === 'hashtags') current = (task.hashtags || []).join(', ');
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-input';
+            input.style.cssText = field === 'name' ? 'font-size:1.5rem;font-weight:700;padding:6px 10px;' : 'width:100%;';
+            input.value = current;
+            if (field === 'hashtags') input.placeholder = '#seo, #бот';
+            el.innerHTML = '';
+            el.appendChild(input);
+            input.focus();
+            input.select();
+
+            async function finish(save) {
+                if (!el.classList.contains('editing')) return;
+                el.classList.remove('editing');
+                if (!save) { render(); return; }
+                const val = input.value.trim();
+                if (field === 'name') {
+                    if (!val) { render(); return; }
+                    await patchTask({ name: val });
+                } else if (field === 'hashtags') {
+                    const tags = val
+                        ? val.split(',').map(h => h.trim()).filter(Boolean).map(h => h.startsWith('#') ? h : '#' + h)
+                        : [];
+                    await patchTask({ hashtags: tags });
+                }
+            }
+            input.addEventListener('blur', () => finish(true));
+            input.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+            });
+        }
+
+        window.editField = function(field) {
+            const cardMap = {
+                column_status: 'cardStatus',
+                person: 'cardPerson',
+                priority: 'cardPriority',
+                project_id: 'cardProject',
+                dates: 'cardDates',
+                hashtags: null
+            };
+
+            if (field === 'hashtags') {
+                const wrap = document.getElementById('taskHashtagsWrap');
+                if (!wrap) return;
+                const fake = document.createElement('span');
+                fake.className = 'click-edit';
+                fake.dataset.field = 'hashtags';
+                wrap.innerHTML = '';
+                wrap.appendChild(fake);
+                startTextEdit(fake, 'hashtags');
+                return;
+            }
+
+            const card = document.getElementById(cardMap[field]);
+            if (!card || card.classList.contains('editing')) return;
+            card.classList.add('editing');
+            const info = card.querySelector('.stat-info');
+            const label = info.querySelector('.stat-label').textContent;
+
+            if (field === 'column_status') {
+                openInlineSelect(card, info, label, taskColumns.map(c => ({ value: c.name, label: c.name })), task.column_status, async (v) => {
+                    const doneCol = taskColumns.find(c => /готов|done|выполн/i.test(c.name));
+                    await patchTask({ column_status: v, done: doneCol ? v === doneCol.name : task.done });
+                });
+            } else if (field === 'person') {
+                const names = teamUsers.length ? teamUsers.map(u => u.name) : ['Костя', 'Максим', 'Андрей'];
+                openInlineSelect(card, info, label, names.map(n => ({ value: n, label: n })), task.person, async (v) => {
+                    await patchTask({ person: v });
+                });
+            } else if (field === 'priority') {
+                openInlineSelect(card, info, label, [
+                    { value: 'low', label: 'Низкий' },
+                    { value: 'medium', label: 'Средний' },
+                    { value: 'high', label: 'Высокий' }
+                ], task.priority || 'medium', async (v) => {
+                    await patchTask({ priority: v });
+                });
+            } else if (field === 'project_id') {
+                const cur = CRM.getProject(task.project_id);
+                const curLabel = cur ? (cur.client + ' — ' + cur.name) : '';
+                info.innerHTML = `
+                    <div class="stat-label">${label}</div>
+                    <div class="hashtag-search-wrapper" style="width:100%;margin-top:6px;">
+                        <input type="text" class="form-input" id="inlineProjectSearch" value="${escapeHtml(curLabel)}" data-selected-id="${escapeHtml(task.project_id || '')}" placeholder="Поиск проекта…" autocomplete="off" style="padding:6px 8px;font-size:0.85rem;">
+                        <div class="hashtag-dropdown" id="inlineProjectDd"></div>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px;">
+                        <button class="btn btn-secondary btn-sm" id="clearProject">Без проекта</button>
+                        <button class="btn btn-secondary btn-sm" id="cancelProject">✕</button>
+                    </div>`;
+                const input = info.querySelector('#inlineProjectSearch');
+                const dd = info.querySelector('#inlineProjectDd');
+                const projects = CRM.getProjects();
+                function showProjects(filter) {
+                    let matches = filter
+                        ? projects.filter(p => (p.name + ' ' + p.client).toLowerCase().includes(filter.toLowerCase()))
+                        : projects;
+                    dd.innerHTML = '<div class="hashtag-dropdown-item" data-project-id="" data-project-name="">— Без проекта —</div>' +
+                        matches.map(p => `<div class="hashtag-dropdown-item" data-project-id="${p.id}" data-project-name="${escapeHtml(p.client + ' — ' + p.name)}">${escapeHtml(p.client + ' — ' + p.name)}</div>`).join('');
+                    dd.classList.add('show');
+                }
+                input.addEventListener('focus', () => showProjects(input.value.trim()));
+                input.addEventListener('input', () => {
+                    if (!input.value.trim()) input.dataset.selectedId = '';
+                    showProjects(input.value.trim());
+                });
+                dd.addEventListener('click', async (e) => {
+                    const item = e.target.closest('.hashtag-dropdown-item');
+                    if (!item) return;
+                    await patchTask({ project_id: item.dataset.projectId || '' });
+                });
+                info.querySelector('#clearProject').onclick = async () => { await patchTask({ project_id: '' }); };
+                info.querySelector('#cancelProject').onclick = () => render();
+                setTimeout(() => input.focus(), 30);
+            } else if (field === 'dates') {
+                info.innerHTML = `
+                    <div class="stat-label">${label}</div>
+                    <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">
+                        <label class="text-sm text-muted">Начало</label>
+                        <input type="datetime-local" class="form-input" id="editDateStart" value="${escapeHtml(toDatetimeLocalValue(task.date, task.time))}" style="padding:6px 8px;font-size:0.8rem;">
+                        <label class="text-sm text-muted">Окончание</label>
+                        <input type="datetime-local" class="form-input" id="editDateEnd" value="${escapeHtml(toDatetimeLocalValue(task.date_end))}" style="padding:6px 8px;font-size:0.8rem;">
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-primary btn-sm" id="saveDates">OK</button>
+                            <button class="btn btn-secondary btn-sm" id="cancelDates">✕</button>
+                        </div>
+                    </div>`;
+                info.querySelector('#saveDates').onclick = async () => {
+                    await patchTask({
+                        date: document.getElementById('editDateStart').value || '',
+                        date_end: document.getElementById('editDateEnd').value || '',
+                        time: ''
+                    });
+                };
+                info.querySelector('#cancelDates').onclick = () => render();
+            }
+        };
+
+        function openInlineSelect(card, info, label, options, current, onSave) {
+            const opts = options.map(o =>
+                `<option value="${escapeHtml(o.value)}"${String(o.value) === String(current || '') ? ' selected' : ''}>${escapeHtml(o.label)}</option>`
+            ).join('');
+            info.innerHTML = `
+                <div class="stat-label">${label}</div>
+                <div style="margin-top:6px;">
+                    <select class="form-select" id="inlineSelect" style="padding:6px 28px 6px 8px;font-size:0.85rem;">${opts}</select>
+                </div>`;
+            const sel = info.querySelector('#inlineSelect');
+            sel.focus();
+            sel.addEventListener('change', async () => { await onSave(sel.value); });
+            sel.addEventListener('blur', () => {
+                setTimeout(() => { if (card.classList.contains('editing')) render(); }, 200);
+            });
+        }
+
+        window.undoChange = undoChange;
+        window.toggleEpic = toggleEpic;
+
+        window.deleteThisTask = function() {
+            const back = task.project_id
+                ? '/pages/project.html?id=' + task.project_id
+                : '/pages/tasks.html';
+            confirmDelete('Задача «' + (task.name || '') + '» удалена', {
+                optimistic: () => {
+                    const main = document.querySelector('.main-content .content-wrapper');
+                    if (main) main.style.opacity = '0.35';
+                },
+                commit: async () => {
+                    await API.deleteTask(taskId);
+                    window.location.href = back;
+                },
+                undo: () => {
+                    const main = document.querySelector('.main-content .content-wrapper');
+                    if (main) main.style.opacity = '';
+                }
+            });
+        };
+
+        CRMKeys.register([
+            { keys: 'F2', label: 'Редактировать название', match: (e) => e.key === 'F2', run: () => {
+                const title = document.getElementById('taskTitle');
+                if (title) startTextEdit(title, 'name');
+            }},
+            { keys: 'Ctrl+E', label: 'Вкл/выкл Epic', match: (e) => (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e', run: () => toggleEpic() },
+            { keys: 'Ctrl+D', label: 'Выполнено', match: (e) => (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd', run: () => {
+                const done = !task.done;
+                const doneCol = taskColumns.find(c => /готов|done|выполн/i.test(c.name));
+                const workCol = taskColumns.find(c => /работ/i.test(c.name)) || taskColumns[0];
+                const updates = { done };
+                if (done && doneCol) updates.column_status = doneCol.name;
+                else if (!done && doneCol && task.column_status === doneCol.name) updates.column_status = workCol?.name || task.column_status;
+                patchTask(updates);
+            }},
+            { keys: 'Ctrl+U', label: 'Срочно', match: (e) => (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u', run: () => patchTask({ urgent: !task.urgent }) },
+            { keys: 'Ctrl+Backspace', label: 'Удалить задачу', match: (e) => (e.ctrlKey || e.metaKey) && e.key === 'Backspace', run: () => deleteThisTask() },
+            { keys: 'N', label: 'Новая вложенная задача', match: (e) => !e.ctrlKey && !e.metaKey && (e.key === 'n' || e.key === 'N' || e.key === '+'), run: () => {
+                createNestedAndOpen(taskId);
+            }},
+            { keys: 'S', label: 'Статус', match: (e) => !e.ctrlKey && e.key.toLowerCase() === 's', run: () => editField('column_status') },
+            { keys: 'P', label: 'Исполнитель', match: (e) => !e.ctrlKey && e.key.toLowerCase() === 'p', run: () => editField('person') },
+            { keys: 'R', label: 'Приоритет', match: (e) => !e.ctrlKey && e.key.toLowerCase() === 'r', run: () => editField('priority') }
+        ]);
+
+        render();
+
+        window.refreshPageData = async function() {
+            await CRM.load();
+            render();
+        };
+    })();
+    </script>
+</body>
+</html>

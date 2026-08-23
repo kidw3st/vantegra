@@ -41,7 +41,7 @@ jobs:
         if: steps.cfg.outcome == 'success'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: apps/marketing-site
 
       - name: Deploy
         id: deployment

@@ -1,0 +1,8 @@
+{
+  "name": "@vantegra/marketing-site",
+  "private": true,
+  "description": "Public site. Send this folder for landing UI changes.",
+  "scripts": {
+    "dev": "npx --yes serve . -p 4173"
+  }
+}

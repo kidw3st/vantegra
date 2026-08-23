@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vantegra
+      POSTGRES_USER: vantegra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vantegra}
+    ports:
+      - "127.0.0.1:5432:5432"
+    mem_limit: 128m
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./postgres/small.conf:/etc/postgresql/small.conf:ro
+    command:
+      - postgres
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - work_mem=1MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - max_connections=20
+      - -c
+      - wal_level=minimal
+      - -c
+      - max_wal_size=64MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vantegra -d vantegra"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "24mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    mem_limit: 32m
+    volumes:
+      - redisdata:/data
+
+  clickhouse:
+    profiles: ["analytics"]
+    image: clickhouse/clickhouse-server:24.8
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8123:8123"
+      - "127.0.0.1:9000:9000"
+    mem_limit: 768m
+    volumes:
+      - chdata:/var/lib/clickhouse
+      - ./clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+volumes:
+  pgdata:
+  redisdata:
+  chdata:

@@ -1,0 +1,11 @@
+{
+  "name": "vantegra",
+  "private": true,
+  "scripts": {
+    "dev:api": "node apps/core-api/server.js",
+    "dev:staff": "npx --yes serve apps/staff-web -p 4174",
+    "dev:portal": "npx --yes serve apps/client-portal -p 4175",
+    "dev:site": "npx --yes serve apps/marketing-site -p 4173",
+    "compose:staging": "docker compose -f infra/docker-compose.yml up -d"
+  }
+}

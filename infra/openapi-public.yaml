@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Vantegra public API
+  version: "1.4.0"
+paths:
+  /healthz:
+    get:
+      summary: Liveness/readiness (DB ping)
+      responses:
+        "200": { description: ok }
+        "503": { description: database down }
+  /api/leads:
+    post:
+      summary: Create a lead from the marketing site
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, contact, task]
+              properties:
+                name: { type: string }
+                contact: { type: string }
+                kind: { type: string }
+                task: { type: string }
+                website: { type: string, description: honeypot }
+      responses:
+        "200": { description: accepted }
+        "429": { description: rate limited }
+  /api/public/client/{token}:
+    get:
+      summary: Client cabinet payload
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: cabinet json }
+        "404": { description: invalid or revoked }
+  /api/public/client/{token}/site:
+    put:
+      summary: Save client site URL
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: saved }
+        "429": { description: rate limited }
+  /api/public/client/{token}/visit:
+    post:
+      summary: Record a cabinet visit
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: recorded }
+  /api/public/client/{token}/comments:
+    post:
+      summary: Client comment
+      responses:
+        "200": { description: created }
+  /api/public/client/{token}/approvals:
+    post:
+      summary: Approve or reject a stage
+      responses:
+        "200": { description: created }

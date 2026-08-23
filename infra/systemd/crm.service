@@ -1,0 +1,21 @@
+[Unit]
+Description=Vantegra CRM
+After=network.target postgresql@16-main.service
+Wants=postgresql@16-main.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/crm-app
+Environment=NODE_ENV=production
+Environment=PORT=3005
+EnvironmentFile=-/var/www/crm-app/.env
+ExecStart=/usr/bin/node --max-old-space-size=192 server.js
+Restart=always
+RestartSec=3
+MemoryMax=250M
+MemoryHigh=200M
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

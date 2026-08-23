@@ -1,0 +1,23 @@
+{
+  "name": "@vantegra/core-api",
+  "private": true,
+  "version": "1.4.0",
+  "description": "Express CRM API. Serves staff-web and client-portal as static files.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "worker": "node worker.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
+    "bullmq": "^5.58.5",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "ioredis": "^5.7.0",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.16.3",
+    "ssh2": "^1.17.0"
+  }
+}

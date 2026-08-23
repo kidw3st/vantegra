@@ -89,6 +89,27 @@ if (!$errors && !$isBot) {
         error_log('leads insert: ' . $e->getMessage());
     }
 
+    // Дублируем заявку в CRM студии, если адрес задан в конфиге.
+    // Сбой CRM не должен ломать приём: письмо и база — основной путь.
+    $crmUrl = (string) ($cfg['crm_leads_url'] ?? '');
+    if ($crmUrl !== '') {
+        $ctx = stream_context_create([
+            'http' => [
+                'method'        => 'POST',
+                'header'        => "Content-Type: application/json\r\nAccept: application/json\r\n",
+                'content'       => json_encode(
+                    ['name' => $name, 'contact' => $contact, 'kind' => $kind, 'task' => $task],
+                    JSON_UNESCAPED_UNICODE
+                ),
+                'timeout'       => 2.5,
+                'ignore_errors' => true,
+            ],
+        ]);
+        if (@file_get_contents($crmUrl, false, $ctx) === false) {
+            error_log('crm leads forward failed');
+        }
+    }
+
     $body = "Заявка с сайта vantegracode.ru\n\n"
           . "Имя:    $name\n"
           . "Связь:  $contact\n"

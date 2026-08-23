@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Задачи — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+    <style>
+        .task-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; transition: all 0.15s; overflow: visible; }
+        .task-card:hover { box-shadow: var(--shadow-sm); }
+        .task-card.done { opacity: 0.6; }
+        .task-card.done .task-name { text-decoration: line-through; color: var(--gray-400); }
+        .subtask-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--gray-100); }
+        .subtask-item:last-child { border-bottom: none; }
+        .subtask-checkbox { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+        .subtask-name { flex: 1; font-size: 0.85rem; }
+        .subtask-name.done { text-decoration: line-through; color: var(--gray-400); }
+        .subtask-meta { font-size: 0.75rem; color: var(--gray-500); }
+        .activity-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--gray-100); }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+        .activity-dot.create { background: var(--success); }
+        .activity-dot.complete { background: var(--primary); }
+        .activity-dot.status { background: var(--warning); }
+        .activity-text { flex: 1; }
+        .activity-text strong { font-weight: 600; }
+        .activity-time { font-size: 0.75rem; color: var(--gray-400); margin-top: 2px; }
+        .layout-2col { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
+        @media (max-width: 1200px) { .layout-2col { grid-template-columns: 1fr; } }
+        .task-actions {
+            display: flex; gap: 4px; align-items: center; position: relative;
+            flex-shrink: 0; z-index: 5;
+        }
+        .task-action-btn {
+            width: 32px; height: 32px; border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--gray-200); background: var(--white);
+            color: var(--gray-500); cursor: pointer; transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .task-action-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+        .task-action-btn.done:hover { border-color: var(--success); color: var(--success); background: var(--success-light); }
+        .task-action-btn.pause:hover { border-color: var(--warning); color: var(--warning); background: var(--warning-light); }
+        .task-action-btn.play { border-color: var(--success); color: var(--success); }
+        .task-action-btn.play:hover { background: var(--success-light); }
+        .task-action-btn.restart:hover { border-color: var(--info); color: var(--info); background: var(--info-light); }
+        .task-action-btn.gear:hover { border-color: var(--gray-400); color: var(--gray-700); background: var(--gray-100); }
+        .task-action-btn.add-child:hover { border-color: var(--success); color: var(--success); background: var(--success-light); }
+        .task-action-btn.clone:hover { border-color: var(--info); color: var(--info); background: var(--info-light); }
+        .task-action-btn.delete:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+        .task-action-btn.unparent { font-size: 0.8rem; font-weight: 700; }
+        .task-action-btn.task-menu-btn { border-color: transparent; color: var(--gray-500); position: relative; z-index: 2; }
+        .task-action-btn.task-menu-btn:hover,
+        .task-actions.open .task-action-btn.task-menu-btn {
+            border-color: var(--primary); color: var(--primary); background: var(--primary-light);
+        }
+        /* Slide-out tray to the LEFT of the burger */
+        .task-menu-tray {
+            display: flex; align-items: center; gap: 4px;
+            position: absolute; right: calc(100% + 4px); top: 50%;
+            transform: translateY(-50%) translateX(12px) scaleX(0.85);
+            transform-origin: right center;
+            opacity: 0; pointer-events: none;
+            padding: 4px; background: var(--white);
+            border: 1px solid var(--gray-200); border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg); z-index: 300;
+            transition: opacity 0.2s ease, transform 0.25s ease;
+            white-space: nowrap;
+        }
+        .task-actions.open .task-menu-tray {
+            opacity: 1; pointer-events: auto;
+            transform: translateY(-50%) translateX(0) scaleX(1);
+        }
+        .task-menu-tray .task-action-btn { width: 30px; height: 30px; }
+        .kanban-card { overflow: visible; position: relative; }
+        .task-card.paused { border-left: 3px solid var(--warning); }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=18"></script>
+    <script src="/assets/js/app.js?v=55"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+        
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('tasks') + renderHeader() + `
+            <div class="page-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <h1 class="page-title">Задачи</h1>
+                    <button class="btn btn-ghost btn-icon" onclick="showTaskColumnConfigModal()" title="Настройки статусов" aria-label="Настройки статусов" style="width:32px;height:32px;color:var(--gray-400);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                    <p class="page-subtitle">Все задачи по проектам</p>
+                </div>
+                <div class="page-actions">
+                    <div style="display:flex;gap:4px;">
+                        <button class="btn btn-secondary btn-sm" id="viewList" onclick="switchTaskView('list')" style="background:var(--primary-light);color:var(--primary);border-color:var(--primary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg> Список</button>
+                        <button class="btn btn-secondary btn-sm" id="viewKanban" onclick="switchTaskView('kanban')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Канбан</button>
+                    </div>
+                    <button class="btn btn-secondary" id="btnPreviewAsClient" onclick="previewAsClientFromTasks()" title="Открыть клиентский вид проекта">Как видит клиент</button>
+                    <button class="btn btn-primary" onclick="showNewTaskModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Новая задача</button>
+                </div>
+            </div>
+            <div class="filter-bar" id="taskFilters" style="flex-wrap:wrap;"></div>
+            <div id="taskKanbanView" class="hidden"></div>
+            <div id="taskListView" class="layout-2col">
+                <div id="tasksList"></div>
+                <div id="activityFeed">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Обновления</h3></div>
+                        <div class="card-body" id="activityList" style="max-height:600px;overflow-y:auto;"></div>
+                    </div>
+                </div>
+            </div>
+            </div></div></div>
+        `;
+        
+        initCommonUI();
+        // Make content full-width for kanban support
+        const contentWrapper = document.querySelector('.content-wrapper');
+        if (contentWrapper) contentWrapper.classList.add('full-width');
+        await CRM.load();
+
+        // Per-user filter persistence: saved to localStorage on every change
+        const _filterUser = (API.getCurrentUser() && API.getCurrentUser().name) || 'guest';
+        const _filterKey = 'crm_task_filters_' + _filterUser;
+
+        function loadSavedFilters() {
+            try { return JSON.parse(localStorage.getItem(_filterKey)) || {}; } catch (e) { return {}; }
+        }
+        function saveFilters() {
+            try {
+                localStorage.setItem(_filterKey, JSON.stringify({
+                    status: currentFilter,
+                    time: currentTimeFilter,
+                    person: currentPersonFilter,
+                    project: currentProjectFilter,
+                    view: currentTaskView
+                }));
+            } catch (e) {}
+        }
+
+        const _saved = loadSavedFilters();
+        let currentFilter = _saved.status || 'all';
+        let currentTimeFilter = _saved.time || 'all';
+        let currentPersonFilter = _saved.person || 'all';
+        let currentProjectFilter = _saved.project || 'all';
+        let taskColumns = [];
+        // Deep link from settings stats: ?filter=overdue
+        if (new URLSearchParams(location.search).get('filter') === 'overdue') {
+            currentTimeFilter = 'overdue';
+        }
+
+        // Load task columns
+        async function loadTaskColumns() {
+            try {
+                taskColumns = await API.get('/api/task-columns');
+            } catch (err) {
+                taskColumns = [
+                    { id: 1, name: 'Ожидает', color: 'gray', sort_order: 0 },
+                    { id: 2, name: 'В работе', color: 'green', sort_order: 1 },
+                    { id: 3, name: 'Простой', color: 'yellow', sort_order: 2 },
+                    { id: 4, name: 'Согласуем', color: 'yellow', sort_order: 3 },
+                    { id: 5, name: 'Готово', color: 'gray', sort_order: 4 }
+                ];
+            }
+        }
+        await loadTaskColumns();
+
+        function renderTaskFilters() {
+            const container = document.getElementById('taskFilters');
+            let statusOptions = '<option value="all"' + (currentFilter === 'all' ? ' selected' : '') + '>Все статусы</option>';
+            taskColumns.forEach(col => {
+                statusOptions += '<option value="' + col.name + '"' + (currentFilter === col.name ? ' selected' : '') + '>' + col.name + '</option>';
+            });
+
+            let timeOptions = '<option value="all"' + (currentTimeFilter === 'all' ? ' selected' : '') + '>Все время</option>';
+            timeOptions += '<option value="today"' + (currentTimeFilter === 'today' ? ' selected' : '') + '>Сегодня</option>';
+            timeOptions += '<option value="tomorrow"' + (currentTimeFilter === 'tomorrow' ? ' selected' : '') + '>Завтра</option>';
+            timeOptions += '<option value="week"' + (currentTimeFilter === 'week' ? ' selected' : '') + '>Неделя</option>';
+            timeOptions += '<option value="overdue"' + (currentTimeFilter === 'overdue' ? ' selected' : '') + '>Просроченные</option>';
+
+            let personOptions = '<option value="all"' + (currentPersonFilter === 'all' ? ' selected' : '') + '>Все исполнители</option>';
+            personOptions += '<option value="Костя"' + (currentPersonFilter === 'Костя' ? ' selected' : '') + '>Костя</option>';
+            personOptions += '<option value="Максим"' + (currentPersonFilter === 'Максим' ? ' selected' : '') + '>Максим</option>';
+            personOptions += '<option value="Андрей"' + (currentPersonFilter === 'Андрей' ? ' selected' : '') + '>Андрей</option>';
+
+            // Project filter: text input with live search + dropdown of all projects
+            const selectedProject = currentProjectFilter !== 'all' ? CRM.getProject(currentProjectFilter) : null;
+            const projectLabel = selectedProject ? selectedProject.client + ' — ' + selectedProject.name : '';
+
+            let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+            html += '<div id="statusFilterWrap" style="display:flex;align-items:center;gap:6px;"><span class="text-sm text-muted">Статус:</span><select class="form-select" style="width:auto;min-width:140px;padding:6px 32px 6px 10px;font-size:0.8rem;" onchange="filterTasks(this.value)">' + statusOptions + '</select></div>';
+            html += '<div style="display:flex;align-items:center;gap:6px;"><span class="text-sm text-muted">Время:</span><select class="form-select" style="width:auto;min-width:140px;padding:6px 32px 6px 10px;font-size:0.8rem;" onchange="filterTime(this.value)">' + timeOptions + '</select></div>';
+            html += '<div style="display:flex;align-items:center;gap:6px;"><span class="text-sm text-muted">Исполнитель:</span><select class="form-select" style="width:auto;min-width:150px;padding:6px 32px 6px 10px;font-size:0.8rem;" onchange="filterByPerson(this.value)">' + personOptions + '</select></div>';
+            html += '<div style="display:flex;align-items:center;gap:6px;"><span class="text-sm text-muted">Проект:</span><div class="hashtag-search-wrapper" style="width:200px;">'
+                + '<input type="text" class="form-input" id="projectFilterInput" value="' + projectLabel.replace(/"/g, '&quot;') + '" placeholder="Все проекты" autocomplete="off" style="padding:6px 28px 6px 10px;font-size:0.8rem;">'
+                + '<button class="hashtag-arrow" onclick="toggleProjectFilterDropdown(event)" aria-label="Показать все проекты"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg></button>'
+                + '<div class="hashtag-dropdown" id="projectFilterDropdown"></div>'
+                + '</div></div>';
+            html += '</div>';
+            container.innerHTML = html;
+            initProjectFilterSearch();
+        }
+
+        // Searchable project filter: typing filters the list, selecting applies the filter
+        function initProjectFilterSearch() {
+            const input = document.getElementById('projectFilterInput');
+            const dropdown = document.getElementById('projectFilterDropdown');
+            if (!input || !dropdown) return;
+            const projects = CRM.getProjects();
+
+            window._showProjectFilterList = function(filter) {
+                const matches = filter
+                    ? projects.filter(p => (p.name + ' ' + p.client).toLowerCase().includes(filter.toLowerCase()))
+                    : projects;
+                let items = '<div class="hashtag-dropdown-item" data-project-id="all">Все проекты</div>';
+                items += matches.map(p =>
+                    `<div class="hashtag-dropdown-item" data-project-id="${p.id}" data-project-name="${p.client} — ${p.name}">${p.client} — ${p.name}</div>`
+                ).join('');
+                dropdown.innerHTML = items;
+                dropdown.classList.add('show');
+            };
+
+            input.addEventListener('focus', () => { window._showProjectFilterList(input.value.trim()); });
+            input.addEventListener('input', () => {
+                const val = input.value.trim();
+                if (!val && currentProjectFilter !== 'all') {
+                    currentProjectFilter = 'all';
+                    saveFilters();
+                    renderTasks();
+                }
+                window._showProjectFilterList(val);
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                const item = e.target.closest('.hashtag-dropdown-item');
+                if (!item) return;
+                if (item.dataset.projectId === 'all') {
+                    currentProjectFilter = 'all';
+                    input.value = '';
+                } else {
+                    currentProjectFilter = item.dataset.projectId;
+                    input.value = item.dataset.projectName;
+                }
+                dropdown.classList.remove('show');
+                saveFilters();
+                renderTasks();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#projectFilterInput') && !e.target.closest('#projectFilterDropdown') && !e.target.closest('.hashtag-arrow')) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+
+        window.toggleProjectFilterDropdown = function(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('projectFilterDropdown');
+            if (!dropdown) return;
+            if (dropdown.classList.contains('show')) dropdown.classList.remove('show');
+            else if (window._showProjectFilterList) window._showProjectFilterList('');
+        };
+        renderTaskFilters();
+        
+        window.filterTasks = function(filter) {
+            currentFilter = filter;
+            saveFilters();
+            renderTasks();
+        };
+
+        window.filterTime = function(filter) {
+            currentTimeFilter = filter;
+            saveFilters();
+            renderTasks();
+        };
+
+        window.filterByPerson = function(filter) {
+            currentPersonFilter = filter;
+            saveFilters();
+            renderTasks();
+        };
+        
+        window.deleteTask = async function(id) {
+            const task = (CRM.getTasks() || []).find(t => t.id === id);
+            const name = task ? task.name : 'Задача';
+            confirmDelete('Задача «' + name + '» удалена', {
+                optimistic: () => {
+                    if (CRM._cache && Array.isArray(CRM._cache.tasks)) {
+                        CRM._cache.tasks = CRM._cache.tasks.filter(t => t.id !== id);
+                    }
+                    renderTasks();
+                },
+                commit: async () => {
+                    await API.deleteTask(id);
+                    await CRM.load();
+                    renderTasks();
+                    if (typeof loadActivity === 'function') loadActivity();
+                },
+                undo: async () => {
+                    await CRM.load();
+                    renderTasks();
+                }
+            });
+        };
+        
+        window.toggleTask = async function(taskId, done) {
+            try {
+                await CRM.updateTask(taskId, { done: done, column_status: done ? 'Готово' : 'В работе' });
+                showToast(done ? 'Выполнено' : 'В работе', 'success');
+                await CRM.load();
+                renderTasks();
+                loadActivity();
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+
+        // Toggle task action tray — slides out to the left of the burger
+        window.toggleTaskMenu = function(btn) {
+            const wrap = btn.closest('.task-actions');
+            if (!wrap) return;
+            const isOpen = wrap.classList.contains('open');
+            document.querySelectorAll('.task-actions.open').forEach(el => el.classList.remove('open'));
+            if (!isOpen) wrap.classList.add('open');
+        };
+
+        // Close task menus on outside click or after choosing an action
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.task-menu-tray .task-action-btn')) {
+                document.querySelectorAll('.task-actions.open').forEach(el => el.classList.remove('open'));
+                return;
+            }
+            if (!e.target.closest('.task-actions')) {
+                document.querySelectorAll('.task-actions.open').forEach(el => el.classList.remove('open'));
+            }
+        });
+
+        window.toggleTaskDone = async function(taskId) {
+            try {
+                await CRM.updateTask(taskId, { done: true, column_status: 'Готово' });
+                showToast('Задача выполнена', 'success');
+                await CRM.load();
+                renderTasks();
+                loadActivity();
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+
+        window.toggleTaskPause = async function(taskId) {
+            try {
+                const task = CRM.getTasks().find(t => t.id === taskId);
+                if (!task) return;
+                const newStatus = task.column_status === 'Простой' ? 'В работе' : 'Простой';
+                await CRM.updateTask(taskId, { column_status: newStatus });
+                showToast(newStatus === 'Простой' ? 'Задача на паузе' : 'Задача в работе', 'success');
+                await CRM.load();
+                renderTasks();
+                loadActivity();
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+
+        window.restartTask = async function(taskId) {
+            try {
+                await CRM.updateTask(taskId, { done: false, column_status: 'В работе' });
+                showToast('Задача возвращена в работу', 'success');
+                await CRM.load();
+                renderTasks();
+                loadActivity();
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+
+        // Auto-save debounce timer for task editing
+        let autoSaveTimer = null;
+        let autoSaveTaskId = null;
+
+        function autoSaveTask() {
+            if (!autoSaveTaskId) return;
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(async () => {
+                const indicator = document.getElementById('autoSaveIndicator');
+                const nameEl = document.getElementById('editTaskName');
+                if (!nameEl) return; // Modal was closed
+                if (indicator) { indicator.textContent = 'Сохраняется...'; indicator.style.color = 'var(--gray-400)'; }
+                try {
+                    const projectInput = document.getElementById('editTaskProject');
+                    const projectId = (projectInput && projectInput.dataset.selectedId) ? projectInput.dataset.selectedId : '';
+                    const name = nameEl.value.trim();
+                    if (!name) return;
+                    const column_status = document.getElementById('editTaskStatus').value;
+                    const done = column_status === 'Готово';
+                    await CRM.updateTask(autoSaveTaskId, {
+                        name: name,
+                        project_id: projectId,
+                        person: document.getElementById('editTaskPerson').value,
+                        column_status: column_status,
+                        date: document.getElementById('editTaskDate').value || '',
+                        date_end: document.getElementById('editTaskDateEnd').value || '',
+                        time: '',
+                        done: done,
+                        urgent: false,
+                        priority: document.getElementById('editTaskPriority').value,
+                        description: getDescValue('editTaskDesc')
+                    });
+                    // Don't re-render list during editing — cache is already updated by CRM.updateTask
+                    if (indicator) { indicator.textContent = 'Сохранено'; indicator.style.color = 'var(--success)'; }
+                } catch (err) {
+                    if (indicator) { indicator.textContent = 'Ошибка'; indicator.style.color = 'var(--danger)'; }
+                }
+                setTimeout(() => { const el = document.getElementById('autoSaveIndicator'); if (el) el.textContent = ''; }, 2000);
+            }, 500);
+        }
+
+        function bindAutoSave() {
+            const fields = ['editTaskName', 'editTaskDesc', 'editTaskProject', 'editTaskPerson', 'editTaskPriority', 'editTaskStatus', 'editTaskDate', 'editTaskDateEnd'];
+            fields.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', autoSaveTask);
+                el.addEventListener('change', autoSaveTask);
+            });
+            bindRichEditor('editTaskDesc');
+        }
+
+        window.showEditTaskModal = function(taskId, cloneMode) {
+            // Reset auto-save state
+            if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+            autoSaveTaskId = null;
+
+            const task = CRM.getTasks().find(t => t.id === taskId);
+            if (!task) return;
+            const overlay = document.getElementById('modalOverlay');
+            const project = CRM.getProject(task.project_id);
+            const projectLabel = project ? project.client + ' — ' + project.name : '';
+            let statusOptions = '';
+            taskColumns.forEach(col => {
+                statusOptions += `<option value="${col.name}" ${task.column_status === col.name ? 'selected' : ''}>${col.name}</option>`;
+            });
+            const priorityOptions = `
+                <option value="low" ${task.priority === 'low' ? 'selected' : ''}>🟢 Низкий</option>
+                <option value="medium" ${task.priority === 'medium' || !task.priority ? 'selected' : ''}>🟡 Средний</option>
+                <option value="high" ${task.priority === 'high' ? 'selected' : ''}>🔴 Высокий</option>
+            `;
+
+            if (cloneMode) {
+                // Clone mode — standard modal with submit button
+                overlay.innerHTML = `
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <div class="modal-header"><h3 class="modal-title">Копировать задачу</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                        <div class="modal-body">
+                            <div class="form-group"><label class="form-label" for="editTaskName">Название *</label><input type="text" class="form-input" id="editTaskName" value="${task.name}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label">Описание</label>${renderRichEditor('editTaskDesc', task.description || '', 'Подробности задачи…')}</div>
+                            <div class="form-group">
+                                <label class="form-label">Проект</label>
+                                <div class="hashtag-search-wrapper" style="width:100%;">
+                                    <input type="text" class="form-input" id="editTaskProject" value="${projectLabel}" data-selected-id="${task.project_id || ''}" placeholder="Поиск проекта..." autocomplete="off" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
+                                    <button class="hashtag-arrow" onclick="event.stopPropagation();toggleProjectDropdown('editTaskProjectDropdown')" aria-label="Показать все проекты"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg></button>
+                                    <div class="hashtag-dropdown" id="editTaskProjectDropdown"></div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" for="editTaskPerson">Исполнитель</label><select class="form-select" id="editTaskPerson" onclick="event.stopPropagation()"><option ${task.person === 'Костя' ? 'selected' : ''}>Костя</option><option ${task.person === 'Максим' ? 'selected' : ''}>Максим</option><option ${task.person === 'Андрей' ? 'selected' : ''}>Андрей</option></select></div>
+                                <div class="form-group"><label class="form-label" for="editTaskPriority">Приоритет</label><select class="form-select" id="editTaskPriority" onclick="event.stopPropagation()">${priorityOptions}</select></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" for="editTaskStatus">Статус</label><select class="form-select" id="editTaskStatus" onclick="event.stopPropagation()">${statusOptions}</select></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" for="editTaskDate">Начало</label><input type="datetime-local" class="form-input" id="editTaskDate" value="${toDatetimeLocalValue(task.date, task.time)}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                                <div class="form-group"><label class="form-label" for="editTaskDateEnd">Окончание</label><input type="datetime-local" class="form-input" id="editTaskDateEnd" value="${toDatetimeLocalValue(task.date_end)}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Отмена</button><button class="btn btn-primary" onclick="createTaskCopy('${taskId}')">Создать копию</button></div>
+                    </div>
+                `;
+            } else {
+                // Edit mode — auto-save, no submit button
+                autoSaveTaskId = taskId;
+                overlay.innerHTML = `
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <h3 class="modal-title">Редактировать задачу</h3>
+                                <span id="autoSaveIndicator" style="font-size:0.8rem;font-weight:500;transition:color 0.3s;"></span>
+                            </div>
+                            <button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group"><label class="form-label" for="editTaskName">Название *</label><input type="text" class="form-input" id="editTaskName" value="${task.name}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label">Описание</label>${renderRichEditor('editTaskDesc', task.description || '', 'Подробности задачи…')}</div>
+                            <div class="form-group">
+                                <label class="form-label">Проект</label>
+                                <div class="hashtag-search-wrapper" style="width:100%;">
+                                    <input type="text" class="form-input" id="editTaskProject" value="${projectLabel}" data-selected-id="${task.project_id || ''}" placeholder="Поиск проекта..." autocomplete="off" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
+                                    <button class="hashtag-arrow" onclick="event.stopPropagation();toggleProjectDropdown('editTaskProjectDropdown')" aria-label="Показать все проекты"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg></button>
+                                    <div class="hashtag-dropdown" id="editTaskProjectDropdown"></div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" for="editTaskPerson">Исполнитель</label><select class="form-select" id="editTaskPerson" onclick="event.stopPropagation()"><option ${task.person === 'Костя' ? 'selected' : ''}>Костя</option><option ${task.person === 'Максим' ? 'selected' : ''}>Максим</option><option ${task.person === 'Андрей' ? 'selected' : ''}>Андрей</option></select></div>
+                                <div class="form-group"><label class="form-label" for="editTaskPriority">Приоритет</label><select class="form-select" id="editTaskPriority" onclick="event.stopPropagation()">${priorityOptions}</select></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" for="editTaskStatus">Статус</label><select class="form-select" id="editTaskStatus" onclick="event.stopPropagation()">${statusOptions}</select></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" for="editTaskDate">Начало</label><input type="datetime-local" class="form-input" id="editTaskDate" value="${toDatetimeLocalValue(task.date, task.time)}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                                <div class="form-group"><label class="form-label" for="editTaskDateEnd">Окончание</label><input type="datetime-local" class="form-input" id="editTaskDateEnd" value="${toDatetimeLocalValue(task.date_end)}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="justify-content:center;"><span style="font-size:0.8rem;color:var(--gray-400);">Изменения сохраняются автоматически</span></div>
+                    </div>
+                `;
+                bindAutoSave();
+            }
+
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            initProjectSearch('editTaskProject', 'editTaskProjectDropdown');
+            if (cloneMode) bindRichEditor('editTaskDesc');
+
+            // When edit modal closes, refresh the task list
+            if (!cloneMode) {
+                const observer = new MutationObserver(() => {
+                    if (!overlay.classList.contains('show')) {
+                        observer.disconnect();
+                        autoSaveTaskId = null;
+                        CRM.load().then(() => { renderTasks(); loadActivity(); });
+                    }
+                });
+                observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+            }
+        };
+
+        // Clone task — opens edit modal in clone mode
+        window.cloneTask = function(taskId) {
+            showEditTaskModal(taskId, true);
+        };
+
+        // Create a copy of the task from the clone modal
+        window.createTaskCopy = async function(originalId) {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([{ id: 'editTaskName', required: true, message: 'Введите название' }])) return;
+                const projectInput = document.getElementById('editTaskProject');
+                const projectId = (projectInput && projectInput.dataset.selectedId) ? projectInput.dataset.selectedId : '';
+
+                try {
+                    await CRM.addTask({
+                        project_id: projectId,
+                        name: document.getElementById('editTaskName').value.trim(),
+                        column_status: document.getElementById('editTaskStatus').value,
+                        person: document.getElementById('editTaskPerson').value,
+                        date: document.getElementById('editTaskDate').value || todayDatetimeLocal(),
+                        date_end: document.getElementById('editTaskDateEnd').value || '',
+                        time: '',
+                        done: false,
+                        urgent: false,
+                        priority: document.getElementById('editTaskPriority').value,
+                        description: getDescValue('editTaskDesc'),
+                        hashtags: []
+                    });
+                } catch (err) {
+                    showToast('Ошибка копирования: ' + (err.message || 'Неизвестная ошибка'), 'error');
+                    return;
+                }
+
+                closeModal();
+                showToast('Копия создана', 'success');
+                await CRM.load();
+                await renderTasks();
+                await loadActivity();
+            });
+        };
+
+        window.saveTaskEdit = async function(taskId) {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([{ id: 'editTaskName', required: true, message: 'Введите название' }])) return;
+                const name = document.getElementById('editTaskName').value.trim();
+                const column_status = document.getElementById('editTaskStatus').value;
+                const done = column_status === 'Готово';
+                const projectInput = document.getElementById('editTaskProject');
+                const projectId = projectInput.dataset.selectedId || '';
+
+                if (!projectId) {
+                    const confirmed = await showConfirmDialog('Поле «Проект» не заполнено. Сохранить?');
+                    if (!confirmed) return;
+                }
+
+                await CRM.updateTask(taskId, {
+                    name: name,
+                    project_id: projectId,
+                    person: document.getElementById('editTaskPerson').value,
+                    column_status: column_status,
+                    date: document.getElementById('editTaskDate').value || '',
+                    date_end: document.getElementById('editTaskDateEnd').value || '',
+                    time: '',
+                    done: done,
+                    urgent: false,
+                    priority: document.getElementById('editTaskPriority').value,
+                    description: getDescValue('editTaskDesc')
+                });
+
+                closeModal();
+                showToast('Задача обновлена', 'success');
+                await CRM.load();
+                renderTasks();
+                loadActivity();
+            });
+        };
+        
+        window.toggleSubtask = async function(subtaskId, done) {
+            try {
+                const subtask = currentSubtasks.find(s => s.id === subtaskId);
+                if (subtask) {
+                    await API.updateSubtask(subtaskId, { ...subtask, done: done });
+                    showToast(done ? 'Подзадача выполнена' : 'Подзадача в работе', 'success');
+                    renderTasks();
+                }
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+        
+        window.deleteSubtask = async function(id) {
+            try {
+                await API.deleteSubtask(id);
+                showToast('Подзадача удалена', 'success');
+                renderTasks();
+            } catch (err) {
+                showToast('Ошибка', 'error');
+            }
+        };
+        
+        let currentSubtasks = [];
+        
+        async function loadSubtasks(taskId) {
+            try {
+                const subtasks = await API.getSubtasks(taskId);
+                return subtasks || [];
+            } catch (err) {
+                return [];
+            }
+        }
+        
+        // Shared helper: action buttons that slide out left from the burger
+        function buildTaskMenuItems(t, isChild) {
+            const isPaused = t.column_status === 'Простой';
+            const isDone = t.done;
+            let items = '';
+            if (isDone) {
+                items += `<button type="button" class="task-action-btn restart" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();restartTask('${t.id}')" title="Вернуть в работу" aria-label="Вернуть в работу"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 105.93-12.55L1 10"/></svg></button>`;
+            } else {
+                items += `<button type="button" class="task-action-btn done" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();toggleTaskDone('${t.id}')" title="Выполнено" aria-label="Выполнено"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg></button>`;
+                items += isPaused
+                    ? `<button type="button" class="task-action-btn play" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();toggleTaskPause('${t.id}')" title="Продолжить" aria-label="Продолжить"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>`
+                    : `<button type="button" class="task-action-btn pause" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();toggleTaskPause('${t.id}')" title="Пауза" aria-label="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></button>`;
+            }
+            items += `<button type="button" class="task-action-btn gear" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();crmGo('/pages/task.html?id=' + '${t.id}', '${(t.name || '').replace(/'/g, '')}')" title="Открыть задачу" aria-label="Открыть задачу"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>`;
+            items += `<button type="button" class="task-action-btn add-child" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();showAddNestedTask('${t.id}')" title="Вложенная задача" aria-label="Вложенная задача"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`;
+            items += `<button type="button" class="task-action-btn clone" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();cloneTask('${t.id}')" title="Копировать" aria-label="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>`;
+            if (isChild) {
+                items += `<button type="button" class="task-action-btn unparent" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();unparentTask('${t.id}')" title="Открепить" aria-label="Открепить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg></button>`;
+            }
+            items += `<button type="button" class="task-action-btn delete" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();deleteTask('${t.id}')" title="Удалить" aria-label="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+            return items;
+        }
+
+        async function renderTasks() {
+            let tasks = CRM.getTasks();
+            if (currentFilter !== 'all') tasks = tasks.filter(t => t.column_status === currentFilter);
+
+            // Person filter
+            if (currentPersonFilter !== 'all') {
+                tasks = tasks.filter(t => t.person === currentPersonFilter);
+            }
+
+            // Project filter
+            if (currentProjectFilter !== 'all') {
+                tasks = tasks.filter(t => t.project_id === currentProjectFilter);
+            }
+
+            // Time filter (app timezone, default Perm)
+            const todayIso = (window.CrmTime && CrmTime.todayISO()) || new Date().toISOString().slice(0, 10);
+            const tomorrowIso = (window.CrmTime && CrmTime.addDaysISO(todayIso, 1)) || todayIso;
+            const weekEndIso = (window.CrmTime && CrmTime.addDaysISO(todayIso, 7)) || todayIso;
+
+            if (currentTimeFilter === 'today') {
+                tasks = tasks.filter(t => datePart(t.date) === todayIso);
+            } else if (currentTimeFilter === 'tomorrow') {
+                tasks = tasks.filter(t => datePart(t.date) === tomorrowIso);
+            } else if (currentTimeFilter === 'week') {
+                tasks = tasks.filter(t => {
+                    const d = datePart(t.date);
+                    return d && d >= todayIso && d <= weekEndIso;
+                });
+            } else if (currentTimeFilter === 'overdue') {
+                tasks = tasks.filter(t => {
+                    const d = datePart(t.date);
+                    return d && !t.done && d < todayIso;
+                });
+            }
+            
+            if (tasks.length === 0) {
+                document.getElementById('tasksList').innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:40px;"><p class="text-muted">Нет задач</p><button class="btn btn-primary" style="margin-top:16px;" onclick="showNewTaskModal()">Создать первую задачу</button></div></div>';
+                return;
+            }
+            
+            // Load all subtasks
+            const allSubtasks = {};
+            for (const t of tasks) {
+                allSubtasks[t.id] = await loadSubtasks(t.id);
+            }
+            currentSubtasks = Object.values(allSubtasks).flat();
+            
+            // Build hierarchy: separate top-level and child tasks
+            const topLevel = tasks.filter(t => !t.parent_id);
+            const childrenMap = {};
+            tasks.forEach(t => {
+                if (t.parent_id) {
+                    if (!childrenMap[t.parent_id]) childrenMap[t.parent_id] = [];
+                    childrenMap[t.parent_id].push(t);
+                }
+            });
+            
+            function statusColorFor(name) {
+                const col = taskColumns.find(c => c.name === name);
+                const map = { blue: '#3B82F6', yellow: '#F59E0B', green: '#10B981', gray: '#9CA3AF', red: '#EF4444', purple: '#8B5CF6', pink: '#EC4899', orange: '#F97316', teal: '#14B8A6', indigo: '#6366F1', lime: '#84CC16', cyan: '#06B6D4' };
+                const c = col && col.color;
+                return map[c] || (c && String(c).startsWith('#') ? c : '#9CA3AF');
+            }
+
+            function renderTaskCard(t, isChild) {
+                const project = CRM.getProject(t.project_id);
+                const subtasks = allSubtasks[t.id] || [];
+                const doneSubtasks = subtasks.filter(s => s.done).length;
+                const children = childrenMap[t.id] || [];
+                const isPaused = t.column_status === 'Простой';
+                const isDone = t.done;
+                const menuItems = buildTaskMenuItems(t, isChild);
+                const statusHex = statusColorFor(t.column_status);
+
+                const dateRange = formatTaskDateRange(t);
+
+                let html = `<div class="task-card${isDone ? ' done' : ''}${isChild ? ' child' : ''}" data-task-id="${t.id}" draggable="true" style="border-left-color:${statusHex};" onclick="if(!event.target.closest('.task-actions') && !event.target.closest('a') && !event.target.closest('input') && !event.target.closest('button') && !event.target.closest('.desc-clamp-wrap'))crmGo('/pages/task.html?id=' + '${t.id}', '${(t.name || '').replace(/'/g, '')}')">
+                    <div style="display:flex;align-items:flex-start;gap:12px;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                                <div style="flex:1;min-width:0;">
+                                    <div class="task-title-row">
+                                        ${renderPriorityMark(t.priority)}
+                                        ${(!t.parent_id && (t.is_epic || children.length > 0)) ? '<span class="epic-badge" style="font-size:0.65rem;padding:1px 6px;margin-right:4px;">Epic</span>' : ''}
+                                        <div class="task-name" style="font-weight:600;font-size:0.95rem;${isDone ? 'text-decoration:line-through;color:var(--gray-400);' : ''}">${String(t.name || '').replace(/</g,'&lt;')}</div>
+                                    </div>
+                                    ${t.description ? renderDescClamp(t.description, { lines: 3, id: 'dlist_' + t.id }) : ''}
+                                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:0.8rem;color:var(--gray-500);flex-wrap:wrap;">
+                                        ${project ? '<a href="/pages/project.html?id=' + t.project_id + '" style="color:var(--primary);text-decoration:none;">' + project.name + '</a><span>·</span>' : ''}
+                                        <span>${t.person}</span>
+                                        ${dateRange ? '<span>·</span><span>' + dateRange + '</span>' : ''}
+                                        ${isPaused ? '<span class="badge badge-warning" style="font-size:0.65rem;">ПРОСТОЙ</span>' : ''}
+                                        ${children.length > 0 ? '<span class="task-nest-badge">' + children.length + ' подзадач</span>' : ''}
+                                    </div>
+                                    ${subtasks.length > 0 ? '<div style="margin-top:4px;font-size:0.75rem;color:var(--gray-400);">Чеклист: ' + doneSubtasks + '/' + subtasks.length + '</div>' : ''}
+                                </div>
+                                <div class="task-actions">
+                                    <div class="task-menu-tray">${menuItems}</div>
+                                    <button class="task-action-btn task-menu-btn" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();toggleTaskMenu(this)" title="Действия" aria-label="Меню действий"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                                </div>
+                            </div>
+                            ${subtasks.length > 0 ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-100);">' + subtasks.map(s => `
+                                <div class="subtask-item">
+                                    <input type="checkbox" class="subtask-checkbox" ${s.done ? 'checked' : ''} onchange="toggleSubtask('${s.id}', this.checked)">
+                                    <span class="subtask-name${s.done ? ' done' : ''}">${s.name}</span>
+                                    <span class="subtask-meta">${s.person || ''} ${s.deadline ? '· ' + s.deadline : ''}</span>
+                                    <button class="btn btn-ghost btn-sm" style="padding:2px 4px;font-size:0.7rem;" onclick="deleteSubtask('${s.id}')" aria-label="Удалить подзадачу">✕</button>
+                                </div>
+                            `).join('') + '</div>' : ''}
+                        </div>
+                    </div>`;
+
+                // Render children
+                if (children.length > 0) {
+                    html += '<div class="task-children">';
+                    children.forEach(child => {
+                        html += renderTaskCard(child, true);
+                    });
+                    html += '</div>';
+                }
+
+                html += '</div>';
+                return html;
+            }
+            
+            let html = '';
+            topLevel.forEach(t => {
+                html += renderTaskCard(t, false);
+            });
+            
+            document.getElementById('tasksList').innerHTML = html;
+            initTaskDragAndDrop();
+            // Also refresh Kanban if it's the active view
+            if (currentTaskView === 'kanban') renderTaskKanban();
+        }
+
+        // ===== TASK VIEW SWITCHING =====
+        let currentTaskView = 'list';
+
+        window.switchTaskView = function(view) {
+            currentTaskView = view;
+            const listView = document.getElementById('taskListView');
+            const kanbanView = document.getElementById('taskKanbanView');
+            const btnList = document.getElementById('viewList');
+            const btnKanban = document.getElementById('viewKanban');
+
+            const statusWrap = document.getElementById('statusFilterWrap');
+
+            if (view === 'kanban') {
+                listView.classList.add('hidden');
+                kanbanView.classList.remove('hidden');
+                btnKanban.style.background = 'var(--primary-light)';
+                btnKanban.style.color = 'var(--primary)';
+                btnKanban.style.borderColor = 'var(--primary)';
+                btnList.style.background = '';
+                btnList.style.color = '';
+                btnList.style.borderColor = '';
+                // Kanban has no status filter: columns already group by status
+                if (statusWrap) {
+                    statusWrap.style.display = 'none';
+                    const sel = statusWrap.querySelector('select');
+                    if (sel) sel.value = 'all';
+                }
+                currentFilter = 'all';
+                renderTaskKanban();
+            } else {
+                listView.classList.remove('hidden');
+                kanbanView.classList.add('hidden');
+                btnList.style.background = 'var(--primary-light)';
+                btnList.style.color = 'var(--primary)';
+                btnList.style.borderColor = 'var(--primary)';
+                btnKanban.style.background = '';
+                btnKanban.style.color = '';
+                btnKanban.style.borderColor = '';
+                if (statusWrap) statusWrap.style.display = 'flex';
+            }
+            saveFilters();
+        };
+
+        function renderTaskKanban() {
+            let tasks = CRM.getTasks();
+            // Apply status filter
+            if (currentFilter !== 'all') {
+                tasks = tasks.filter(t => t.column_status === currentFilter);
+            }
+            // Apply person filter
+            if (currentPersonFilter !== 'all') {
+                tasks = tasks.filter(t => t.person === currentPersonFilter);
+            }
+            // Apply project filter
+            if (currentProjectFilter !== 'all') {
+                tasks = tasks.filter(t => t.project_id === currentProjectFilter);
+            }
+            // Apply time filter (app timezone, default Perm)
+            const todayIso = (window.CrmTime && CrmTime.todayISO()) || new Date().toISOString().slice(0, 10);
+            const tomorrowIso = (window.CrmTime && CrmTime.addDaysISO(todayIso, 1)) || todayIso;
+            const weekEndIso = (window.CrmTime && CrmTime.addDaysISO(todayIso, 7)) || todayIso;
+            if (currentTimeFilter === 'today') {
+                tasks = tasks.filter(t => datePart(t.date) === todayIso);
+            } else if (currentTimeFilter === 'tomorrow') {
+                tasks = tasks.filter(t => datePart(t.date) === tomorrowIso);
+            } else if (currentTimeFilter === 'week') {
+                tasks = tasks.filter(t => { const d = datePart(t.date); return d && d >= todayIso && d <= weekEndIso; });
+            } else if (currentTimeFilter === 'overdue') {
+                tasks = tasks.filter(t => { const d = datePart(t.date); return d && !t.done && d < todayIso; });
+            }
+
+            const colorHexMap = { blue: '#3B82F6', yellow: '#F59E0B', green: '#10B981', gray: '#9CA3AF', red: '#EF4444', purple: '#8B5CF6', pink: '#EC4899', orange: '#F97316', teal: '#14B8A6', indigo: '#6366F1', lime: '#84CC16', cyan: '#06B6D4' };
+            function getColHex(color) { return colorHexMap[color] || (color && color.startsWith('#') ? color : '#9CA3AF'); }
+
+            let html = '<div class="kanban-board">';
+            taskColumns.forEach(col => {
+                const colTasks = tasks.filter(t => t.column_status === col.name && !t.parent_id);
+                const hex = getColHex(col.color);
+                html += `<div class="kanban-column"><div class="kanban-column-header"><div class="kanban-column-title"><span class="status-dot" style="background:${hex}"></span> ${col.name} <span class="kanban-count">${colTasks.length}</span></div></div><div class="kanban-column-body" data-column="${col.name}">`;
+                colTasks.forEach(t => {
+                    const project = CRM.getProject(t.project_id);
+                    const children = tasks.filter(ch => ch.parent_id === t.id);
+                    const range = formatTaskDateRange(t);
+                    html += `<div class="kanban-card${t.done ? ' done' : ''}" draggable="true" data-task-id="${t.id}" style="border-left-color:${hex};" onclick="if(!event.target.closest('.task-actions') && !event.target.closest('.desc-clamp-wrap'))crmGo('/pages/task.html?id=' + '${t.id}', '${(t.name || '').replace(/'/g, '')}')">
+                        <div style="display:flex;justify-content:space-between;align-items:start;gap:6px;">
+                            <div class="task-title-row" style="flex:1;">
+                                ${renderPriorityMark(t.priority)}
+                                ${(!t.parent_id && (t.is_epic || children.length > 0)) ? '<span class="epic-badge" style="font-size:0.6rem;padding:1px 5px;">Epic</span>' : ''}
+                                <div class="kanban-card-title" style="${t.done ? 'text-decoration:line-through;color:var(--gray-400);' : ''}">${String(t.name || '').replace(/</g,'&lt;')}</div>
+                            </div>
+                        </div>
+                        ${t.description ? renderDescClamp(t.description, { lines: 2, id: 'dkan_' + t.id }) : ''}
+                        <div class="kanban-card-client">${t.person || ''}${range ? ' · ' + range : ''}</div>
+                        ${project ? '<div style="font-size:0.7rem;color:var(--primary);margin-top:2px;">' + project.name + '</div>' : ''}
+                        ${children.length > 0 ? '<span class="task-nest-badge">' + children.length + ' подзадач</span>' : ''}
+                        <div class="kanban-card-footer">
+                            <span class="kanban-card-status"><span class="status-dot" style="background:${hex}"></span> ${col.name}</span>
+                            <div class="task-actions" onclick="event.stopPropagation()">
+                                <div class="task-menu-tray">${buildTaskMenuItems(t, false)}</div>
+                                <button class="task-action-btn task-menu-btn" draggable="false" ondragstart="event.preventDefault()" onclick="event.stopPropagation();toggleTaskMenu(this)" title="Действия" aria-label="Меню действий"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                html += '</div></div>';
+            });
+            html += '</div>';
+            document.getElementById('taskKanbanView').innerHTML = html;
+            initTaskKanbanDragDrop();
+        }
+
+        function setDndActive(on) {
+            document.body.classList.toggle('dnd-active', !!on);
+        }
+
+        function initTaskKanbanDragDrop() {
+            const board = document.getElementById('taskKanbanView');
+            if (!board) return;
+
+            board.querySelectorAll('.kanban-card[draggable="true"]').forEach(card => {
+                card.ondragstart = (e) => {
+                    // Prefer innermost card if nested somehow
+                    if (e.target.closest('.kanban-card') !== card) return;
+                    setDndActive(true);
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', card.dataset.taskId || '');
+                };
+                card.ondragend = () => {
+                    setDndActive(false);
+                    card.classList.remove('dragging');
+                    board.querySelectorAll('.kanban-column-body').forEach(col => {
+                        col.style.background = '';
+                        col.style.minHeight = '';
+                    });
+                };
+            });
+
+            board.querySelectorAll('.kanban-column-body').forEach(col => {
+                col.ondragover = (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    col.style.background = 'rgba(99,102,241,0.08)';
+                    col.style.minHeight = '100px';
+                };
+                col.ondragleave = (e) => {
+                    if (!col.contains(e.relatedTarget)) {
+                        col.style.background = '';
+                        col.style.minHeight = '';
+                    }
+                };
+                col.ondrop = async (e) => {
+                    e.preventDefault();
+                    setDndActive(false);
+                    col.style.background = '';
+                    col.style.minHeight = '';
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    const newColumn = col.dataset.column;
+                    if (!taskId || !newColumn) return;
+                    try {
+                        const task = CRM.getTasks().find(t => t.id === taskId);
+                        if (task && task.column_status !== newColumn) {
+                            await CRM.updateTask(taskId, {
+                                column_status: newColumn,
+                                done: /готов|выполн|done/i.test(newColumn)
+                            });
+                            showToast('Статус: ' + newColumn, 'success');
+                            await CRM.load();
+                            renderTaskKanban();
+                            if (currentTaskView === 'list') renderTasks();
+                        }
+                    } catch (err) {
+                        showToast(err.message || 'Ошибка', 'error');
+                    }
+                };
+            });
+        }
+        
+        async function loadActivity() {
+            try {
+                const activity = await API.getActivity(null, 30);
+                if (!activity || activity.length === 0) {
+                    document.getElementById('activityList').innerHTML = '<p class="text-muted text-sm">Нет обновлений</p>';
+                    return;
+                }
+                
+                const actionLabels = {
+                    'create_project': 'создал проект',
+                    'change_status': 'изменил статус',
+                    'create_task': 'создал задачу',
+                    'complete_task': 'выполнил задачу',
+                    'uncomplete_task': 'отменил выполнение'
+                };
+                
+                let html = '';
+                activity.forEach(a => {
+                    const dotClass = a.action.includes('create') ? 'create' : a.action.includes('complete') ? 'complete' : 'status';
+                    const time = new Date(a.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                    
+                    html += `<div class="activity-item">
+                        <div class="activity-dot ${dotClass}"></div>
+                        <div class="activity-text">
+                            <div><strong>${a.user_name}</strong> ${actionLabels[a.action] || a.action}</div>
+                            ${a.details ? '<div class="text-sm text-muted">' + a.details + '</div>' : ''}
+                            ${a.project_name ? '<div class="text-sm"><a href="/pages/project.html?id=' + a.project_id + '" style="color:var(--primary);text-decoration:none;">' + a.project_name + '</a></div>' : ''}
+                            <div class="activity-time">${time}</div>
+                        </div>
+                    </div>`;
+                });
+                
+                document.getElementById('activityList').innerHTML = html;
+            } catch (err) {
+                document.getElementById('activityList').innerHTML = '<p class="text-muted text-sm">Ошибка загрузки</p>';
+            }
+        }
+        
+        // Restore the saved view mode (list/kanban) for this user
+        if (_saved.view === 'kanban') switchTaskView('kanban');
+
+        await renderTasks();
+        await loadActivity();
+        
+        // Realtime refresh hook (called by app.js poller when data changes)
+        window.refreshPageData = async function() {
+            await CRM.load();
+            renderTasks();
+            loadActivity();
+        };
+        
+        // Deep link from notifications: /pages/tasks.html?task=ID opens the task
+        const taskParam = new URLSearchParams(location.search).get('task');
+        if (taskParam && CRM.getTasks().find(t => t.id === taskParam)) {
+            location.replace('/pages/task.html?id=' + encodeURIComponent(taskParam));
+            return;
+        }
+        
+        window.showNewTaskModal = function() {
+            const overlay = document.getElementById('modalOverlay');
+            const projects = CRM.getProjects();
+            const currentUser = API.getCurrentUser();
+            const draft = DraftStore.load('new_task') || {};
+            const personOpts = ['Костя', 'Максим', 'Андрей'].map(p => {
+                const sel = (draft.person || (currentUser && currentUser.name) || '') === p ? ' selected' : '';
+                return `<option${sel}>${p}</option>`;
+            }).join('');
+            const prio = draft.priority || 'medium';
+
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Новая задача</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label" for="newTaskName">Название *</label><input type="text" class="form-input" id="newTaskName" placeholder="Что сделать?" value="${String(draft.name || '').replace(/"/g, '&quot;')}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        <div class="form-group"><label class="form-label">Описание</label>${renderRichEditor('newTaskDesc', draft.description || '', 'Подробности задачи…')}</div>
+                        <div class="form-group">
+                            <label class="form-label">Проект</label>
+                            <div class="hashtag-search-wrapper" style="width:100%;">
+                                <input type="text" class="form-input" id="newTaskProject" value="${String(draft.projectLabel || '').replace(/"/g, '&quot;')}" data-selected-id="${draft.projectId || ''}" placeholder="Поиск проекта..." autocomplete="off" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
+                                <button class="hashtag-arrow" onclick="event.stopPropagation();toggleProjectDropdown('newTaskProjectDropdown')" aria-label="Показать все проекты"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg></button>
+                                <div class="hashtag-dropdown" id="newTaskProjectDropdown"></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newTaskPerson">Исполнитель</label><select class="form-select" id="newTaskPerson" onclick="event.stopPropagation()">${personOpts}</select></div>
+                            <div class="form-group">
+                                <label class="form-label" for="newTaskPriority">Приоритет</label>
+                                <select class="form-select" id="newTaskPriority" onclick="event.stopPropagation()">
+                                    <option value="low"${prio === 'low' ? ' selected' : ''}>🟢 Низкий</option>
+                                    <option value="medium"${prio === 'medium' ? ' selected' : ''}>🟡 Средний</option>
+                                    <option value="high"${prio === 'high' ? ' selected' : ''}>🔴 Высокий</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="newTaskDate">Начало</label><input type="datetime-local" class="form-input" id="newTaskDate" value="${draft.date || todayDatetimeLocal()}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                            <div class="form-group"><label class="form-label" for="newTaskDateEnd">Окончание</label><input type="datetime-local" class="form-input" id="newTaskDateEnd" value="${draft.dateEnd || ''}" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal(true)">Отмена</button><button class="btn btn-primary" onclick="createTask()">Создать</button></div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            initProjectSearch('newTaskProject', 'newTaskProjectDropdown');
+            bindRichEditor('newTaskDesc', { onChange: () => DraftStore.save('new_task', collectNewTaskDraft()) });
+            DraftStore.bind('new_task', collectNewTaskDraft, () => {});
+        };
+
+        function collectNewTaskDraft() {
+            const projectInput = document.getElementById('newTaskProject');
+            return {
+                name: document.getElementById('newTaskName')?.value || '',
+                description: getDescValue('newTaskDesc'),
+                projectId: projectInput?.dataset.selectedId || '',
+                projectLabel: projectInput?.value || '',
+                person: document.getElementById('newTaskPerson')?.value || '',
+                priority: document.getElementById('newTaskPriority')?.value || 'medium',
+                date: document.getElementById('newTaskDate')?.value || '',
+                dateEnd: document.getElementById('newTaskDateEnd')?.value || ''
+            };
+        }
+
+        window.showAddNestedTask = async function(parentId) {
+            const parent = CRM.getTasks().find(t => t.id === parentId);
+            if (!parent) return;
+            try {
+                const created = await CRM.addTask({
+                    project_id: parent.project_id || '',
+                    name: 'Новая задача',
+                    column_status: parent.column_status || 'Ожидает',
+                    person: parent.person || (API.getCurrentUser() || {}).name || 'Костя',
+                    date: todayDatetimeLocal(),
+                    date_end: '',
+                    time: '',
+                    parent_id: parentId,
+                    priority: 'medium',
+                    done: false,
+                    urgent: false,
+                    hashtags: [],
+                    description: ''
+                });
+                if (!created || !created.id) throw new Error('Не удалось создать задачу');
+                await CRM.load();
+                if (parent && !parent.parent_id) {
+                    const childCount = CRM.getTasks().filter(t => t.parent_id === parentId).length;
+                    if (childCount >= 1 && !CRM.getTasks().find(t => t.id === parentId)?.is_epic) {
+                        try { await CRM.updateTask(parentId, { is_epic: true }); } catch (e) {}
+                    }
+                }
+                showToast('Вложенная задача создана', 'success');
+                crmGo('/pages/task.html?id=' + encodeURIComponent(created.id), created.name || 'Новая задача');
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        };
+
+        window.createNestedTask = window.showAddNestedTask;
+        
+        window.showAddSubtaskModal = function(taskId) {
+            const overlay = document.getElementById('modalOverlay');
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Новая подзадача</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div class="form-group"><label class="form-label" for="subtaskName">Название *</label><input type="text" class="form-input" id="subtaskName" placeholder="Что сделать?" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" for="subtaskPerson">Исполнитель</label><select class="form-select" id="subtaskPerson" onclick="event.stopPropagation()"><option>Костя</option><option>Максим</option><option>Андрей</option></select></div>
+                            <div class="form-group"><label class="form-label" for="subtaskDeadline">Дедлайн</label><input type="date" class="form-input" id="subtaskDeadline" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Отмена</button><button class="btn btn-primary" onclick="createSubtask('${taskId}')">Создать</button></div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+        
+        window.createTask = async function() {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([{ id: 'newTaskName', required: true, message: 'Введите название' }])) return;
+
+                // Save ALL form values BEFORE showing confirm dialog (works even if rich editor is open)
+                if (typeof flushAllRichEditors === 'function') flushAllRichEditors();
+                const name = document.getElementById('newTaskName').value.trim();
+                const projectInput = document.getElementById('newTaskProject');
+                const projectId = (projectInput && projectInput.dataset.selectedId) ? projectInput.dataset.selectedId : '';
+                const person = document.getElementById('newTaskPerson').value;
+                const priority = document.getElementById('newTaskPriority').value;
+                const dateStart = document.getElementById('newTaskDate').value || todayDatetimeLocal();
+                const dateEnd = document.getElementById('newTaskDateEnd').value || '';
+                const description = getDescValue('newTaskDesc');
+
+                // Confirm if no project
+                if (!projectId) {
+                    const confirmed = await showConfirmDialog('Поле «Проект» не заполнено. Сохранить?');
+                    if (!confirmed) return;
+                }
+
+                try {
+                    await CRM.addTask({
+                        project_id: projectId,
+                        name: name,
+                        column_status: 'Ожидает',
+                        person: person,
+                        date: dateStart,
+                        date_end: dateEnd,
+                        time: '',
+                        done: false,
+                        urgent: false,
+                        priority: priority,
+                        description: description,
+                        hashtags: []
+                    });
+                } catch (err) {
+                    showToast('Ошибка создания: ' + (err.message || 'Неизвестная ошибка'), 'error');
+                    return;
+                }
+
+                DraftStore.clear('new_task');
+                closeModal();
+                showToast('Задача создана', 'success');
+                await CRM.load();
+                await renderTasks();
+                await loadActivity();
+            });
+        };
+
+        // ===== PROJECT AUTOCOMPLETE =====
+        function initProjectSearch(inputId, dropdownId) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+            if (!input || !dropdown) return;
+            const projects = CRM.getProjects();
+
+            function showProjects(filter) {
+                const matches = filter
+                    ? projects.filter(p => (p.name + ' ' + p.client).toLowerCase().includes(filter.toLowerCase()))
+                    : projects;
+                if (matches.length === 0) { dropdown.classList.remove('show'); return; }
+                dropdown.innerHTML = matches.map(p =>
+                    `<div class="hashtag-dropdown-item" data-project-id="${p.id}" data-project-name="${p.client} — ${p.name}">${p.client} — ${p.name}</div>`
+                ).join('');
+                dropdown.classList.add('show');
+            }
+
+            input.addEventListener('focus', () => { showProjects(input.value.trim()); });
+            input.addEventListener('input', () => {
+                const val = input.value.trim();
+                if (!val) { input.dataset.selectedId = ''; }
+                showProjects(val);
+            });
+
+            dropdown.addEventListener('click', (e) => {
+                const item = e.target.closest('.hashtag-dropdown-item');
+                if (item) {
+                    input.value = item.dataset.projectName;
+                    input.dataset.selectedId = item.dataset.projectId;
+                    dropdown.classList.remove('show');
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        }
+
+        window.toggleProjectDropdown = function(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            if (dropdown.classList.contains('show')) { dropdown.classList.remove('show'); }
+            else { showProjects(''); }
+        };
+
+        // ===== CONFIRM DIALOG =====
+        function showConfirmDialog(message) {
+            return new Promise(resolve => {
+                // Create a floating dialog on top of the existing modal
+                const backdrop = document.createElement('div');
+                backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+                const dialog = document.createElement('div');
+                dialog.className = 'modal';
+                dialog.style.cssText = 'max-width:380px;z-index:601;animation:modalIn 0.2s ease;';
+                dialog.onclick = e => e.stopPropagation();
+                dialog.innerHTML = `
+                    <div class="modal-body" style="text-align:center;padding:24px;">
+                        <p style="font-size:0.95rem;margin-bottom:20px;">${message}</p>
+                        <div style="display:flex;gap:8px;justify-content:center;">
+                            <button class="btn btn-secondary" id="confirmNo">Нет</button>
+                            <button class="btn btn-primary" id="confirmYes">Да</button>
+                        </div>
+                    </div>
+                `;
+
+                backdrop.appendChild(dialog);
+                document.body.appendChild(backdrop);
+
+                dialog.querySelector('#confirmYes').onclick = () => {
+                    backdrop.remove();
+                    resolve(true);
+                };
+                dialog.querySelector('#confirmNo').onclick = () => {
+                    backdrop.remove();
+                    resolve(false);
+                };
+                backdrop.onclick = (e) => {
+                    if (e.target === backdrop) { backdrop.remove(); resolve(false); }
+                };
+            });
+        }
+        
+        window.createSubtask = async function(taskId) {
+            const modal = document.querySelector('.modal-overlay.show .modal') || document;
+            const submitBtn = modal.querySelector('.btn-primary') || this;
+            await withButtonLock(submitBtn, async () => {
+                if (!validateForm([
+                    { id: 'subtaskName', required: true, message: 'Введите название' }
+                ])) return;
+                const name = document.getElementById('subtaskName').value.trim();
+                
+                await API.createSubtask({
+                    task_id: taskId,
+                    name: name,
+                    person: document.getElementById('subtaskPerson').value,
+                    deadline: document.getElementById('subtaskDeadline').value || ''
+                });
+                
+                closeModal();
+                showToast('Подзадача создана', 'success');
+                await renderTasks();
+            });
+        };
+
+        // ===== DRAG-TO-NEST (list) — classic HTML5, clickables off while dragging =====
+        function initTaskDragAndDrop() {
+            const list = document.getElementById('tasksList');
+            if (!list) return;
+
+            list.querySelectorAll('.task-card[draggable="true"]').forEach(card => {
+                card.ondragstart = (e) => {
+                    // Innermost card wins (child over parent)
+                    const source = e.target.closest('.task-card[draggable="true"]');
+                    if (source !== card) return;
+                    e.stopPropagation();
+                    setDndActive(true);
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', card.dataset.taskId || '');
+                };
+                card.ondragend = () => {
+                    setDndActive(false);
+                    card.classList.remove('dragging');
+                    list.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+                };
+                card.ondragover = (e) => {
+                    const dragging = list.querySelector('.task-card.dragging');
+                    if (!dragging || dragging === card) return;
+                    const over = e.target.closest('.task-card[draggable="true"]');
+                    if (over !== card) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    list.querySelectorAll('.drop-target').forEach(el => {
+                        if (el !== card) el.classList.remove('drop-target');
+                    });
+                    card.classList.add('drop-target');
+                    e.dataTransfer.dropEffect = 'move';
+                };
+                card.ondragleave = (e) => {
+                    if (!card.contains(e.relatedTarget)) card.classList.remove('drop-target');
+                };
+                card.ondrop = async (e) => {
+                    const over = e.target.closest('.task-card[draggable="true"]');
+                    if (over !== card) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDndActive(false);
+                    card.classList.remove('drop-target');
+
+                    const draggedId = e.dataTransfer.getData('text/plain');
+                    const targetId = card.dataset.taskId;
+                    if (!draggedId || draggedId === targetId) return;
+
+                    const byId = Object.fromEntries(CRM.getTasks().map(t => [t.id, t]));
+                    let walk = targetId;
+                    while (walk) {
+                        if (walk === draggedId) {
+                            showToast('Нельзя вложить задачу в свою подзадачу', 'error');
+                            return;
+                        }
+                        walk = byId[walk]?.parent_id;
+                    }
+
+                    const task = byId[draggedId];
+                    const target = byId[targetId];
+                    if (!task || !target) return;
+                    if ((task.project_id || '') !== (target.project_id || '')) {
+                        showToast('Можно вкладывать только задачи одного проекта', 'error');
+                        return;
+                    }
+
+                    try {
+                        await CRM.updateTask(draggedId, { parent_id: targetId });
+                        showToast('Задача стала подзадачей', 'success');
+                        await CRM.load();
+                        await renderTasks();
+                    } catch (err) {
+                        showToast(err.message || 'Ошибка', 'error');
+                    }
+                };
+            });
+        }
+
+        // ===== UNPARENT TASK =====
+        window.unparentTask = async function(taskId) {
+            try {
+                const task = CRM.getTasks().find(t => t.id === taskId);
+                if (!task) return;
+                await API.updateTask(taskId, { ...task, parent_id: null });
+                showToast('Задача теперь самостоятельная', 'success');
+                await CRM.load();
+                await renderTasks();
+            } catch (err) {
+                showToast(err.message || 'Ошибка', 'error');
+            }
+        };
+
+        // Color presets — shared across modal and window functions
+        const taskPresetColors = [
+            { name: 'blue', hex: '#3B82F6' }, { name: 'yellow', hex: '#F59E0B' },
+            { name: 'green', hex: '#10B981' }, { name: 'gray', hex: '#9CA3AF' },
+            { name: 'red', hex: '#EF4444' }, { name: 'purple', hex: '#8B5CF6' },
+            { name: 'pink', hex: '#EC4899' }, { name: 'orange', hex: '#F97316' },
+            { name: 'teal', hex: '#14B8A6' }, { name: 'indigo', hex: '#6366F1' },
+            { name: 'lime', hex: '#84CC16' }, { name: 'cyan', hex: '#06B6D4' }
+        ];
+        const taskColorHexMap = {};
+        taskPresetColors.forEach(c => taskColorHexMap[c.name] = c.hex);
+        function getTaskColHex(color) { return taskColorHexMap[color] || (color && color.startsWith('#') ? color : '#9CA3AF'); }
+
+        // ===== TASK COLUMN CONFIGURATION =====
+        window.showTaskColumnConfigModal = async function() {
+            await loadTaskColumns();
+            const overlay = document.getElementById('modalOverlay');
+
+            function renderColList() {
+                return taskColumns.map(c => {
+                    const hex = getTaskColHex(c.color);
+                    const swatchesHtml = taskPresetColors.map(cl =>
+                        `<div class="color-swatch${c.color === cl.name ? ' active' : ''}" style="background:${cl.hex};" data-color="${cl.name}" data-col-id="${c.id}" onclick="event.stopPropagation();selectTaskPresetColor(this,${c.id},'${cl.name}')" title="${cl.name}"></div>`
+                    ).join('');
+                    return `
+                    <div class="col-config-item" data-col-id="${c.id}" draggable="true">
+                        <div class="col-config-handle" title="Перетащить для изменения порядка">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+                        </div>
+                        <div class="col-config-dot" style="background:${hex}"></div>
+                        <div class="col-config-name" ondblclick="startRenameTaskColumn(this, ${c.id})" title="Дважды кликните для переименования">${c.name}</div>
+                        <div class="color-palette-wrapper">
+                            <button class="color-palette-btn" onclick="toggleTaskColorPalette(this, ${c.id})" title="Изменить цвет" style="background:${hex};">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.4-.13-.76-.38-1.04-.25-.28-.37-.6-.37-.96 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.5-4.5-9.5-10-9.5z"/></svg>
+                            </button>
+                            <div class="color-palette-dropdown" id="task-palette-${c.id}">
+                                <div class="color-palette-grid">
+                                    ${swatchesHtml}
+                                </div>
+                                <div class="color-custom-row">
+                                    <input type="color" class="color-custom-input" value="${hex}" data-col-id="${c.id}" onchange="saveTaskCustomColor(${c.id},this.value)">
+                                    <span style="font-size:0.75rem;color:var(--gray-500);">Свой цвет</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);padding:2px 6px;" onclick="deleteTaskColumn(${c.id})" aria-label="Удалить">✕</button>
+                    </div>`;
+                }).join('');
+            }
+
+            overlay.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()">
+                    <div class="modal-header"><h3 class="modal-title">Настройка статусов задач</h3><button class="modal-close" onclick="closeModal(true)" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                    <div class="modal-body">
+                        <div style="font-size:0.8rem;color:var(--gray-500);margin-bottom:12px;">Перетащите для порядка · Двойной клик по названию для переименования</div>
+                        <div id="taskColConfigList">${renderColList()}</div>
+                        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);">
+                            <div style="font-weight:600;font-size:0.85rem;margin-bottom:8px;">Добавить статус</div>
+                            <div style="display:flex;gap:8px;">
+                                <input type="text" class="form-input" id="newTaskColName" placeholder="Название" style="flex:1;">
+                                <button class="btn btn-primary btn-sm" onclick="addTaskColumn()">Добавить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            initTaskColumnDragDrop();
+        };
+
+        window.toggleTaskColorPalette = function(btn, colId) {
+            const dropdown = document.getElementById('task-palette-' + colId);
+            if (!dropdown) return;
+            const isOpen = dropdown.classList.contains('show');
+            document.querySelectorAll('.color-palette-dropdown.show').forEach(d => d.classList.remove('show'));
+            if (!isOpen) {
+                dropdown.classList.add('show');
+                event.stopPropagation();
+            }
+        };
+
+        // Select preset color swatch for tasks — in-place update
+        window.selectTaskPresetColor = async function(swatchEl, colId, color) {
+            const grid = swatchEl.parentElement;
+            grid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+            swatchEl.classList.add('active');
+            const dropdown = swatchEl.closest('.color-palette-dropdown');
+            if (dropdown) dropdown.classList.remove('show');
+            try {
+                await API.put(`/api/task-columns/${colId}`, { color });
+                await loadTaskColumns();
+                renderTaskFilters();
+                renderTasks();
+                const item = document.querySelector(`.col-config-item[data-col-id="${colId}"]`);
+                if (item) {
+                    const hex = taskPresetColors.find(c => c.name === color)?.hex || color;
+                    const dot = item.querySelector('.col-config-dot');
+                    if (dot) dot.style.background = hex;
+                    const btn = item.querySelector('.color-palette-btn');
+                    if (btn) btn.style.background = hex;
+                    const customInput = item.querySelector('.color-custom-input');
+                    if (customInput) customInput.value = hex;
+                }
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        // Save custom color for tasks
+        window.saveTaskCustomColor = async function(colId, hexColor) {
+            try {
+                await API.put(`/api/task-columns/${colId}`, { color: hexColor });
+                await loadTaskColumns();
+                renderTaskFilters();
+                renderTasks();
+                const item = document.querySelector(`.col-config-item[data-col-id="${colId}"]`);
+                if (item) {
+                    const dot = item.querySelector('.col-config-dot');
+                    if (dot) dot.style.background = hexColor;
+                    const btn = item.querySelector('.color-palette-btn');
+                    if (btn) btn.style.background = hexColor;
+                    item.querySelectorAll('.color-swatch').forEach(s => {
+                        s.classList.toggle('active', s.dataset.color === hexColor);
+                    });
+                }
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        // Close palettes on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.color-palette-wrapper')) {
+                document.querySelectorAll('.color-palette-dropdown.show').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        window.startRenameTaskColumn = function(el, colId) {
+            const currentName = el.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text'; input.value = currentName; input.className = 'col-config-name-edit';
+            el.replaceWith(input); input.focus(); input.select();
+            async function save() {
+                const newName = input.value.trim() || currentName;
+                try {
+                    await API.put(`/api/task-columns/${colId}`, { name: newName });
+                    // Reset filter if it was set to the old column name
+                    if (currentFilter === currentName) currentFilter = 'all';
+                    await loadTaskColumns(); renderTaskFilters(); renderTasks(); showTaskColumnConfigModal();
+                } catch (err) { showToast(err.message || 'Ошибка', 'error'); }
+            }
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+            });
+        };
+
+        function initTaskColumnDragDrop() {
+            const list = document.getElementById('taskColConfigList');
+            if (!list) return;
+            let draggedEl = null;
+            list.querySelectorAll('.col-config-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedEl = item; item.classList.add('col-dragging');
+                    e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', item.dataset.colId);
+                });
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('col-dragging');
+                    document.querySelectorAll('.col-drag-over').forEach(el => el.classList.remove('col-drag-over'));
+                    draggedEl = null;
+                });
+                item.addEventListener('dragover', (e) => { e.preventDefault(); if (draggedEl && draggedEl !== item) item.classList.add('col-drag-over'); });
+                item.addEventListener('dragleave', () => { item.classList.remove('col-drag-over'); });
+                item.addEventListener('drop', async (e) => {
+                    e.preventDefault(); item.classList.remove('col-drag-over');
+                    if (!draggedEl || draggedEl === item) return;
+                    const rect = item.getBoundingClientRect();
+                    if (e.clientY < rect.top + rect.height / 2) list.insertBefore(draggedEl, item);
+                    else list.insertBefore(draggedEl, item.nextSibling);
+                    await saveTaskColumnOrder();
+                });
+            });
+        }
+
+        async function saveTaskColumnOrder() {
+            const items = document.querySelectorAll('#taskColConfigList .col-config-item');
+            for (let i = 0; i < items.length; i++) {
+                await API.put(`/api/task-columns/${items[i].dataset.colId}`, { sort_order: i });
+            }
+            await loadTaskColumns();
+            renderTaskFilters();
+        }
+
+        window.addTaskColumn = async function() {
+            const name = document.getElementById('newTaskColName').value.trim();
+            if (!name) { showToast('Введите название', 'error'); return; }
+            try {
+                await API.post('/api/task-columns', { name, color: 'green' });
+                showToast('Статус добавлен', 'success');
+                await loadTaskColumns();
+                renderTaskFilters();
+                showTaskColumnConfigModal();
+            } catch (err) { showToast(err.message || 'Ошибка', 'error'); }
+        };
+
+        window.updateTaskColumnColor = async function(id, color) {
+            try {
+                await API.put(`/api/task-columns/${id}`, { color });
+                await loadTaskColumns();
+                renderTaskFilters();
+                renderTasks();
+            } catch (err) { showToast('Ошибка', 'error'); }
+        };
+
+        window.deleteTaskColumn = async function(id) {
+            try {
+                await API.delete(`/api/task-columns/${id}`);
+                showToast('Статус удалён', 'success');
+                await loadTaskColumns();
+                renderTaskFilters();
+                showTaskColumnConfigModal();
+            } catch (err) { showToast(err.message || 'Ошибка', 'error'); }
+        };
+
+        window.previewAsClientFromTasks = async function() {
+            if (!currentProjectFilter || currentProjectFilter === 'all') {
+                showToast('Сначала выберите проект в фильтре', 'error');
+                return;
+            }
+            try {
+                let data = await API.get('/api/projects/' + currentProjectFilter + '/client-link');
+                if (!data.url) {
+                    data = await API.post('/api/projects/' + currentProjectFilter + '/client-link', {});
+                }
+                if (!data.enabled) {
+                    data = await API.put('/api/projects/' + currentProjectFilter + '/client-link', { enabled: true });
+                    if (!data.url && data.token) {
+                        data = await API.get('/api/projects/' + currentProjectFilter + '/client-link');
+                    }
+                }
+                const url = data.previewUrl || data.url || '';
+                if (!url) return showToast('Не удалось получить ссылку', 'error');
+                window.open(url, '_blank');
+            } catch (e) {
+                showToast(e.message || 'Ошибка', 'error');
+            }
+        };
+    })();
+    </script>
+</body>
+</html>

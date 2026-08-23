@@ -1,0 +1,3 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+15 3 * * * root /opt/vantegra/infra/scripts/backup-pg.sh >> /var/log/vantegra-backup.log 2>&1

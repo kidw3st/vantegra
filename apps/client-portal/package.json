@@ -1,0 +1,8 @@
+{
+  "name": "@vantegra/client-portal",
+  "private": true,
+  "description": "Client cabinet. Send this folder for UI changes.",
+  "scripts": {
+    "dev": "npx --yes serve . -p 4175"
+  }
+}

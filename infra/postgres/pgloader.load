@@ -1,0 +1,13 @@
+LOAD DATABASE
+     FROM sqlite:///var/www/crm-app/crm.db
+     INTO postgresql://vantegra:${POSTGRES_PASSWORD}@127.0.0.1:5432/vantegra
+
+WITH include drop, create tables, create indexes, reset sequences,
+     workers = 2, concurrency = 1,
+     quote identifiers
+
+CAST type datetime to timestamptz drop default drop not null using zero-dates-to-null,
+     type date to date drop not null drop default using zero-dates-to-null;
+
+AFTER LOAD DO
+  $$ ANALYZE; $$;

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>День — CRM System</title>
+    <link rel="stylesheet" href="/assets/css/style.css?v=58">
+</head>
+<body>
+    <div id="app"></div>
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <script src="/assets/js/api.js?v=18"></script>
+    <script src="/assets/js/app.js?v=53"></script>
+    <script src="/assets/js/crm-data.js?v=17"></script>
+    <script>
+    (async function() {
+        if (!API.requireAuth()) return;
+
+        const params = new URLSearchParams(location.search);
+        let dateISO = params.get('date') || '';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+            dateISO = new Date().toISOString().slice(0, 10);
+        }
+
+        const WEEKDAYS = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+        const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+        function formatTitle(iso) {
+            const d = new Date(iso + 'T12:00:00');
+            return WEEKDAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS_GEN[d.getMonth()] + ' ' + d.getFullYear();
+        }
+
+        function shiftDate(iso, delta) {
+            const d = new Date(iso + 'T12:00:00');
+            d.setDate(d.getDate() + delta);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + day;
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function dayPart(s) {
+            if (!s) return '';
+            const t = String(s).trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+            const m = t.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+            if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+            return '';
+        }
+
+        function inRange(day, start, end) {
+            if (!start) return false;
+            const e = end || start;
+            return day >= start && day <= e;
+        }
+
+        const app = document.getElementById('app');
+        app.innerHTML = renderSidebar('calendar') + renderHeader() + `
+            <div class="page-header">
+                <div>
+                    <div id="dayNavTrail"></div>
+                    <h1 class="page-title" id="dayTitle">${esc(formatTitle(dateISO))}</h1>
+                    <p class="page-subtitle" id="daySub">Подробно по задачам, целям, проектам и дедлайнам</p>
+                </div>
+                <div class="page-actions">
+                    <div class="cal-nav">
+                        <button class="btn btn-secondary btn-sm" id="dayPrev" aria-label="Предыдущий день"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></button>
+                        <button class="btn btn-secondary btn-sm" id="dayToday">Сегодня</button>
+                        <button class="btn btn-secondary btn-sm" id="dayNext" aria-label="Следующий день"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg></button>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-bar" style="margin-bottom:16px;gap:12px;">
+                <div class="cal-filter-dd">
+                    <button type="button" class="btn btn-secondary btn-sm cal-filter-btn" id="calPersonFilterBtn">Исполнитель</button>
+                    <div class="cal-filter-menu" id="calPersonMenu"></div>
+                </div>
+                <div class="cal-filter-dd">
+                    <button type="button" class="btn btn-secondary btn-sm cal-filter-btn" id="calTypeFilterBtn">Отображение</button>
+                    <div class="cal-filter-menu" id="calTypeMenu"></div>
+                </div>
+            </div>
+            <div class="cal-day-page" id="dayContent"></div>
+            </div></div></div>
+        `;
+
+        initCommonUI();
+        await CRM.load();
+
+        let teamUsers = [];
+        let goals = [];
+        try { teamUsers = await API.get('/users') || []; } catch (e) { teamUsers = []; }
+        try { goals = await API.get('/goals') || []; } catch (e) { goals = []; }
+
+        let selectedPersons, selectedTypes;
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('calFilters') || 'null');
+            if (saved && Array.isArray(saved.persons) && Array.isArray(saved.types)) {
+                selectedPersons = new Set(saved.persons.filter(n => teamUsers.some(u => u.name === n)));
+                if (!selectedPersons.size) selectedPersons = new Set(teamUsers.map(u => u.name));
+                selectedTypes = new Set(saved.types.filter(t => ['task', 'goal', 'deadline', 'project'].includes(t)));
+                if (!selectedTypes.size) selectedTypes = new Set(['task', 'goal', 'deadline', 'project']);
+                // From month calendar — show projects block by default
+                if (!saved.dayPage && !saved.types.includes('project')) selectedTypes.add('project');
+            } else {
+                selectedPersons = new Set(teamUsers.map(u => u.name));
+                selectedTypes = new Set(['task', 'goal', 'deadline', 'project']);
+            }
+        } catch (e) {
+            selectedPersons = new Set(teamUsers.map(u => u.name));
+            selectedTypes = new Set(['task', 'goal', 'deadline', 'project']);
+        }
+
+        function saveCalFilters() {
+            try {
+                sessionStorage.setItem('calFilters', JSON.stringify({
+                    persons: [...selectedPersons],
+                    types: [...selectedTypes],
+                    dayPage: true
+                }));
+            } catch (e) {}
+        }
+
+        function allPersonsSelected() {
+            return teamUsers.length > 0 && selectedPersons.size === teamUsers.length;
+        }
+
+        function personMatch(nameOrList) {
+            if (!selectedPersons.size) return false;
+            if (allPersonsSelected()) return true;
+            if (Array.isArray(nameOrList)) {
+                const list = nameOrList.filter(Boolean);
+                if (!list.length) return false;
+                return list.some(n => selectedPersons.has(n));
+            }
+            return !!nameOrList && selectedPersons.has(nameOrList);
+        }
+
+        function updateFilterBtnLabels() {
+            const pBtn = document.getElementById('calPersonFilterBtn');
+            const tBtn = document.getElementById('calTypeFilterBtn');
+            const chevron = ' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6,9 12,15 18,9"/></svg>';
+            if (pBtn) {
+                const n = selectedPersons.size;
+                const total = teamUsers.length;
+                pBtn.innerHTML = (n === total || n === 0 ? 'Исполнитель' : 'Исполнитель (' + n + ')') + chevron;
+            }
+            if (tBtn) {
+                const labels = { task: 'Задачи', goal: 'Цели', project: 'Проекты', deadline: 'Дедлайны' };
+                const active = [...selectedTypes].map(k => labels[k]).filter(Boolean);
+                const text = active.length >= 4 || active.length === 0
+                    ? 'Отображение'
+                    : (active.length === 1 ? active[0] : 'Отображение (' + active.length + ')');
+                tBtn.innerHTML = text + chevron;
+            }
+        }
+
+        function renderPersonMenu() {
+            const menu = document.getElementById('calPersonMenu');
+            if (!menu) return;
+            menu.innerHTML = teamUsers.map(u =>
+                `<label class="cal-filter-check"><input type="checkbox" value="${esc(u.name)}" ${selectedPersons.has(u.name) ? 'checked' : ''}> ${esc(u.name)}</label>`
+            ).join('') || '<div class="cal-filter-empty">Нет пользователей</div>';
+            menu.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) selectedPersons.add(cb.value);
+                    else selectedPersons.delete(cb.value);
+                    saveCalFilters();
+                    updateFilterBtnLabels();
+                    renderDay();
+                });
+            });
+        }
+
+        function renderTypeMenu() {
+            const menu = document.getElementById('calTypeMenu');
+            if (!menu) return;
+            const opts = [
+                { id: 'task', label: 'Задачи' },
+                { id: 'goal', label: 'Цели' },
+                { id: 'project', label: 'Проекты' },
+                { id: 'deadline', label: 'Дедлайны' }
+            ];
+            menu.innerHTML = opts.map(o =>
+                `<label class="cal-filter-check"><input type="checkbox" value="${o.id}" ${selectedTypes.has(o.id) ? 'checked' : ''}> ${o.label}</label>`
+            ).join('');
+            menu.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) selectedTypes.add(cb.value);
+                    else selectedTypes.delete(cb.value);
+                    saveCalFilters();
+                    updateFilterBtnLabels();
+                    renderDay();
+                });
+            });
+        }
+
+        document.getElementById('calPersonFilterBtn').onclick = () => {
+            const m = document.getElementById('calPersonMenu');
+            const t = document.getElementById('calTypeMenu');
+            t.classList.remove('show');
+            m.classList.toggle('show');
+        };
+        document.getElementById('calTypeFilterBtn').onclick = () => {
+            const m = document.getElementById('calTypeMenu');
+            const p = document.getElementById('calPersonMenu');
+            p.classList.remove('show');
+            m.classList.toggle('show');
+        };
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.cal-filter-dd')) {
+                document.getElementById('calPersonMenu')?.classList.remove('show');
+                document.getElementById('calTypeMenu')?.classList.remove('show');
+            }
+        });
+
+        function collectDayData(day) {
+            const tasks = [];
+            const goalsList = [];
+            const projects = [];
+            const deadlines = [];
+            const today = new Date().toISOString().slice(0, 10);
+
+            if (selectedTypes.has('task')) {
+                CRM.getTasks().forEach(t => {
+                    const start = dayPart(t.date);
+                    const end = dayPart(t.date_end) || start;
+                    if (!inRange(day, start, end)) return;
+                    if (!personMatch(t.person || '')) return;
+                    const project = t.project_id ? CRM.getProjects().find(p => p.id == t.project_id) : null;
+                    tasks.push({
+                        id: t.id,
+                        name: t.name,
+                        person: t.person || '—',
+                        status: t.column_status || '—',
+                        time: t.time || '',
+                        done: !!t.done,
+                        urgent: !!t.urgent,
+                        start, end,
+                        description: t.description || '',
+                        projectName: project ? project.name : '',
+                        href: '/pages/task.html?id=' + t.id
+                    });
+                });
+            }
+
+            if (selectedTypes.has('goal')) {
+                goals.forEach(g => {
+                    const start = dayPart(g.date_start || g.date_end);
+                    const end = dayPart(g.date_end || g.date_start) || start;
+                    if (!inRange(day, start, end)) return;
+                    const assignees = g.assignees || [];
+                    if (!personMatch(assignees.length ? assignees : [''])) return;
+                    goalsList.push({
+                        id: g.id,
+                        name: g.name,
+                        person: assignees.join(', ') || '—',
+                        status: g.status === 'done' ? 'Выполнено' : 'Активна',
+                        done: g.status === 'done',
+                        progress: g.progress || 0,
+                        start, end,
+                        description: g.description || '',
+                        href: '/pages/goal.html?id=' + g.id
+                    });
+                });
+            }
+
+            if (selectedTypes.has('deadline')) {
+                goals.forEach(g => {
+                    const end = dayPart(g.date_end);
+                    if (end !== day) return;
+                    const assignees = g.assignees || [];
+                    if (!personMatch(assignees.length ? assignees : [''])) return;
+                    deadlines.push({
+                        id: 'gdl_' + g.id,
+                        kind: 'Дедлайн цели',
+                        name: g.name,
+                        person: assignees.join(', ') || '—',
+                        status: g.status === 'done' ? 'Выполнено' : 'Активна',
+                        urgent: day < today && g.status !== 'done',
+                        date: end,
+                        href: '/pages/goal.html?id=' + g.id
+                    });
+                });
+            }
+
+            const projectMap = new Map();
+            CRM.getProjects().forEach(p => {
+                const people = [];
+                if (p.assignee) people.push(p.assignee);
+                if (Array.isArray(p.team)) p.team.forEach(n => { if (n) people.push(n); });
+                if (!personMatch(people)) return;
+
+                const dl = dayPart(p.deadline);
+                const pay = dayPart(p.payment_due_date);
+                const hasDeadlineToday = dl === day || pay === day;
+
+                if (selectedTypes.has('deadline') && hasDeadlineToday) {
+                    if (dl === day) {
+                        deadlines.push({
+                            id: 'dl_' + p.id,
+                            kind: 'Дедлайн проекта',
+                            name: p.name,
+                            person: p.assignee || '—',
+                            status: p.status || '—',
+                            urgent: day < today,
+                            date: dl,
+                            href: '/pages/project.html?id=' + p.id
+                        });
+                    }
+                    if (pay === day) {
+                        deadlines.push({
+                            id: 'pay_' + p.id,
+                            kind: 'Оплата',
+                            name: p.name,
+                            person: p.assignee || '—',
+                            status: p.pay_status || p.status || '—',
+                            urgent: day < today,
+                            date: pay,
+                            href: '/pages/project.html?id=' + p.id
+                        });
+                    }
+                }
+
+                if (selectedTypes.has('project') && hasDeadlineToday) {
+                    projectMap.set(p.id, p);
+                }
+            });
+
+            // Also show projects that have tasks on this day
+            if (selectedTypes.has('project')) {
+                tasks.forEach(t => {
+                    if (!t.projectName) return;
+                    const p = CRM.getProjects().find(x => x.name === t.projectName);
+                    if (p) projectMap.set(p.id, p);
+                });
+                CRM.getTasks().forEach(t => {
+                    const start = dayPart(t.date);
+                    const end = dayPart(t.date_end) || start;
+                    if (!inRange(day, start, end) || !t.project_id) return;
+                    if (!personMatch(t.person || '')) return;
+                    const p = CRM.getProjects().find(x => x.id == t.project_id);
+                    if (p) projectMap.set(p.id, p);
+                });
+            }
+
+            projectMap.forEach(p => {
+                projects.push({
+                    id: p.id,
+                    name: p.name,
+                    client: p.client || '—',
+                    person: p.assignee || '—',
+                    status: p.status || '—',
+                    amount: p.amount != null ? p.amount : '',
+                    deadline: dayPart(p.deadline) || p.deadline || '—',
+                    progress: p.progress || 0,
+                    description: p.description || '',
+                    href: '/pages/project.html?id=' + p.id
+                });
+            });
+
+            tasks.sort((a, b) => (a.time || '').localeCompare(b.time || '') || a.name.localeCompare(b.name));
+            return { tasks, goalsList, projects, deadlines };
+        }
+
+        function blockHtml(title, count, body, extraHead) {
+            return `
+                <section class="cal-day-block">
+                    <div class="cal-day-block-head">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <h2 class="cal-day-block-title">${esc(title)}</h2>
+                            ${extraHead || ''}
+                            <span class="cal-day-block-count">${count}</span>
+                        </div>
+                    </div>
+                    <div class="cal-day-block-body">${body}</div>
+                </section>`;
+        }
+
+        let dayNotes = [];
+        async function loadDayNotes() {
+            try {
+                dayNotes = await API.get('/api/reminders?date=' + encodeURIComponent(dateISO)) || [];
+            } catch (e) {
+                dayNotes = [];
+            }
+        }
+
+        window.showNewNoteReminderModal = function(defaultDate) {
+            showNoteReminderModal({
+                date: defaultDate || dateISO,
+                onCreated: async () => {
+                    await loadDayNotes();
+                    renderDay();
+                }
+            });
+        };
+
+        window.dismissDayNote = async function(id) {
+            try {
+                await API.put('/api/reminders/' + id + '/sent');
+                await loadDayNotes();
+                renderDay();
+            } catch (e) {
+                showToast('Ошибка', 'error');
+            }
+        };
+
+        function emptyRow(text) {
+            return `<div class="cal-day-empty-msg">${esc(text)}</div>`;
+        }
+
+        function metaChip(text, cls) {
+            if (!text || text === '—') return '';
+            return `<span class="cal-day-chip${cls ? ' ' + cls : ''}">${esc(text)}</span>`;
+        }
+
+        function renderDay() {
+            document.getElementById('dayTitle').textContent = formatTitle(dateISO);
+            document.title = formatTitle(dateISO) + ' — CRM';
+            const data = collectDayData(dateISO);
+            const root = document.getElementById('dayContent');
+            const parts = [];
+
+            if (selectedTypes.has('task')) {
+                const body = data.tasks.length ? data.tasks.map(t => `
+                    <a class="cal-day-item${t.done ? ' is-done' : ''}${t.urgent ? ' is-urgent' : ''}" href="${esc(t.href)}">
+                        <div class="cal-day-item-main">
+                            <div class="cal-day-item-title">${esc(t.name)}</div>
+                            ${t.description ? `<div class="cal-day-item-desc" onclick="event.preventDefault();event.stopPropagation();">${renderDescClamp(t.description, { lines: 2, id: 'cdt_' + t.id })}</div>` : ''}
+                            <div class="cal-day-item-meta">
+                                ${metaChip(t.time)}
+                                ${metaChip(t.person)}
+                                ${metaChip(t.status)}
+                                ${t.projectName ? metaChip(t.projectName) : ''}
+                                ${t.start !== t.end ? metaChip(t.start + ' → ' + t.end) : ''}
+                                ${t.done ? metaChip('Выполнено', 'ok') : ''}
+                                ${t.urgent ? metaChip('Срочно', 'warn') : ''}
+                            </div>
+                        </div>
+                        <svg class="cal-day-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+                    </a>`).join('') : emptyRow('Нет задач на этот день');
+                parts.push(blockHtml('Задачи', data.tasks.length, body));
+            }
+
+            if (selectedTypes.has('goal')) {
+                const body = data.goalsList.length ? data.goalsList.map(g => `
+                    <a class="cal-day-item${g.done ? ' is-done' : ''}" href="${esc(g.href)}">
+                        <div class="cal-day-item-main">
+                            <div class="cal-day-item-title">${esc(g.name)}</div>
+                            ${g.description ? `<div class="cal-day-item-desc" onclick="event.preventDefault();event.stopPropagation();">${renderDescClamp(g.description, { lines: 2, id: 'cdg_' + g.id })}</div>` : ''}
+                            <div class="cal-day-item-meta">
+                                ${metaChip(g.person)}
+                                ${metaChip(g.status)}
+                                ${metaChip('Прогресс ' + g.progress + '%')}
+                                ${g.start !== g.end ? metaChip(g.start + ' → ' + g.end) : metaChip(g.start)}
+                            </div>
+                        </div>
+                        <svg class="cal-day-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+                    </a>`).join('') : emptyRow('Нет целей на этот день');
+                parts.push(blockHtml('Цели', data.goalsList.length, body));
+            }
+
+            if (selectedTypes.has('project')) {
+                const body = data.projects.length ? data.projects.map(p => `
+                    <a class="cal-day-item" href="${esc(p.href)}">
+                        <div class="cal-day-item-main">
+                            <div class="cal-day-item-title">${esc(p.name)}</div>
+                            ${p.description ? `<div class="cal-day-item-desc" onclick="event.preventDefault();event.stopPropagation();">${renderDescClamp(p.description, { lines: 2, id: 'cdp_' + p.id })}</div>` : ''}
+                            <div class="cal-day-item-meta">
+                                ${metaChip(p.client)}
+                                ${metaChip(p.person)}
+                                ${metaChip(p.status)}
+                                ${p.amount !== '' ? metaChip(String(p.amount) + ' ₽') : ''}
+                                ${metaChip('Дедлайн ' + p.deadline)}
+                                ${metaChip(p.progress + '%')}
+                            </div>
+                        </div>
+                        <svg class="cal-day-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+                    </a>`).join('') : emptyRow('Нет проектов на этот день');
+                parts.push(blockHtml('Проекты', data.projects.length, body));
+            }
+
+            if (selectedTypes.has('deadline')) {
+                const body = data.deadlines.length ? data.deadlines.map(d => `
+                    <a class="cal-day-item${d.urgent ? ' is-urgent' : ''}" href="${esc(d.href)}">
+                        <div class="cal-day-item-main">
+                            <div class="cal-day-item-title">${esc(d.name)}</div>
+                            <div class="cal-day-item-meta">
+                                ${metaChip(d.kind, 'warn')}
+                                ${metaChip(d.person)}
+                                ${metaChip(d.status)}
+                                ${d.urgent ? metaChip('Просрочено', 'danger') : ''}
+                            </div>
+                        </div>
+                        <svg class="cal-day-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+                    </a>`).join('') : emptyRow('Нет дедлайнов на этот день');
+                parts.push(blockHtml('Дедлайны', data.deadlines.length, body));
+            }
+
+            // Personal note reminders for this day
+            const remAdd = `<button type="button" class="btn btn-ghost btn-sm" onclick="showNewNoteReminderModal('${esc(dateISO)}')" title="Добавить" aria-label="Добавить" style="padding:2px 8px;font-size:1.1rem;line-height:1;">+</button>`;
+            const remBody = dayNotes.length ? dayNotes.map(r => {
+                const text = (typeof renderDescClamp === 'function')
+                    ? renderDescClamp(r.message, { lines: 4, id: 'cdn_' + r.id })
+                    : esc(String(r.message || '').replace(/<[^>]+>/g, ''));
+                const meta = (typeof formatNoteReminderMeta === 'function') ? formatNoteReminderMeta(r) : '';
+                return `
+                <div class="cal-day-item" style="cursor:default;">
+                    <div class="cal-day-item-main">
+                        <div class="cal-day-item-title rich-content" style="font-weight:500;">${text}</div>
+                        <div class="cal-day-item-meta">${metaChip('Напоминание')}${meta ? metaChip(meta) : ''}</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="dismissDayNote(${r.id})" title="Готово" aria-label="Готово">✓</button>
+                </div>`;
+            }).join('') : emptyRow('Нет напоминаний на этот день');
+            parts.push(blockHtml('Напоминания', dayNotes.length, remBody, remAdd));
+
+            if (!parts.length) {
+                root.innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:40px;"><p class="text-muted">Включите типы в фильтре «Отображение»</p></div></div>';
+                return;
+            }
+            root.innerHTML = parts.join('');
+        }
+
+        function paintTrail() {
+            const el = document.getElementById('dayNavTrail');
+            if (el && typeof NavTrail !== 'undefined') {
+                el.innerHTML = NavTrail.render(formatTitle(dateISO));
+            }
+        }
+
+        async function goTo(iso) {
+            dateISO = iso;
+            history.replaceState(null, '', '/pages/calendar-day.html?date=' + encodeURIComponent(dateISO));
+            await loadDayNotes();
+            renderDay();
+            paintTrail();
+        }
+
+        document.getElementById('dayPrev').onclick = () => goTo(shiftDate(dateISO, -1));
+        document.getElementById('dayNext').onclick = () => goTo(shiftDate(dateISO, 1));
+        document.getElementById('dayToday').onclick = () => goTo(new Date().toISOString().slice(0, 10));
+
+        renderPersonMenu();
+        renderTypeMenu();
+        updateFilterBtnLabels();
+        await loadDayNotes();
+        renderDay();
+        paintTrail();
+    })();
+    </script>
+</body>
+</html>
