@@ -9,6 +9,7 @@
 | Папка | Что это | Как запустить |
 |---|---|---|
 | `apps/marketing-site` | Сайт vantegracode.ru (статика + PHP для кабинета и заявок) | `node apps/marketing-site/server.js` → http://localhost:5173 |
+| `apps/marketing-site-v2` | Вторая версия дизайна сайта (черновик, один лендинг) | статика, открыть `index.html` через любой сервер |
 | `apps/core-api` | Node/Express API. Без `DATABASE_URL` работает на SQLite; раздаёт CRM и портал | `cd apps/core-api && npm install && node seed.js && node server.js` → http://localhost:3005 |
 | `apps/staff-web` | CRM для сотрудников (Vanilla JS) | открывается через core-api: http://localhost:3005/pages/login.html |
 | `apps/client-portal` | Кабинет клиента по токен-ссылке | через core-api |
