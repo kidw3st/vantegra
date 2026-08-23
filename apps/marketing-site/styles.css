@@ -768,6 +768,13 @@ img { height: auto; }
 }
 .work__btn:hover .work__cover { border-color: var(--ink); }
 .work__cover svg { width: 100%; height: 100%; color: var(--ink); }
+.work__cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
 
 .work__tag {
   position: absolute;
@@ -801,16 +808,21 @@ img { height: auto; }
   border-radius: 6px;
   background: var(--paper);
   color: var(--ink);
-  overflow: hidden;
+  max-height: min(90vh, 90dvh);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
+html:has(.modal[open]) { overflow: hidden; }
 .modal::backdrop { background: rgba(0, 0, 0, .55); }
 .modal[open] { animation: modalIn .5s var(--ease-out); }
 @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.98); } }
 
 .modal__close {
-  position: absolute;
+  position: sticky;
+  float: right;
   top: 14px;
-  right: 14px;
+  margin-right: 14px;
+  z-index: 1;
   padding: 8px 16px;
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -839,6 +851,9 @@ img { height: auto; }
   color: var(--ink-45);
 }
 .modal__body dd { margin: 4px 0 0; font-weight: 500; }
+.modal__shot { margin: 0 0 var(--s-3); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.modal__shot img { display: block; width: 100%; height: auto; }
+.modal__go { margin: var(--s-3) 0 0; }
 
 /* ---------- шаги ---------- */
 
