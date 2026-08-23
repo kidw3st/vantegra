@@ -1,12 +1,24 @@
-/* Vantegra v2: шапка, меню, активный раздел, форма. Появления делает CSS. */
+/* Vantegra v2: шапка, меню, бегущая строка, форма. Появления и переходы делает CSS. */
 (() => {
   'use strict';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* прогресс чтения: запасной путь для браузеров без scroll-timeline */
+  const progress = $('.top__progress');
+  if (progress && !CSS.supports('animation-timeline: scroll()')) {
+    const draw = () => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      progress.style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`;
+    };
+    addEventListener('scroll', draw, { passive: true });
+    draw();
+  }
 
   /* бегущая строка: добираем копий до бесшовного цикла */
   const row = $('#marqueeRow');
-  if (row && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (row && !calm.matches) {
     const set = row.firstElementChild;
     let guard = 0;
     while (row.scrollWidth < innerWidth * 2 && guard++ < 20) row.append(set.cloneNode(true));
@@ -16,30 +28,23 @@
   /* мобильное меню */
   const burger = $('.top__burger');
   const drawer = $('#drawer');
-  const closeDrawer = () => {
-    drawer.hidden = true;
-    burger.setAttribute('aria-expanded', 'false');
-    document.documentElement.style.overflow = '';
-  };
-  burger.addEventListener('click', () => {
-    const open = drawer.hidden;
-    drawer.hidden = !open;
-    burger.setAttribute('aria-expanded', String(open));
-    document.documentElement.style.overflow = open ? 'hidden' : '';
-  });
-  $$('a', drawer).forEach((a) => a.addEventListener('click', closeDrawer));
-  addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) closeDrawer(); });
+  if (burger && drawer) {
+    const closeDrawer = () => {
+      drawer.hidden = true;
+      burger.setAttribute('aria-expanded', 'false');
+      document.documentElement.style.overflow = '';
+    };
+    burger.addEventListener('click', () => {
+      const open = drawer.hidden;
+      drawer.hidden = !open;
+      burger.setAttribute('aria-expanded', String(open));
+      document.documentElement.style.overflow = open ? 'hidden' : '';
+    });
+    $$('a', drawer).forEach((a) => a.addEventListener('click', closeDrawer));
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) closeDrawer(); });
+  }
 
-  /* активный раздел в навигации */
-  const links = $$('.top__pill a');
-  const byId = Object.fromEntries(links.map((a) => [a.hash.slice(1), a]));
-  const spy = new IntersectionObserver((entries) => {
-    for (const en of entries) {
-      if (!en.isIntersecting) continue;
-      links.forEach((a) => a.classList.toggle('is-active', a === byId[en.target.id]));
-    }
-  }, { rootMargin: '-40% 0px -55%' });
-  $$('#services, #process, #work, #pricing, #faq').forEach((s) => spy.observe(s));
+  /* вопросы: открытый закрывает соседа мягко (name= уже делает это в новых браузерах) */
 
   /* форма: проверка на месте, отправка без перезагрузки, запасной путь: почта */
   const form = $('#form');
@@ -77,7 +82,6 @@
       ok.hidden = false;
       btn.textContent = 'Отправлено';
     } catch {
-      // сервера может не быть на статике: собираем письмо
       const d = new FormData(form);
       location.href = 'mailto:hello@vantegra.ru?subject=' + encodeURIComponent('Заявка с сайта')
         + '&body=' + encodeURIComponent(`Имя: ${d.get('name')}\nКонтакт: ${d.get('contact')}\nЗадача: ${d.get('task')}`);

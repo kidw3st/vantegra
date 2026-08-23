@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>О студии — Vantegra</title>
+<meta name="description" content="Vantegra: небольшая студия разработки из Перми. Как устроена работа, на чём собираем, почему маскотом служит дракончик Вант.">
+<meta name="theme-color" content="#ebe8e0">
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<header class="top">
+  <div class="top__in">
+    <a class="top__brand" href="index.html" aria-label="Vantegra, на главную">
+      <img src="assets/logo.png" alt="" width="512" height="512">
+      <span>Vantegra</span>
+    </a>
+    <nav class="top__nav" aria-label="Разделы">
+    <a href="services.html">Услуги</a>
+    <a href="pricing.html">Цены</a>
+    <a href="works.html">Работы</a>
+    <a href="about.html" aria-current="page">О студии</a>
+    <a href="faq.html">Вопросы</a>
+    </nav>
+    <a class="btn btn--dark top__cta" href="contacts.html">Обсудить проект</a>
+    <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+      <span></span><span></span>
+    </button>
+  </div>
+  <span class="top__progress" aria-hidden="true"></span>
+</header>
+
+<nav class="drawer" id="drawer" aria-label="Разделы" hidden>
+  <a href="services.html"><span>Услуги</span><span class="mono">01</span></a>
+  <a href="pricing.html"><span>Цены</span><span class="mono">02</span></a>
+  <a href="works.html"><span>Работы</span><span class="mono">03</span></a>
+  <a href="about.html"><span>О студии</span><span class="mono">04</span></a>
+  <a href="faq.html"><span>Вопросы</span><span class="mono">05</span></a>
+  <a href="contacts.html" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+</nav>
+
+<main id="main">
+
+  <section class="phero">
+    <div class="phero__bar">
+      <span class="mono">О студии</span>
+      <span class="mono">Пермь и удалённо · с 2022</span>
+    </div>
+    <h1 class="phero__title">
+      <span class="phero__row"><span>Собираем продукты</span></span>
+      <span class="phero__row"><span><em>целиком</em>, не кусками</span></span>
+    </h1>
+  </section>
+
+  <section class="section">
+    <div class="section__bar">
+      <span class="mono">01 · Кто мы</span>
+      <span class="mono">Небольшая команда, полный цикл</span>
+    </div>
+    <div class="about-grid">
+      <div class="prose">
+        <p>Vantegra, студия разработки. Делаем сайты, телеграм-ботов, веб-приложения и мобильные игры. В студии нет отдела продаж, который обещает одно, и разработчиков, которые делают другое: с вами говорят те же люди, что будут писать код.</p>
+        <p>Мы намеренно держим небольшой размер команды. Это значит, что мы не возьмём десять проектов разом, зато взятый доводим до запуска и остаёмся рядом после него.</p>
+        <p><strong>Работаем удалённо</strong>, по договору, с фиксированными этапами. Созвоны по делу и по расписанию, а не «давайте синхронизируемся».</p>
+        <p>Дракончик в полевой кепке, наш маскот Вант, заодно проверка на вкус: он живёт на сайте и появляется там, где страница могла бы быть скучной. Такие детали никто не заказывает, но именно они отличают сделанный продукт от собранного.</p>
+        <div class="ph ph--wide rv" role="img" aria-label="Место под рендер: ФОТО или РЕНДЕР: рабочий стол студии, Вант сидит у монитора с кодом">
+  <b>ФОТО или РЕНДЕР: рабочий стол студии, Вант сидит у монитора с кодом</b>
+  <span class="mono">Горизонталь 16:9</span>
+</div>
+      </div>
+      <figure class="about-figure rv">
+        <img src="assets/mascot-block.jpg" alt="Вант сидит на белом постаменте, студийный рендер" width="1792" height="1008" loading="lazy">
+        <figcaption class="mono">Вант · рендер 04 · на постаменте</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__bar">
+      <span class="mono">02 · Принципы</span>
+      <span class="mono">Три, зато настоящих</span>
+    </div>
+    <div class="creed__cols" style="max-width:none;margin-top:0">
+      <div class="creed__col rv">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.6V5.5C4 4.7 4.7 4 5.5 4h5.1c.4 0 .8.2 1.1.4l7.4 7.4a1.5 1.5 0 0 1 0 2.2l-5.1 5.1a1.5 1.5 0 0 1-2.2 0l-7.4-7.4a1.5 1.5 0 0 1-.4-1.1z"/><path d="M8.3 8.3h.01"/></svg>
+          <h3>Цена и сроки до старта</h3>
+        <p>Разбиваем работу на этапы и фиксируем стоимость каждого. Меняется только то, что вы сами решили добавить.</p>
+      </div>
+      <div class="creed__col rv">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 18.5 9.5M4 20l1-4.5L15.6 4.9a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L8.5 19z"/></svg>
+          <h3>Прототип раньше кода</h3>
+        <p>Сначала структура и дизайн, потом разработка. На прототипе любые правки стоят ноль.</p>
+      </div>
+      <div class="creed__col rv">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>
+          <h3>Всё ваше с первого дня</h3>
+        <p>Исходники, домен, сервер, доступы к сервисам. Уйти к другой команде можно в любой момент.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__bar">
+      <span class="mono">03 · На чём собираем</span>
+      <span class="mono">Инструменты под задачу, не наоборот</span>
+    </div>
+    <ul class="stack">
+      <li class="rv"><b>Фронтенд</b><span><span class="chip">React</span><span class="chip">Next.js</span><span class="chip">Astro</span><span class="chip">TypeScript</span><span class="chip">CSS</span></span></li>
+      <li class="rv"><b>Бэкенд</b><span><span class="chip">Node.js</span><span class="chip">Python</span><span class="chip">PostgreSQL</span><span class="chip">Redis</span><span class="chip">Docker</span></span></li>
+      <li class="rv"><b>Боты</b><span><span class="chip">Telegram Bot API</span><span class="chip">Mini Apps</span><span class="chip">Оплаты</span><span class="chip">CRM</span></span></li>
+      <li class="rv"><b>Игры</b><span><span class="chip">Unity</span><span class="chip">C#</span><span class="chip">Godot</span><span class="chip">App Store</span><span class="chip">Google Play</span></span></li>
+    </ul>
+  </section>
+
+  <figure class="vista rv">
+    <img src="assets/mascot-sunrise.jpg" alt="Вант смотрит на рассвет над холмами" width="1792" height="1008" loading="lazy">
+    <figcaption>Рендер 05 · утро на лугу Ванта</figcaption>
+  </figure>
+
+  <!-- ================= контакт ================= -->
+  <section class="contact" id="contact">
+    <div class="contact__inner">
+      <div>
+        <h2 class="display contact__title">Обсудим <em>ваш</em> проект?</h2>
+        <p class="contact__note">Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
+        <p class="contact__mail"><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></p>
+        <p class="contact__tg"><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra в Telegram</a></p>
+        <ul class="contact__meta">
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Отвечаем в течение дня</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5A1.5 1.5 0 0 1 6.5 3.5z"/><path d="M9 13.5l2 2 4-4.5"/></svg>Работаем по договору, с закрывающими документами</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg>Смета по этапам до начала работы</li>
+        </ul>
+      </div>
+      <form class="form" id="form" action="../marketing-site/send.php" method="post" novalidate>
+        <label class="field">
+          <span class="field__label">Как к вам обращаться</span>
+          <input class="field__input" type="text" name="name" autocomplete="name" required maxlength="80">
+          <span class="field__err" aria-live="polite"></span>
+        </label>
+        <label class="field">
+          <span class="field__label">Куда ответить</span>
+          <input class="field__input" type="text" name="contact" autocomplete="email" placeholder="почта или @ник в Telegram" required maxlength="120">
+          <span class="field__err" aria-live="polite"></span>
+        </label>
+        <label class="field">
+          <span class="field__label">Что нужно сделать</span>
+          <select class="field__input" name="kind">
+            <option value="site">Сайт</option>
+            <option value="bot">Телеграм-бот</option>
+            <option value="app">Веб-приложение</option>
+            <option value="game">Мобильная игра</option>
+            <option value="other">Не знаю, нужно обсудить</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Опишите задачу</span>
+          <textarea class="field__input" name="task" rows="4" required maxlength="2000" placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
+          <span class="field__err" aria-live="polite"></span>
+        </label>
+        <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
+        <button class="btn btn--bone btn--wide" type="submit">Отправить</button>
+        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="../marketing-site/privacy.html">политикой конфиденциальности</a>.</p>
+        <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__in">
+    <div class="foot__cols">
+      <div>
+        <a class="foot__brand" href="index.html">
+          <img src="assets/logo.png" alt="" width="512" height="512">
+          <span>Vantegra</span>
+        </a>
+        <p class="mono" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+      </div>
+      <div>
+        <p class="foot__h">Разделы</p>
+        <ul class="foot__nav">
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="pricing.html">Цены</a></li>
+          <li><a href="works.html">Работы</a></li>
+          <li><a href="about.html">О студии</a></li>
+          <li><a href="faq.html">Вопросы</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="foot__h">Связь</p>
+        <ul class="foot__nav">
+          <li><a href="contacts.html">Контакты</a></li>
+          <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
+          <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="foot__h">Документы</p>
+        <ul class="foot__nav">
+          <li><a href="../marketing-site/privacy.html">Конфиденциальность</a></li>
+          <li><a href="../marketing-site/terms.html">Условия работы</a></li>
+          <li><a href="../marketing-site/cabinet.php">Кабинет клиента</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot__mark" aria-hidden="true">Vantegra</p>
+    <p class="foot__fine">
+      <span class="mono">© 2026 Vantegra</span>
+      <span class="mono">Сайты · Боты · Веб-приложения · Мобильные игры</span>
+    </p>
+  </div>
+</footer>
+
+<script src="main.js" defer></script>
+</body>
+</html>

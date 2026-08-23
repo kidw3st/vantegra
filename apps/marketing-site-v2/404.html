@@ -5,39 +5,104 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Страница не найдена — Vantegra</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#ebe8e0">
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
+<a class="skip" href="#main">К содержимому</a>
 <header class="top">
-  <a class="top__brand" href="index.html" aria-label="Vantegra, на главную">
-    <img src="assets/logo.png" alt="" width="512" height="512">
-    <span>Vantegra</span>
-  </a>
-  <span></span>
-  <a class="btn btn--dark top__cta" href="index.html#contact">Обсудить проект</a>
+  <div class="top__in">
+    <a class="top__brand" href="index.html" aria-label="Vantegra, на главную">
+      <img src="assets/logo.png" alt="" width="512" height="512">
+      <span>Vantegra</span>
+    </a>
+    <nav class="top__nav" aria-label="Разделы">
+    <a href="services.html">Услуги</a>
+    <a href="pricing.html">Цены</a>
+    <a href="works.html">Работы</a>
+    <a href="about.html">О студии</a>
+    <a href="faq.html">Вопросы</a>
+    </nav>
+    <a class="btn btn--dark top__cta" href="contacts.html">Обсудить проект</a>
+    <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+      <span></span><span></span>
+    </button>
+  </div>
+  <span class="top__progress" aria-hidden="true"></span>
 </header>
 
-<main class="lost">
+<nav class="drawer" id="drawer" aria-label="Разделы" hidden>
+  <a href="services.html"><span>Услуги</span><span class="mono">01</span></a>
+  <a href="pricing.html"><span>Цены</span><span class="mono">02</span></a>
+  <a href="works.html"><span>Работы</span><span class="mono">03</span></a>
+  <a href="about.html"><span>О студии</span><span class="mono">04</span></a>
+  <a href="faq.html"><span>Вопросы</span><span class="mono">05</span></a>
+  <a href="contacts.html" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+</nav>
+
+<main id="main" class="lost">
   <figure class="lost__render">
     <img src="assets/mascot-404.jpg" alt="Вант растерянно смотрит на объёмные цифры 404" width="1792" height="1008" fetchpriority="high">
   </figure>
   <h1 class="display">Страница не нашлась</h1>
   <p class="lost__note">Возможно, адрес набран с опечаткой или страницу переименовали.
      Вант тоже её не нашёл, а он смотрел внимательно.</p>
-  <div class="hero__actions lost__actions">
+  <div class="lost__actions">
     <a class="btn btn--dark" href="index.html">На главную</a>
-    <a class="btn btn--ghost" href="index.html#work">Смотреть работы</a>
+    <a class="btn btn--ghost" href="works.html">Смотреть работы</a>
   </div>
 </main>
 
 <footer class="foot">
-  <p class="foot__fine mono">© 2026 Vantegra · Сайты · Боты · Веб-приложения · Мобильные игры</p>
+  <div class="foot__in">
+    <div class="foot__cols">
+      <div>
+        <a class="foot__brand" href="index.html">
+          <img src="assets/logo.png" alt="" width="512" height="512">
+          <span>Vantegra</span>
+        </a>
+        <p class="mono" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+      </div>
+      <div>
+        <p class="foot__h">Разделы</p>
+        <ul class="foot__nav">
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="pricing.html">Цены</a></li>
+          <li><a href="works.html">Работы</a></li>
+          <li><a href="about.html">О студии</a></li>
+          <li><a href="faq.html">Вопросы</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="foot__h">Связь</p>
+        <ul class="foot__nav">
+          <li><a href="contacts.html">Контакты</a></li>
+          <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
+          <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="foot__h">Документы</p>
+        <ul class="foot__nav">
+          <li><a href="../marketing-site/privacy.html">Конфиденциальность</a></li>
+          <li><a href="../marketing-site/terms.html">Условия работы</a></li>
+          <li><a href="../marketing-site/cabinet.php">Кабинет клиента</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot__mark" aria-hidden="true">Vantegra</p>
+    <p class="foot__fine">
+      <span class="mono">© 2026 Vantegra</span>
+      <span class="mono">Сайты · Боты · Веб-приложения · Мобильные игры</span>
+    </p>
+  </div>
 </footer>
 
+<script src="main.js" defer></script>
 </body>
 </html>
