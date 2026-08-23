@@ -1,0 +1,19 @@
+# Чистые адреса: /services отдаёт services.html, старые /*.html переезжают 301-м
+Options -MultiViews -Indexes
+RewriteEngine On
+
+# /index.html и / -> корень
+RewriteCond %{THE_REQUEST} \s/+index\.html[\s?] [NC]
+RewriteRule ^ / [R=301,L]
+
+# /page.html -> /page (кроме реально нужных файлов)
+RewriteCond %{THE_REQUEST} \s/+([^\s?]+)\.html[\s?] [NC]
+RewriteRule ^ /%1 [R=301,L]
+
+# /page -> page.html, если такой файл есть
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+ErrorDocument 404 /404.html

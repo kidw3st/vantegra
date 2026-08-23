@@ -148,7 +148,8 @@ a { color: inherit; }
 .top__nav a:hover { color: var(--ink); }
 .top__nav a[aria-current="page"] { color: var(--ink); }
 .top__nav a[aria-current="page"]::after { opacity: 1; }
-.top__cta { justify-self: end; min-height: 44px; padding: 10px 20px; }
+.top__actions { display: flex; gap: 10px; justify-self: end; }
+.top__cta, .top__cab { min-height: 44px; padding: 10px 20px; }
 
 .top__progress {
   position: absolute; left: 0; bottom: -1.5px; height: 1.5px; width: 100%;
@@ -682,6 +683,33 @@ textarea.field__input { resize: vertical; min-height: 110px; }
 .form__law a { color: inherit; }
 .form__ok { margin: 0; padding: 13px 16px; background: var(--amber); color: var(--ink); border-radius: 8px; font-weight: 500; }
 
+/* ---------- кабинет: два входа ---------- */
+
+.gate { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.gate__card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 32px;
+  background: var(--card);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-big);
+}
+.gate__card--pine { background: var(--pine); border-color: var(--pine); color: var(--bone); }
+.gate__card--pine .mono { color: var(--bone-60); }
+.gate__card--pine .gate__desc { color: var(--bone-60); }
+.gate__name {
+  margin: 4px 0 0;
+  font-family: var(--cond); font-weight: 600;
+  font-size: clamp(30px, 3vw, 44px); line-height: 1;
+  letter-spacing: -.015em; text-transform: uppercase;
+}
+.gate__desc { margin: 0 0 14px; max-width: 44ch; font-size: 15.5px; line-height: 1.55; color: var(--ink-60); }
+.gate__form { display: grid; gap: 14px; }
+.gate__label { color: var(--ink); }
+.gate__input { background: #fff; border-color: var(--line-strong); }
+.gate__act { align-self: start; justify-self: start; margin-top: auto; }
+.gate__card--pine .gate__act { margin-top: auto; }
+.gate__hint { margin-top: 14px; }
+
 /* ---------- страница 404 ---------- */
 
 .lost { width: var(--shell); margin: 0 auto; padding: 32px 0 var(--gap); text-align: center; }
@@ -763,7 +791,8 @@ textarea.field__input { resize: vertical; min-height: 110px; }
 /* ---------- отзывчивость ---------- */
 
 @media (max-width: 1120px) {
-  .top__nav, .top__cta { display: none; }
+  .top__nav, .top__actions { display: none; }
+  .gate { grid-template-columns: minmax(0, 1fr); }
   .top__burger { display: flex; }
   .hero__grid { grid-template-columns: minmax(0, 1fr); }
   .hero__render img { aspect-ratio: 16 / 10; object-position: 80% 50%; }
@@ -808,3 +837,4 @@ html { scrollbar-color: var(--pine) var(--canvas); scrollbar-width: thin; }
 .dir__name .ic, .svc__name .ic { margin-right: 12px; vertical-align: -0.12em; width: .72em; height: .72em; }
 .creed__col .ic { display: block; margin-bottom: 10px; }
 .contact__meta .ic { width: 18px; height: 18px; vertical-align: -4px; margin-right: 8px; color: var(--amber); }
+.ic--btn { width: 17px; height: 17px; color: currentColor; }

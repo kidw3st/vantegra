@@ -17,18 +17,21 @@
 <a class="skip" href="#main">К содержимому</a>
 <header class="top">
   <div class="top__in">
-    <a class="top__brand" href="index.html" aria-label="Vantegra, на главную">
+    <a class="top__brand" href="./" aria-label="Vantegra, на главную">
       <img src="assets/logo.png" alt="" width="512" height="512">
       <span>Vantegra</span>
     </a>
     <nav class="top__nav" aria-label="Разделы">
-    <a href="services.html">Услуги</a>
-    <a href="pricing.html" aria-current="page">Цены</a>
-    <a href="works.html">Работы</a>
-    <a href="about.html">О студии</a>
-    <a href="faq.html">Вопросы</a>
+    <a href="services">Услуги</a>
+    <a href="pricing" aria-current="page">Цены</a>
+    <a href="works">Работы</a>
+    <a href="about">О студии</a>
+    <a href="faq">Вопросы</a>
     </nav>
-    <a class="btn btn--dark top__cta" href="contacts.html">Обсудить проект</a>
+    <div class="top__actions">
+      <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
+      <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
+    </div>
     <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
       <span></span><span></span>
     </button>
@@ -37,12 +40,13 @@
 </header>
 
 <nav class="drawer" id="drawer" aria-label="Разделы" hidden>
-  <a href="services.html"><span>Услуги</span><span class="mono">01</span></a>
-  <a href="pricing.html"><span>Цены</span><span class="mono">02</span></a>
-  <a href="works.html"><span>Работы</span><span class="mono">03</span></a>
-  <a href="about.html"><span>О студии</span><span class="mono">04</span></a>
-  <a href="faq.html"><span>Вопросы</span><span class="mono">05</span></a>
-  <a href="contacts.html" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+  <a href="services"><span>Услуги</span><span class="mono">01</span></a>
+  <a href="pricing"><span>Цены</span><span class="mono">02</span></a>
+  <a href="works"><span>Работы</span><span class="mono">03</span></a>
+  <a href="about"><span>О студии</span><span class="mono">04</span></a>
+  <a href="faq"><span>Вопросы</span><span class="mono">05</span></a>
+  <a href="cabinet"><span>Кабинет</span><span class="mono">06</span></a>
+  <a href="contacts" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
 </nav>
 
 <main id="main">
@@ -72,26 +76,26 @@
         <div class="plan__top"><h3 class="plan__name">Запуск</h3><p class="plan__sum">от 90 000 ₽</p></div>
         <p class="plan__for">Быстро появиться в сети и начать собирать заявки.</p>
         <p class="plan__inc">Лендинг или простой бот: структура, дизайн, до пяти экранов, форма заявки и аналитика, запуск на вашем домене. Срок одна-две недели.</p>
-        <a class="btn btn--ghost plan__act" href="contacts.html">Обсудить</a>
+        <a class="btn btn--ghost plan__act" href="contacts">Обсудить</a>
       </li>
       <li class="plan plan--main rv">
         <p class="plan__flag">Чаще всего</p>
         <div class="plan__top"><h3 class="plan__name">Продукт</h3><p class="plan__sum">от 350 000 ₽</p></div>
         <p class="plan__for">Сайт или сервис как рабочий инструмент, а не визитка.</p>
         <p class="plan__inc">Магазин, кабинет, веб-приложение или игра: исследование и прототип до кода; бэкенд, база, роли и доступы; интеграции: оплаты, CRM, склад; тесты и запуск. Срок от шести недель.</p>
-        <a class="btn btn--bone plan__act" href="contacts.html">Обсудить</a>
+        <a class="btn btn--bone plan__act" href="contacts">Обсудить</a>
       </li>
       <li class="plan rv">
         <div class="plan__top"><h3 class="plan__name">Поддержка</h3><p class="plan__sum">от 25 000 ₽/мес</p></div>
         <p class="plan__for">Продукт запущен, и нужно, чтобы он просто работал.</p>
         <p class="plan__inc">Мониторинг и резервные копии, обновления зависимостей и сертификатов, до восьми часов мелких правок в месяц, ответ на сбой в рабочее время в течение двух часов.</p>
-        <a class="btn btn--ghost plan__act" href="contacts.html">Подключить</a>
+        <a class="btn btn--ghost plan__act" href="contacts">Подключить</a>
       </li>
       <li class="plan rv">
         <div class="plan__top"><h3 class="plan__name">Команда</h3><p class="plan__sum">от 180 000 ₽/мес</p></div>
         <p class="plan__for">Продукт живёт и развивается, нужны руки на постоянно.</p>
         <p class="plan__inc">Выделенные часы разработки и дизайна, план на месяц и отчёт по задачам, присмотр за сервером и обновлениями, срочные правки вне очереди. Приостановить можно в любой месяц.</p>
-        <a class="btn btn--ghost plan__act" href="contacts.html">Обсудить</a>
+        <a class="btn btn--ghost plan__act" href="contacts">Обсудить</a>
       </li>
     </ul>
   </section>
@@ -118,14 +122,14 @@
     <p class="pricing__terms rv">
       Стоимость согласованных этапов зафиксирована и по ходу не растёт. Аванс только за первый этап,
       остальное по факту приёмки каждого. Месяц после запуска правим всё по нашей вине бесплатно.
-      Подробнее в <a href="terms.html">условиях работы</a>.
+      Подробнее в <a href="terms">условиях работы</a>.
     </p>
   </section>
 
   <section class="section">
     <div class="section__bar">
       <span class="mono">03 · Частые вопросы о деньгах</span>
-      <a class="mono" href="faq.html" style="text-decoration:none">Все ответы →</a>
+      <a class="mono" href="faq" style="text-decoration:none">Все ответы →</a>
     </div>
     <div class="faq">
       <details class="qa" name="faq" open>
@@ -181,7 +185,7 @@
         </label>
         <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
         <button class="btn btn--bone btn--wide" type="submit">Отправить</button>
-        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="privacy.html">политикой конфиденциальности</a>.</p>
+        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="privacy">политикой конфиденциальности</a>.</p>
         <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
       </form>
     </div>
@@ -193,7 +197,7 @@
   <div class="foot__in">
     <div class="foot__cols">
       <div>
-        <a class="foot__brand" href="index.html">
+        <a class="foot__brand" href="./">
           <img src="assets/logo.png" alt="" width="512" height="512">
           <span>Vantegra</span>
         </a>
@@ -202,17 +206,17 @@
       <div>
         <p class="foot__h">Разделы</p>
         <ul class="foot__nav">
-          <li><a href="services.html">Услуги</a></li>
-          <li><a href="pricing.html">Цены</a></li>
-          <li><a href="works.html">Работы</a></li>
-          <li><a href="about.html">О студии</a></li>
-          <li><a href="faq.html">Вопросы</a></li>
+          <li><a href="services">Услуги</a></li>
+          <li><a href="pricing">Цены</a></li>
+          <li><a href="works">Работы</a></li>
+          <li><a href="about">О студии</a></li>
+          <li><a href="faq">Вопросы</a></li>
         </ul>
       </div>
       <div>
         <p class="foot__h">Связь</p>
         <ul class="foot__nav">
-          <li><a href="contacts.html">Контакты</a></li>
+          <li><a href="contacts">Контакты</a></li>
           <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
           <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
         </ul>
@@ -220,9 +224,9 @@
       <div>
         <p class="foot__h">Документы</p>
         <ul class="foot__nav">
-          <li><a href="privacy.html">Конфиденциальность</a></li>
-          <li><a href="terms.html">Условия работы</a></li>
-          <li><a href="../marketing-site/cabinet.php">Кабинет клиента</a></li>
+          <li><a href="privacy">Конфиденциальность</a></li>
+          <li><a href="terms">Условия работы</a></li>
+          <li><a href="cabinet">Кабинет клиента</a></li>
         </ul>
       </div>
     </div>

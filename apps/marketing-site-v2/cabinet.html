@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кабинет — Vantegra</title>
+<meta name="description" content="Вход в CRM студии и в клиентский кабинет Vantegra.">
+<meta name="theme-color" content="#ebe8e0">
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="styles.css">
+<meta name="robots" content="noindex">
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<header class="top">
+  <div class="top__in">
+    <a class="top__brand" href="./" aria-label="Vantegra, на главную">
+      <img src="assets/logo.png" alt="" width="512" height="512">
+      <span>Vantegra</span>
+    </a>
+    <nav class="top__nav" aria-label="Разделы">
+    <a href="services">Услуги</a>
+    <a href="pricing">Цены</a>
+    <a href="works">Работы</a>
+    <a href="about">О студии</a>
+    <a href="faq">Вопросы</a>
+    </nav>
+    <div class="top__actions">
+      <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
+      <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
+    </div>
+    <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+      <span></span><span></span>
+    </button>
+  </div>
+  <span class="top__progress" aria-hidden="true"></span>
+</header>
+
+<nav class="drawer" id="drawer" aria-label="Разделы" hidden>
+  <a href="services"><span>Услуги</span><span class="mono">01</span></a>
+  <a href="pricing"><span>Цены</span><span class="mono">02</span></a>
+  <a href="works"><span>Работы</span><span class="mono">03</span></a>
+  <a href="about"><span>О студии</span><span class="mono">04</span></a>
+  <a href="faq"><span>Вопросы</span><span class="mono">05</span></a>
+  <a href="cabinet"><span>Кабинет</span><span class="mono">06</span></a>
+  <a href="contacts" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+</nav>
+
+<main id="main">
+
+  <section class="phero">
+    <div class="phero__bar">
+      <span class="mono">Кабинет</span>
+      <span class="mono">Два входа: команда и клиенты</span>
+    </div>
+    <h1 class="phero__title">
+      <span class="phero__row"><span>Куда <em>вы</em></span></span>
+      <span class="phero__row"><span>входите</span></span>
+    </h1>
+    <p class="phero__lead">
+      Команда открывает CRM. Клиенты открывают кабинет проекта по ссылке,
+      которую прислал менеджер.
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="gate">
+      <article class="gate__card gate__card--pine rv">
+        <p class="mono">Команда</p>
+        <h2 class="gate__name">CRM студии</h2>
+        <p class="gate__desc">Проекты, задачи, заявки и финансы. Вход только для разработчиков и менеджеров Vantegra.</p>
+        <a class="btn btn--bone gate__act" href="/pages/login.html"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Войти в CRM</a>
+      </article>
+
+      <article class="gate__card rv">
+        <p class="mono">Клиенты</p>
+        <h2 class="gate__name">Кабинет проекта</h2>
+        <p class="gate__desc">Пароль не нужен. Вставьте ссылку из письма или токен, и откроется ваш кабинет.</p>
+        <form class="gate__form" id="clientGate">
+          <label class="field">
+            <span class="field__label gate__label">Ссылка или токен</span>
+            <input class="field__input gate__input" id="clientToken" name="token" type="text"
+                   autocomplete="off" spellcheck="false"
+                   placeholder="https://vantegracode.ru/c/… или токен">
+          </label>
+          <button class="btn btn--dark gate__act" type="submit">Открыть кабинет <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </form>
+        <p class="gate__hint mono">Если ссылка уже есть, откройте её целиком: форму заполнять не нужно</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__bar">
+      <span class="mono">Нет доступа?</span>
+      <span class="mono">Поможем за минуту</span>
+    </div>
+    <p class="pricing__terms" style="margin-top:0;border-top:0;padding-top:0">
+      Потеряли ссылку на кабинет или не помните, был ли у вас доступ: напишите на
+      <a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a> или менеджеру проекта
+      в Telegram, пришлём новую ссылку.
+    </p>
+  </section>
+
+</main>
+
+
+<script>
+(function () {
+  var form = document.getElementById('clientGate');
+  if (!form) return;
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var raw = (document.getElementById('clientToken').value || '').trim();
+    if (!raw) { document.getElementById('clientToken').focus(); return; }
+    var token = raw;
+    try {
+      var u = new URL(raw, location.origin);
+      var m = u.pathname.match(/\/c\/([^/]+)/);
+      if (m) token = decodeURIComponent(m[1]);
+      else if (u.searchParams.get('t')) token = u.searchParams.get('t');
+      else if (!/^https?:/i.test(raw)) token = raw.replace(/^\/+/, '').split(/[/?#]/)[0];
+    } catch (err) {
+      token = raw.replace(/^\/+/, '').split(/[/?#]/)[0];
+    }
+    token = String(token || '').replace(/[^a-zA-Z0-9._~-]/g, '');
+    if (!token) { document.getElementById('clientToken').focus(); return; }
+    location.href = '/c/' + encodeURIComponent(token);
+  });
+})();
+</script>
+
+<footer class="foot">
+  <div class="foot__in">
+    <div class="foot__cols">
+      <div>
+        <a class="foot__brand" href="./">
+          <img src="assets/logo.png" alt="" width="512" height="512">
+          <span>Vantegra</span>
+        </a>
+        <p class="mono" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+      </div>
+      <div>
+        <p class="foot__h">Разделы</p>
+        <ul class="foot__nav">
+          <li><a href="services">Услуги</a></li>
+          <li><a href="pricing">Цены</a></li>
+          <li><a href="works">Работы</a></li>
+          <li><a href="about">О студии</a></li>
+          <li><a href="faq">Вопросы</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="foot__h">Связь</p>
+        <ul class="foot__nav">
+          <li><a href="contacts">Контакты</a></li>
+          <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
+          <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="foot__h">Документы</p>
+        <ul class="foot__nav">
+          <li><a href="privacy">Конфиденциальность</a></li>
+          <li><a href="terms">Условия работы</a></li>
+          <li><a href="cabinet">Кабинет клиента</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot__mark" aria-hidden="true">Vantegra</p>
+    <p class="foot__fine">
+      <span class="mono">© 2026 Vantegra</span>
+      <span class="mono">Сайты · Боты · Веб-приложения · Мобильные игры</span>
+    </p>
+  </div>
+</footer>
+
+<script src="main.js" defer></script>
+</body>
+</html>

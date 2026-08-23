@@ -17,18 +17,21 @@
 <a class="skip" href="#main">К содержимому</a>
 <header class="top">
   <div class="top__in">
-    <a class="top__brand" href="index.html" aria-label="Vantegra, на главную">
+    <a class="top__brand" href="./" aria-label="Vantegra, на главную">
       <img src="assets/logo.png" alt="" width="512" height="512">
       <span>Vantegra</span>
     </a>
     <nav class="top__nav" aria-label="Разделы">
-    <a href="services.html" aria-current="page">Услуги</a>
-    <a href="pricing.html">Цены</a>
-    <a href="works.html">Работы</a>
-    <a href="about.html">О студии</a>
-    <a href="faq.html">Вопросы</a>
+    <a href="services" aria-current="page">Услуги</a>
+    <a href="pricing">Цены</a>
+    <a href="works">Работы</a>
+    <a href="about">О студии</a>
+    <a href="faq">Вопросы</a>
     </nav>
-    <a class="btn btn--dark top__cta" href="contacts.html">Обсудить проект</a>
+    <div class="top__actions">
+      <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
+      <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
+    </div>
     <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
       <span></span><span></span>
     </button>
@@ -37,12 +40,13 @@
 </header>
 
 <nav class="drawer" id="drawer" aria-label="Разделы" hidden>
-  <a href="services.html"><span>Услуги</span><span class="mono">01</span></a>
-  <a href="pricing.html"><span>Цены</span><span class="mono">02</span></a>
-  <a href="works.html"><span>Работы</span><span class="mono">03</span></a>
-  <a href="about.html"><span>О студии</span><span class="mono">04</span></a>
-  <a href="faq.html"><span>Вопросы</span><span class="mono">05</span></a>
-  <a href="contacts.html" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+  <a href="services"><span>Услуги</span><span class="mono">01</span></a>
+  <a href="pricing"><span>Цены</span><span class="mono">02</span></a>
+  <a href="works"><span>Работы</span><span class="mono">03</span></a>
+  <a href="about"><span>О студии</span><span class="mono">04</span></a>
+  <a href="faq"><span>Вопросы</span><span class="mono">05</span></a>
+  <a href="cabinet"><span>Кабинет</span><span class="mono">06</span></a>
+  <a href="contacts" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
 </nav>
 
 <main id="main">
@@ -163,7 +167,7 @@
         </label>
         <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
         <button class="btn btn--bone btn--wide" type="submit">Отправить</button>
-        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="privacy.html">политикой конфиденциальности</a>.</p>
+        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="privacy">политикой конфиденциальности</a>.</p>
         <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
       </form>
     </div>
@@ -175,7 +179,7 @@
   <div class="foot__in">
     <div class="foot__cols">
       <div>
-        <a class="foot__brand" href="index.html">
+        <a class="foot__brand" href="./">
           <img src="assets/logo.png" alt="" width="512" height="512">
           <span>Vantegra</span>
         </a>
@@ -184,17 +188,17 @@
       <div>
         <p class="foot__h">Разделы</p>
         <ul class="foot__nav">
-          <li><a href="services.html">Услуги</a></li>
-          <li><a href="pricing.html">Цены</a></li>
-          <li><a href="works.html">Работы</a></li>
-          <li><a href="about.html">О студии</a></li>
-          <li><a href="faq.html">Вопросы</a></li>
+          <li><a href="services">Услуги</a></li>
+          <li><a href="pricing">Цены</a></li>
+          <li><a href="works">Работы</a></li>
+          <li><a href="about">О студии</a></li>
+          <li><a href="faq">Вопросы</a></li>
         </ul>
       </div>
       <div>
         <p class="foot__h">Связь</p>
         <ul class="foot__nav">
-          <li><a href="contacts.html">Контакты</a></li>
+          <li><a href="contacts">Контакты</a></li>
           <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
           <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
         </ul>
@@ -202,9 +206,9 @@
       <div>
         <p class="foot__h">Документы</p>
         <ul class="foot__nav">
-          <li><a href="privacy.html">Конфиденциальность</a></li>
-          <li><a href="terms.html">Условия работы</a></li>
-          <li><a href="../marketing-site/cabinet.php">Кабинет клиента</a></li>
+          <li><a href="privacy">Конфиденциальность</a></li>
+          <li><a href="terms">Условия работы</a></li>
+          <li><a href="cabinet">Кабинет клиента</a></li>
         </ul>
       </div>
     </div>
