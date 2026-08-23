@@ -398,7 +398,10 @@ a { color: inherit; }
 
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .process__pin { height: 320vh; }
+    /* прогресс берём у высокого контейнера-пина: лента внутри sticky
+       относительно вьюпорта не движется, её собственный view() заморожен */
+    .process { timeline-scope: --pin; }
+    .process__pin { height: 320vh; view-timeline: --pin block; }
     .process__sticky {
       position: sticky; top: 0;
       height: 100vh; height: 100dvh;
@@ -411,7 +414,7 @@ a { color: inherit; }
       margin: 0;
       padding-left: max(var(--gutter), (100vw - 1320px) / 2);
       animation: slide linear both;
-      animation-timeline: view();
+      animation-timeline: --pin;
       animation-range: contain 0% contain 100%;
     }
     .process__hint { display: block; }
