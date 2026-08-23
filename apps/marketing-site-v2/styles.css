@@ -724,6 +724,7 @@ textarea.field__input { resize: vertical; min-height: 110px; }
   color: transparent;
   -webkit-text-stroke: 1.5px var(--ink-40);
   user-select: none;
+  pointer-events: none;   /* надпись декоративная: не должна ловить клики по ссылкам */
 }
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
