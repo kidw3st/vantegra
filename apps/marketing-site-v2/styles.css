@@ -892,6 +892,8 @@ html { scrollbar-color: var(--pine) var(--canvas); scrollbar-width: thin; }
 }
 
 /* точечные правки тёмного режима, где токенов мало */
+:root[data-theme="dark"] .top__brand img,
+:root[data-theme="dark"] .foot__brand img { filter: invert(.92) sepia(.12); }
 :root[data-theme="dark"] .btn--dark:hover { background: var(--amber); border-color: var(--amber); color: #141813; }
 :root[data-theme="dark"] ::selection { color: #141813; }
 :root[data-theme="dark"] { scrollbar-color: #4c5747 var(--canvas); }
@@ -899,6 +901,8 @@ html { scrollbar-color: var(--pine) var(--canvas); scrollbar-width: thin; }
 :root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: var(--amber); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { scrollbar-color: #4c5747 var(--canvas); }
+  :root:not([data-theme="light"]) .top__brand img,
+  :root:not([data-theme="light"]) .foot__brand img { filter: invert(.92) sepia(.12); }
   :root:not([data-theme="light"]) .btn--dark:hover { background: var(--amber); border-color: var(--amber); color: #141813; }
   :root:not([data-theme="light"]) ::selection { color: #141813; }
   :root:not([data-theme="light"]) ::-webkit-scrollbar-thumb { background: #4c5747; }
@@ -945,3 +949,12 @@ html { scrollbar-color: var(--pine) var(--canvas); scrollbar-width: thin; }
 @media (prefers-reduced-motion: reduce) {
   .totop { transition: opacity .2s ease; translate: none; }
 }
+
+/* ---------- размеры иконок в новых местах ---------- */
+
+.factor .ic { display: block; margin-bottom: 10px; }
+.ic--fact { width: 17px; height: 17px; vertical-align: -4px; margin-right: 8px; }
+.ic--stage { width: 24px; height: 24px; color: var(--ink-40); }
+.stage--pine .ic--stage { color: var(--bone-60); }
+.ic--stack { width: 22px; height: 22px; vertical-align: -5px; margin-right: 10px; }
+.ic--bar { width: 15px; height: 15px; vertical-align: -3.5px; margin-right: 6px; }
