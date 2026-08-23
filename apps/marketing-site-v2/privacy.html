@@ -6,6 +6,7 @@
 <title>Политика конфиденциальности — Vantegra</title>
 <meta name="description" content="Какие данные собирает сайт Vantegra, зачем, где хранятся и как их удалить.">
 <meta name="theme-color" content="#ebe8e0">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})()</script>
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +17,7 @@
 
 <a class="skip" href="#main">К содержимому</a>
 <header class="top">
-  <div class="top__in">
+  <div class="top__in top__in--theme">
     <a class="top__brand" href="./" aria-label="Vantegra, на главную">
       <img src="assets/logo.png" alt="" width="512" height="512">
       <span>Vantegra</span>
@@ -32,6 +33,10 @@
       <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
       <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
     </div>
+    <button class="top__theme" id="theme" type="button" aria-label="Переключить тему">
+      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
+      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
+    </button>
     <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
       <span></span><span></span>
     </button>
@@ -177,6 +182,10 @@
     </p>
   </div>
 </footer>
+
+<button class="totop" id="totop" type="button" aria-label="Наверх страницы">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+</button>
 
 <script src="main.js" defer></script>
 </body>

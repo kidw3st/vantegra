@@ -16,6 +16,27 @@
     draw();
   }
 
+  /* ночная тема: тумблер главнее системной */
+  const themeBtn = $('#theme');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
+      const cur = document.documentElement.dataset.theme || (sysDark ? 'dark' : 'light');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem('vantegra-theme', next); } catch {}
+    });
+  }
+
+  /* наверх страницы */
+  const totop = $('#totop');
+  if (totop) {
+    const draw = () => totop.classList.toggle('is-on', scrollY > innerHeight * 0.9);
+    addEventListener('scroll', draw, { passive: true });
+    draw();
+    totop.addEventListener('click', () => scrollTo({ top: 0, behavior: calm.matches ? 'auto' : 'smooth' }));
+  }
+
   /* бегущая строка: добираем копий до бесшовного цикла */
   const row = $('#marqueeRow');
   if (row && !calm.matches) {
