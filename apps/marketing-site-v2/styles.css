@@ -628,6 +628,14 @@ a { color: inherit; }
 .stack b { font: 600 20px/1.2 var(--grot); letter-spacing: -.01em; }
 .stack span { display: flex; flex-wrap: wrap; gap: 8px; }
 
+/* ---------- документные развороты ---------- */
+
+.stack--doc li { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); padding: 24px 0; }
+.stack--doc b { font-family: var(--cond); font-weight: 600; font-size: 26px; letter-spacing: -.01em; text-transform: uppercase; }
+.stack--doc div p { margin: 0 0 10px; max-width: 62ch; color: var(--ink-80); line-height: 1.6; }
+.stack--doc div p:last-child { margin-bottom: 0; }
+.stack--doc a { color: var(--amber-deep); }
+
 /* ---------- контакты ---------- */
 
 .contact {
