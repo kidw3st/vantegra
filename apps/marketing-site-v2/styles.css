@@ -816,6 +816,12 @@ textarea.field__input { resize: vertical; min-height: 104px; }
 .checks li { display: flex; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line-2); }
 .checks li:first-child, .checks li:nth-child(2) { border-top: 0; }
 .checks .ic--li { width: 19px; height: 19px; flex: none; margin-top: 2px; color: var(--amber-deep); }
+
+/* стрелка внутри строки текста: размер от кегля, а не от ширины контейнера.
+   В кнопках и ссылках «подробнее» её перебивают собственные правила. */
+.ic--inline { width: 1em; height: 1em; vertical-align: -.12em; flex: none; }
+/* страховка: инлайновая графика в текстовых блоках не растягивается */
+.terms svg, .land__text svg, .doc svg, .qa__body svg, .about p svg { width: 1em; height: 1em; }
 .checks span { font-size: 14.5px; line-height: 1.55; color: var(--smoke); }
 .checks b { color: var(--bone); font-weight: 500; }
 
