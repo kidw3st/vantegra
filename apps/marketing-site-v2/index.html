@@ -5,310 +5,190 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vantegra — студия разработки: сайты, боты, приложения, игры</title>
 <meta name="description" content="Vantegra собирает цифровые продукты целиком: сайты, телеграм-боты, веб-приложения и мобильные игры. Цена и сроки фиксируются до старта.">
-<meta name="theme-color" content="#ebe8e0">
+<meta name="theme-color" content="#ebe8e0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1310" media="(prefers-color-scheme: dark)">
 <script>(function(){try{var t=localStorage.getItem('vantegra-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})()</script>
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <a class="skip" href="#main">К содержимому</a>
-<header class="top">
-  <div class="top__in top__in--theme">
-    <a class="top__brand" href="./" aria-label="Vantegra, на главную">
+<header class="nav">
+  <div class="nav__in">
+    <a class="nav__brand" href="./" aria-label="Vantegra, на главную">
       <img src="assets/logo.png" alt="" width="512" height="512">
       <span>Vantegra</span>
     </a>
-    <nav class="top__nav" aria-label="Разделы">
-    <a href="services">Услуги</a>
-    <a href="pricing">Цены</a>
-    <a href="works">Работы</a>
-    <a href="about">О студии</a>
-    <a href="faq">Вопросы</a>
+    <nav class="nav__links" aria-label="Разделы">
+        <a href="services">Услуги</a>
+        <a href="pricing">Цены</a>
+        <a href="works">Работы</a>
+        <a href="about">О студии</a>
+        <a href="faq">Вопросы</a>
     </nav>
-    <div class="top__actions">
-      <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
-      <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
+    <div class="nav__side">
+      <a class="btn btn--ghost" href="cabinet">Кабинет</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Переключить тему">
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
+      </button>
+      <button class="icon-btn nav__burger" id="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+      <a class="btn btn--cta" href="contacts">Обсудить проект</a>
     </div>
-    <button class="top__theme" id="theme" type="button" aria-label="Переключить тему">
-      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
-      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
-    </button>
-    <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
-      <span></span><span></span>
-    </button>
   </div>
-  <span class="top__progress" aria-hidden="true"></span>
 </header>
 
 <nav class="drawer" id="drawer" aria-label="Разделы" hidden>
-  <a href="services"><span>Услуги</span><span class="mono">01</span></a>
-  <a href="pricing"><span>Цены</span><span class="mono">02</span></a>
-  <a href="works"><span>Работы</span><span class="mono">03</span></a>
-  <a href="about"><span>О студии</span><span class="mono">04</span></a>
-  <a href="faq"><span>Вопросы</span><span class="mono">05</span></a>
-  <a href="cabinet"><span>Кабинет</span><span class="mono">06</span></a>
-  <a href="contacts" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+  <a href="services"><span>Услуги</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="pricing"><span>Цены</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="works"><span>Работы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="about"><span>О студии</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="faq"><span>Вопросы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="cabinet"><span>Кабинет</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a class="btn btn--cta btn--wide" href="contacts">Обсудить проект</a>
 </nav>
 
 <main id="main">
 
-  <!-- ================= хиро ================= -->
   <section class="hero">
-    <p class="hero__status">
-      <span class="hero__dot" aria-hidden="true"></span>
-      <span class="mono">Свободны для новых проектов</span>
-      <span class="mono" style="color:var(--ink-40)">· Пермь и удалённо</span>
-    </p>
-    <div class="hero__grid">
-      <div>
-        <h1 class="hero__title">
-          <span class="hero__row"><span>Сайты. Боты.</span></span>
-          <span class="hero__row"><span>Приложения.</span></span>
-          <span class="hero__row"><span>Игры. <em>Целиком.</em></span></span>
-        </h1>
-        <p class="hero__lead">
-          Небольшая студия, которая берёт задачу от первого созвона до запуска
-          и остаётся рядом после. Цена и сроки фиксируются до старта.
-        </p>
-        <div class="hero__actions">
-          <a class="btn btn--dark" href="contacts">Обсудить проект <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-          <a class="btn btn--ghost" href="works">Смотреть работы</a>
-        </div>
-      </div>
-      <figure class="hero__render">
-        <img src="assets/mascot-laptop.jpg" alt="Вант, маскот Vantegra: 3D-рендер дракончика в кепке за ноутбуком" width="1792" height="1008" fetchpriority="high">
-        <figcaption>
-          <span class="mono">Вант · маскот студии</span>
-          <span class="mono">Рендер 01 · за работой</span>
-        </figcaption>
-      </figure>
+    <div class="hero__bg">
+      <img src="assets/mascot-sunrise.jpg" alt="Вант, маскот Vantegra, смотрит на рассвет над холмами" width="1792" height="1008" fetchpriority="high">
     </div>
-    <ul class="hero__facts">
-      <li><svg class="ic ic--fact" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16M3 9.5h6.5"/></svg><b>4</b> направления разработки</li>
-      <li><svg class="ic ic--fact" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.6V5.5C4 4.7 4.7 4 5.5 4h5.1c.4 0 .8.2 1.1.4l7.4 7.4a1.5 1.5 0 0 1 0 2.2l-5.1 5.1a1.5 1.5 0 0 1-2.2 0l-7.4-7.4a1.5 1.5 0 0 1-.4-1.1z"/><path d="M8.3 8.3h.01"/></svg>Смета по этапам <b>до старта</b></li>
-      <li><svg class="ic ic--fact" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 18.5 9.5M4 20l1-4.5L15.6 4.9a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L8.5 19z"/></svg>Прототип <b>до кода</b></li>
-      <li><svg class="ic ic--fact" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Исходники и доступы <b>ваши</b></li>
+    <div class="hero__in">
+      <p class="badge"><span class="dot dot--live" aria-hidden="true"></span><b>Свободны</b> для новых проектов</p>
+      <h1 class="hero__title">Собираем цифровые продукты целиком</h1>
+      <p class="hero__lead">
+        Сайты, телеграм-боты, веб-приложения и мобильные игры. Небольшая студия,
+        которая ведёт задачу от первого созвона до запуска и остаётся рядом после.
+      </p>
+      <div class="hero__act">
+        <a class="btn btn--cta" href="contacts">Обсудить проект <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn--ondark" href="works">Смотреть работы</a>
+      </div>
+      <p class="hero__sign">
+        <span>Vantegra · Пермь и удалённо</span>
+        <span>Цена и сроки фиксируются до старта</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <ul class="facts rv">
+      <li><b>4 направления</b><span>сайты, боты, приложения, игры</span></li>
+      <li><b>Смета по этапам</b><span>до начала работы</span></li>
+      <li><b>Прототип до кода</b><span>правки на нём бесплатны</span></li>
+      <li><b>Исходники ваши</b><span>с первого дня проекта</span></li>
     </ul>
   </section>
 
-  <p class="marquee" aria-hidden="true">
-    <span class="marquee__row" id="marqueeRow"><span>
-      Сайты <em>·</em> Телеграм-боты <em>·</em> Веб-приложения <em>·</em> Мобильные&nbsp;игры <em>·</em>&nbsp;
-    </span></span>
-  </p>
-
-  <!-- ================= направления ================= -->
-  <section class="section" id="services">
-    <div class="section__bar">
-      <span class="mono">01 · Что делаем</span>
-      <span class="mono">4 направления</span>
+  <section class="sec" id="services">
+    <div class="sec__head">
+      <div>
+        <p class="cap">Что делаем</p>
+        <h2 class="display">Четыре направления, одна команда</h2>
+      </div>
+      <a class="more" href="services">Все услуги <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="section__head">
-      <h2 class="display rv">Каждое ведём <em>от идеи</em> до релиза</h2>
-      <p class="section__note rv">Дизайн, код, интеграции, запуск и поддержка остаются в одних руках. Нажмите на направление, внутри детали и сроки.</p>
-    </div>
+    <ul class="grid">
+      <li>
+        <a class="card rv" href="services#site">
+          <div class="card__top"><span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18M6.6 6.9h.01M9.4 6.9h.01"/></svg></span><span class="tag">от 1–2 недель</span></div>
+          <h3>Сайты</h3>
+          <p>Лендинги, корпоративные сайты и магазины. Начинаем с вопроса, что должен сделать посетитель, и строим страницу вокруг этого действия.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card rv" href="services#bot">
+          <div class="card__top"><span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.4c-.5.4-1.3 0-1.3-.6z"/><path d="M8.6 10h.01M12 10h.01M15.4 10h.01"/></svg></span><span class="tag">от нескольких дней</span></div>
+          <h3>Телеграм-боты</h3>
+          <p>Заказы, записи, оплаты и мини-приложения внутри Telegram. Бот снимает с людей повторяющуюся работу круглосуточно.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card rv" href="services#app">
+          <div class="card__top"><span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16M3 9.5h6.5"/></svg></span><span class="tag">версия от 4 недель</span></div>
+          <h3>Веб-приложения</h3>
+          <p>Кабинеты, панели управления и внутренние сервисы. То, чем пользуются каждый день, поэтому скорость и понятность важнее украшений.</p>
+        </a>
+      </li>
+      <li>
+        <a class="card rv" href="services#game">
+          <div class="card__top"><span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 7h10.4a4.3 4.3 0 0 1 4.2 5.1l-.8 4.2a2.9 2.9 0 0 1-5 1.4L14.3 16h-4.6l-1.3 1.7a2.9 2.9 0 0 1-5-1.4l-.8-4.2A4.3 4.3 0 0 1 6.8 7z"/><path d="M8 10.4v3M6.5 11.9h3M15.7 10.7h.01M17.7 12.7h.01"/></svg></span><span class="tag">прототип за 2–3 недели</span></div>
+          <h3>Мобильные игры</h3>
+          <p>iOS и Android: сначала играбельный прототип, чтобы проверить механику, потом финальный арт и публикация в сторах.</p>
+        </a>
+      </li>
+    </ul>
+  </section>
 
-    <ol class="dirs">
-      <li class="dir rv">
-        <a class="dir__link" href="services#site">
-          <span class="dir__idx mono">01</span>
-          <h3 class="dir__name"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18M6.6 6.9h.01M9.4 6.9h.01"/></svg>Сайты</h3>
-          <p class="dir__desc">Лендинги, корпоративные сайты, магазины. Начинаем с вопроса, что должен сделать посетитель.</p>
-          <span class="dir__go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-        </a>
-      </li>
-      <li class="dir rv">
-        <a class="dir__link" href="services#bot">
-          <span class="dir__idx mono">02</span>
-          <h3 class="dir__name"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.4c-.5.4-1.3 0-1.3-.6z"/><path d="M8.6 10h.01M12 10h.01M15.4 10h.01"/></svg>Телеграм-боты</h3>
-          <p class="dir__desc">Заказы, записи, оплаты и мини-приложения внутри Telegram, круглосуточно и без выходных.</p>
-          <span class="dir__go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-        </a>
-      </li>
-      <li class="dir rv">
-        <a class="dir__link" href="services#app">
-          <span class="dir__idx mono">03</span>
-          <h3 class="dir__name"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16M3 9.5h6.5"/></svg>Веб-приложения</h3>
-          <p class="dir__desc">Кабинеты, панели управления, внутренние сервисы. Скорость и понятность важнее украшений.</p>
-          <span class="dir__go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-        </a>
-      </li>
-      <li class="dir rv">
-        <a class="dir__link" href="services#game">
-          <span class="dir__idx mono">04</span>
-          <h3 class="dir__name"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 7h10.4a4.3 4.3 0 0 1 4.2 5.1l-.8 4.2a2.9 2.9 0 0 1-5 1.4L14.3 16h-4.6l-1.3 1.7a2.9 2.9 0 0 1-5-1.4l-.8-4.2A4.3 4.3 0 0 1 6.8 7z"/><path d="M8 10.4v3M6.5 11.9h3M15.7 10.7h.01M17.7 12.7h.01"/></svg>Мобильные игры</h3>
-          <p class="dir__desc">iOS и Android: сначала играбельный прототип, потом финальный арт и релиз в сторах.</p>
-          <span class="dir__go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-        </a>
-      </li>
+  <section class="sec" id="work">
+    <div class="sec__head">
+      <div>
+        <p class="cap">Работы</p>
+        <h2 class="display">Уже стоит и работает</h2>
+      </div>
+      <a class="more" href="works">Вся витрина <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+    <article class="case rv">
+      <a class="win win--link" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">
+        <div class="win__bar" aria-hidden="true"><i></i><i></i><i></i><span>dopemusic · главная</span></div>
+        <img src="assets/work-dopemusic.jpg" alt="Главная страница сайта студии звукозаписи Dope Music" width="1440" height="900" loading="lazy">
+      </a>
+      <div class="case__body">
+        <p class="cap"><span class="dot dot--work" aria-hidden="true"></span> Запущен · 2026</p>
+        <h3 class="display">Dope Music</h3>
+        <p class="lead">Сайт студии звукозаписи и лейбла в Перми. Главная ведёт к одному действию, бронированию сессии, а три службы студии показаны как путь трека от записи до релиза.</p>
+        <ul class="case__tags">
+          <li class="tag">Сайт под ключ</li><li class="tag">Дизайн</li><li class="tag">Вёрстка</li><li class="tag">Контент</li>
+        </ul>
+        <a class="btn btn--ghost" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">Открыть сайт <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></svg></a>
+      </div>
+    </article>
+  </section>
+
+  <section class="sec" id="process">
+    <div class="sec__head">
+      <div>
+        <p class="cap">Как работаем</p>
+        <h2 class="display">От первого созвона до запуска</h2>
+      </div>
+    </div>
+    <ol class="flow">
+      <li class="rv"><span class="flow__n">1</span><h3>Разбираемся</h3><p>Выясняем задачу и ограничения. Фиксируем объём, сроки и цену до начала работы.</p></li>
+      <li class="rv"><span class="flow__n">2</span><h3>Прототип</h3><p>Показываем структуру и дизайн раньше, чем пишем код. Правки на этом этапе стоят ноль.</p></li>
+      <li class="rv"><span class="flow__n">3</span><h3>Разработка</h3><p>Собираем продукт короткими итерациями. Каждую неделю есть что показать и потрогать.</p></li>
+      <li class="rv"><span class="flow__n">4</span><h3>Запуск</h3><p>Выкатываем, подключаем аналитику, передаём доступы. Месяц правим всё по нашей вине бесплатно.</p></li>
     </ol>
   </section>
 
-  <!-- ================= манифест ================= -->
-  <section class="creed">
-    <div class="creed__inner">
-      <figure class="sign rv" aria-label="Вант держит табличку с манифестом студии">
-        <img src="assets/mascot-sign.jpg" alt="" width="1792" height="1008" loading="lazy">
-        <p class="sign__text">
-          <span class="sign__title">С вами говорят те же люди, что пишут код</span>
-          <span class="sign__sub">Никакого отдела продаж между вами и командой</span>
-        </p>
-      </figure>
-      <div class="creed__cols">
-        <div class="creed__col rv">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.6V5.5C4 4.7 4.7 4 5.5 4h5.1c.4 0 .8.2 1.1.4l7.4 7.4a1.5 1.5 0 0 1 0 2.2l-5.1 5.1a1.5 1.5 0 0 1-2.2 0l-7.4-7.4a1.5 1.5 0 0 1-.4-1.1z"/><path d="M8.3 8.3h.01"/></svg>
-          <h3>Цена и сроки до старта</h3>
-          <p>Разбиваем работу на этапы и фиксируем стоимость каждого. Никаких «выяснилось по ходу».</p>
-        </div>
-        <div class="creed__col rv">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 18.5 9.5M4 20l1-4.5L15.6 4.9a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L8.5 19z"/></svg>
-          <h3>Прототип раньше кода</h3>
-          <p>Сначала показываем структуру и дизайн. Правки на этом этапе стоят ноль.</p>
-        </div>
-        <div class="creed__col rv">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>
-          <h3>Всё ваше с первого дня</h3>
-          <p>Исходники, домен, сервер и доступы. Уйти к другой команде можно в любой момент.</p>
-        </div>
+  <section class="sec" id="pricing">
+    <div class="sec__head">
+      <div>
+        <p class="cap">Цены</p>
+        <h2 class="display">Считаем по объёму, а не по типу продукта</h2>
       </div>
+    </div>
+    <div class="price rv">
+      <div class="price__i"><b>от 90 000 ₽</b><span>Запуск: лендинг или простой бот</span></div>
+      <div class="price__i"><b>от 350 000 ₽</b><span>Продукт: магазин, кабинет, игра</span></div>
+      <div class="price__i"><b>от 25 000 ₽/мес</b><span>Поддержка после запуска</span></div>
+      <a class="btn btn--ghost" href="pricing">Разбор цены <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
   </section>
 
-  <!-- ================= процесс: лента едет от прокрутки ================= -->
-  <section class="process" id="process">
-    <div class="process__pin">
-      <div class="process__sticky">
-        <div class="process__bar">
-          <div class="section__bar" style="margin-bottom:0">
-            <span class="mono">02 · Как работаем</span>
-            <span class="mono">Четыре шага</span>
-          </div>
-        </div>
-        <ol class="process__track">
-          <li class="stage">
-            <div class="stage__top"><span class="stage__n">1</span><svg class="ic ic--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></div>
-            <h3 class="stage__name">Разбираемся</h3>
-            <p class="stage__desc">Созваниваемся, выясняем задачу и ограничения. Фиксируем объём, сроки и цену до начала работы.</p>
-          </li>
-          <li class="stage">
-            <div class="stage__top"><span class="stage__n">2</span><svg class="ic ic--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5 18.5 9.5M4 20l1-4.5L15.6 4.9a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L8.5 19z"/></svg></div>
-            <h3 class="stage__name">Прототип</h3>
-            <p class="stage__desc">Показываем структуру и дизайн раньше, чем пишем код. Поменять что угодно на этом этапе стоит ноль.</p>
-          </li>
-          <li class="stage">
-            <div class="stage__top"><span class="stage__n">3</span><svg class="ic ic--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.5 7.5-5 4.5 5 4.5M15.5 7.5l5 4.5-5 4.5M13.2 5 10.8 19"/></svg></div>
-            <h3 class="stage__name">Разработка</h3>
-            <p class="stage__desc">Собираем продукт короткими итерациями. Каждую неделю есть что показать и потрогать.</p>
-          </li>
-          <li class="stage stage--pine">
-            <div class="stage__top"><span class="stage__n">4</span><svg class="ic ic--stage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15c-1.5-.5-2.6-1.6-3-3 .6-4.2 2.6-7.2 6.9-8.9.8-.3 1.6.5 1.3 1.3C15.5 8.7 16.2 14.4 12 15z"/><path d="M9 12c-1.8.3-3 1.6-3.6 3.6 2-.6 3.3-.3 3.6 1.4 2-.6 3.3-1.8 3-3.5M13.8 8.7h.01"/></svg></div>
-            <h3 class="stage__name">Запуск</h3>
-            <p class="stage__desc">Выкатываем, подключаем аналитику, передаём доступы. Месяц после запуска правим всё по нашей вине бесплатно.</p>
-          </li>
-        </ol>
-        <p class="process__hint mono">Лента едет, пока вы прокручиваете страницу</p>
+  <section class="sec" id="faq">
+    <div class="sec__head">
+      <div>
+        <p class="cap">Вопросы</p>
+        <h2 class="display">Спросили до вас</h2>
       </div>
-    </div>
-  </section>
-
-  <!-- ================= работы ================= -->
-  <section class="dark" id="work">
-    <div class="dark__inner">
-      <div class="section__bar">
-        <span class="mono">03 · Работы</span>
-        <span class="mono">Витрина пополняется по мере запусков</span>
-      </div>
-      <div class="section__head">
-        <h2 class="display rv">Уже стоит <em>и работает</em></h2>
-        <p class="section__note rv">Только реальные запуски: каждую работу можно открыть и потрогать руками.</p>
-      </div>
-
-      <article class="case rv">
-        <a class="case__shot" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">
-          <img src="assets/work-dopemusic.jpg" alt="Главная страница сайта студии звукозаписи Dope Music" width="1440" height="900" loading="lazy">
-        </a>
-        <div class="case__body">
-          <h3 class="case__name">Dope Music</h3>
-          <p class="case__kind">Сайт студии звукозаписи и лейбла · Пермь</p>
-          <p class="case__desc">
-            Главная ведёт к одному действию, бронированию сессии. Три службы студии
-            показаны как путь трека от записи до релиза.
-          </p>
-          <ul class="case__chips">
-            <li class="chip">Сайт под ключ</li><li class="chip">Дизайн</li><li class="chip">Вёрстка</li><li class="chip">Прайс</li>
-          </ul>
-          <a class="btn btn--bone" href="https://kidw3st.github.io/dopemusic/index.html" target="_blank" rel="noopener">Открыть сайт <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-        </div>
-      </article>
-
-      <div class="slots">
-        <div class="ph ph--pine ph--wide" role="img" aria-label="Место под рендер: РЕНДЕР: Вант прикручивает вывеску следующего кейса">
-  <b>РЕНДЕР: Вант прикручивает вывеску следующего кейса</b>
-  <span class="mono">Горизонталь 16:9 · серый студийный фон</span>
-</div>
-        <div class="slot rv"><b>Слот свободен</b><span class="mono">Здесь будет ваш проект</span></div>
-        <div class="slot rv"><b>Слот свободен</b><span class="mono">Запуск за запуском</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= цены ================= -->
-  <section class="section" id="pricing">
-    <div class="section__bar">
-      <span class="mono">04 · Цены</span>
-      <span class="mono">Считаем по объёму, не по типу</span>
-    </div>
-    <div class="section__head">
-      <h2 class="display rv">Рамки, <em>от которых</em> считаем</h2>
-      <p class="section__note rv">Точную смету по этапам присылаем после короткого созвона. Из чего складывается цена, разобрали на странице цен.</p>
-    </div>
-
-    <ul class="plans">
-      <li class="plan rv">
-        <div class="plan__top"><h3 class="plan__name">Запуск</h3><p class="plan__sum">от 90 000 ₽</p></div>
-        <p class="plan__for">Быстро появиться в сети и начать собирать заявки.</p>
-        <p class="plan__inc">Лендинг или простой бот: структура, дизайн, до пяти экранов, форма заявки и аналитика, запуск на вашем домене. Срок одна-две недели.</p>
-        <a class="btn btn--ghost plan__act" href="contacts">Обсудить</a>
-      </li>
-      <li class="plan plan--main rv">
-        <p class="plan__flag">Чаще всего</p>
-        <div class="plan__top"><h3 class="plan__name">Продукт</h3><p class="plan__sum">от 350 000 ₽</p></div>
-        <p class="plan__for">Сайт или сервис как рабочий инструмент, а не визитка.</p>
-        <p class="plan__inc">Магазин, кабинет, веб-приложение или игра: исследование и прототип до кода; бэкенд, база, роли и доступы; интеграции: оплаты, CRM, склад; тесты и запуск. Срок от шести недель.</p>
-        <a class="btn btn--bone plan__act" href="contacts">Обсудить</a>
-      </li>
-      <li class="plan rv">
-        <div class="plan__top"><h3 class="plan__name">Поддержка</h3><p class="plan__sum">от 25 000 ₽/мес</p></div>
-        <p class="plan__for">Продукт запущен, и нужно, чтобы он просто работал.</p>
-        <p class="plan__inc">Мониторинг и резервные копии, обновления зависимостей и сертификатов, до восьми часов мелких правок в месяц, ответ на сбой в течение двух часов.</p>
-        <a class="btn btn--ghost plan__act" href="contacts">Подключить</a>
-      </li>
-      <li class="plan rv">
-        <div class="plan__top"><h3 class="plan__name">Команда</h3><p class="plan__sum">от 180 000 ₽/мес</p></div>
-        <p class="plan__for">Продукт живёт и развивается, нужны руки на постоянно.</p>
-        <p class="plan__inc">Выделенные часы разработки и дизайна, план на месяц и отчёт по задачам, присмотр за сервером, срочные правки вне очереди. Приостановить можно в любой месяц.</p>
-        <a class="btn btn--ghost plan__act" href="contacts">Обсудить</a>
-      </li>
-    </ul>
-    <p class="pricing__terms rv">
-      Стоимость согласованных этапов зафиксирована и по ходу не растёт. Аванс только за первый
-      этап, остальное по факту приёмки. <a href="pricing">Из чего складывается цена →</a>
-    </p>
-  </section>
-
-  <!-- ================= вопросы: короткая версия ================= -->
-  <section class="section" id="faq">
-    <div class="section__bar">
-      <span class="mono">05 · Вопросы</span>
-      <a class="mono" href="faq" style="text-decoration:none">Все ответы →</a>
-    </div>
-    <div class="section__head">
-      <h2 class="display rv">Спросили <em>до вас</em></h2>
-      <p class="section__note rv">Три самых частых вопроса. Остальные ответы: про правки, гарантию и сроки, собраны на отдельной странице.</p>
+      <a class="more" href="faq">Все ответы <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="faq">
       <details class="qa" name="faq" open>
@@ -326,56 +206,16 @@
     </div>
   </section>
 
-  <figure class="vista rv">
-    <img src="assets/mascot-sunrise.jpg" alt="Вант смотрит на рассвет над холмами" width="1792" height="1008" loading="lazy">
-    <figcaption>Рендер 05 · Вант ждёт следующий проект</figcaption>
-  </figure>
-
-  <!-- ================= контакт ================= -->
-  <section class="contact" id="contact">
-    <div class="contact__inner">
+  <section class="sec">
+    <div class="cta-band rv">
       <div>
-        <h2 class="display contact__title">Обсудим <em>ваш</em> проект?</h2>
-        <p class="contact__note">Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
-        <p class="contact__mail"><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></p>
-        <p class="contact__tg"><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra в Telegram</a></p>
-        <ul class="contact__meta">
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Отвечаем в течение дня</li>
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5A1.5 1.5 0 0 1 6.5 3.5z"/><path d="M9 13.5l2 2 4-4.5"/></svg>Работаем по договору, с закрывающими документами</li>
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg>Смета по этапам до начала работы</li>
-        </ul>
+        <h2 class="display">Обсудим ваш проект?</h2>
+        <p>Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
       </div>
-      <form class="form" id="form" action="../marketing-site/send.php" method="post" novalidate>
-        <label class="field">
-          <span class="field__label">Как к вам обращаться</span>
-          <input class="field__input" type="text" name="name" autocomplete="name" required maxlength="80">
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <label class="field">
-          <span class="field__label">Куда ответить</span>
-          <input class="field__input" type="text" name="contact" autocomplete="email" placeholder="почта или @ник в Telegram" required maxlength="120">
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <label class="field">
-          <span class="field__label">Что нужно сделать</span>
-          <select class="field__input" name="kind">
-            <option value="site">Сайт</option>
-            <option value="bot">Телеграм-бот</option>
-            <option value="app">Веб-приложение</option>
-            <option value="game">Мобильная игра</option>
-            <option value="other">Не знаю, нужно обсудить</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="field__label">Опишите задачу</span>
-          <textarea class="field__input" name="task" rows="4" required maxlength="2000" placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
-        <button class="btn btn--bone btn--wide" type="submit">Отправить</button>
-        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="privacy">политикой конфиденциальности</a>.</p>
-        <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
-      </form>
+      <div class="cta-band__act">
+        <a class="btn btn--cta" href="contacts">Написать нам <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn--ghost" href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+      </div>
     </div>
   </section>
 
@@ -389,11 +229,11 @@
           <img src="assets/logo.png" alt="" width="512" height="512">
           <span>Vantegra</span>
         </a>
-        <p class="mono" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+        <p class="cap" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
       </div>
       <div>
-        <p class="foot__h">Разделы</p>
-        <ul class="foot__nav">
+        <h2>Разделы</h2>
+        <ul>
           <li><a href="services">Услуги</a></li>
           <li><a href="pricing">Цены</a></li>
           <li><a href="works">Работы</a></li>
@@ -402,32 +242,31 @@
         </ul>
       </div>
       <div>
-        <p class="foot__h">Связь</p>
-        <ul class="foot__nav">
+        <h2>Связь</h2>
+        <ul>
           <li><a href="contacts">Контакты</a></li>
           <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
           <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
         </ul>
       </div>
       <div>
-        <p class="foot__h">Документы</p>
-        <ul class="foot__nav">
+        <h2>Документы</h2>
+        <ul>
           <li><a href="privacy">Конфиденциальность</a></li>
           <li><a href="terms">Условия работы</a></li>
           <li><a href="cabinet">Кабинет клиента</a></li>
         </ul>
       </div>
     </div>
-    <p class="foot__mark" aria-hidden="true">Vantegra</p>
     <p class="foot__fine">
-      <span class="mono">© 2026 Vantegra</span>
-      <span class="mono">Сайты · Боты · Веб-приложения · Мобильные игры</span>
+      <span>© 2026 Vantegra</span>
+      <span>Сайты · Боты · Веб-приложения · Мобильные игры</span>
     </p>
   </div>
 </footer>
 
 <button class="totop" id="totop" type="button" aria-label="Наверх страницы">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+  <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>Наверх</span>
 </button>
 
 <script src="main.js" defer></script>

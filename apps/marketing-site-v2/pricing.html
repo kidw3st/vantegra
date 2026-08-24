@@ -5,139 +5,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Цены — Vantegra</title>
 <meta name="description" content="Сколько стоит сайт, бот, веб-приложение или игра в студии Vantegra: рамки цен, из чего складывается смета, условия работы.">
-<meta name="theme-color" content="#ebe8e0">
+<meta name="theme-color" content="#ebe8e0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1310" media="(prefers-color-scheme: dark)">
 <script>(function(){try{var t=localStorage.getItem('vantegra-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})()</script>
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <a class="skip" href="#main">К содержимому</a>
-<header class="top">
-  <div class="top__in top__in--theme">
-    <a class="top__brand" href="./" aria-label="Vantegra, на главную">
+<header class="nav">
+  <div class="nav__in">
+    <a class="nav__brand" href="./" aria-label="Vantegra, на главную">
       <img src="assets/logo.png" alt="" width="512" height="512">
       <span>Vantegra</span>
     </a>
-    <nav class="top__nav" aria-label="Разделы">
-    <a href="services">Услуги</a>
-    <a href="pricing" aria-current="page">Цены</a>
-    <a href="works">Работы</a>
-    <a href="about">О студии</a>
-    <a href="faq">Вопросы</a>
+    <nav class="nav__links" aria-label="Разделы">
+        <a href="services">Услуги</a>
+        <a href="pricing" aria-current="page">Цены</a>
+        <a href="works">Работы</a>
+        <a href="about">О студии</a>
+        <a href="faq">Вопросы</a>
     </nav>
-    <div class="top__actions">
-      <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
-      <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
+    <div class="nav__side">
+      <a class="btn btn--ghost" href="cabinet">Кабинет</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Переключить тему">
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
+      </button>
+      <button class="icon-btn nav__burger" id="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+      <a class="btn btn--cta" href="contacts">Обсудить проект</a>
     </div>
-    <button class="top__theme" id="theme" type="button" aria-label="Переключить тему">
-      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
-      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
-    </button>
-    <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
-      <span></span><span></span>
-    </button>
   </div>
-  <span class="top__progress" aria-hidden="true"></span>
 </header>
 
 <nav class="drawer" id="drawer" aria-label="Разделы" hidden>
-  <a href="services"><span>Услуги</span><span class="mono">01</span></a>
-  <a href="pricing"><span>Цены</span><span class="mono">02</span></a>
-  <a href="works"><span>Работы</span><span class="mono">03</span></a>
-  <a href="about"><span>О студии</span><span class="mono">04</span></a>
-  <a href="faq"><span>Вопросы</span><span class="mono">05</span></a>
-  <a href="cabinet"><span>Кабинет</span><span class="mono">06</span></a>
-  <a href="contacts" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+  <a href="services"><span>Услуги</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="pricing"><span>Цены</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="works"><span>Работы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="about"><span>О студии</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="faq"><span>Вопросы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="cabinet"><span>Кабинет</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a class="btn btn--cta btn--wide" href="contacts">Обсудить проект</a>
 </nav>
 
 <main id="main">
 
-  <section class="phero">
-    <div class="phero__bar">
-      <span class="mono">Цены</span>
-      <span class="mono">Смета по этапам · без сюрпризов</span>
-    </div>
-    <h1 class="phero__title">
-      <span class="phero__row"><span>Считаем по объёму,</span></span>
-      <span class="phero__row"><span><em>а не</em> по типу</span></span>
-    </h1>
-    <p class="phero__lead">
-      Ниже рамки, от которых считаем. Точную смету по этапам присылаем после
-      короткого созвона, и вы видите, за что платите на каждом.
-    </p>
+  <section class="phead">
+    <p class="cap">Цены</p>
+    <h1 class="phead__title">Считаем по объёму, а не по типу</h1>
+    <p class="lead">Ниже рамки, от которых считаем. Точную смету по этапам присылаем после короткого созвона, и вы видите, за что платите на каждом.</p>
   </section>
 
-  <section class="section">
-    <div class="section__bar">
-      <span class="mono">01 · Тарифы</span>
-      <span class="mono">Цены: заглушки, подставьте свои</span>
-    </div>
+  <section class="sec">
     <ul class="plans">
       <li class="plan rv">
-        <div class="plan__top"><h3 class="plan__name">Запуск</h3><p class="plan__sum">от 90 000 ₽</p></div>
+        <h3>Запуск</h3>
+        <p class="plan__sum">от 90 000 ₽</p>
         <p class="plan__for">Быстро появиться в сети и начать собирать заявки.</p>
         <p class="plan__inc">Лендинг или простой бот: структура, дизайн, до пяти экранов, форма заявки и аналитика, запуск на вашем домене. Срок одна-две недели.</p>
-        <a class="btn btn--ghost plan__act" href="contacts">Обсудить</a>
+        <a class="btn btn--ghost" href="contacts">Обсудить</a>
       </li>
       <li class="plan plan--main rv">
         <p class="plan__flag">Чаще всего</p>
-        <div class="plan__top"><h3 class="plan__name">Продукт</h3><p class="plan__sum">от 350 000 ₽</p></div>
+        <h3>Продукт</h3>
+        <p class="plan__sum">от 350 000 ₽</p>
         <p class="plan__for">Сайт или сервис как рабочий инструмент, а не визитка.</p>
         <p class="plan__inc">Магазин, кабинет, веб-приложение или игра: исследование и прототип до кода; бэкенд, база, роли и доступы; интеграции: оплаты, CRM, склад; тесты и запуск. Срок от шести недель.</p>
-        <a class="btn btn--bone plan__act" href="contacts">Обсудить</a>
+        <a class="btn btn--cta" href="contacts">Обсудить <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </li>
       <li class="plan rv">
-        <div class="plan__top"><h3 class="plan__name">Поддержка</h3><p class="plan__sum">от 25 000 ₽/мес</p></div>
+        <h3>Поддержка</h3>
+        <p class="plan__sum">от 25 000 ₽ / мес</p>
         <p class="plan__for">Продукт запущен, и нужно, чтобы он просто работал.</p>
         <p class="plan__inc">Мониторинг и резервные копии, обновления зависимостей и сертификатов, до восьми часов мелких правок в месяц, ответ на сбой в рабочее время в течение двух часов.</p>
-        <a class="btn btn--ghost plan__act" href="contacts">Подключить</a>
+        <a class="btn btn--ghost" href="contacts">Подключить</a>
       </li>
       <li class="plan rv">
-        <div class="plan__top"><h3 class="plan__name">Команда</h3><p class="plan__sum">от 180 000 ₽/мес</p></div>
+        <h3>Команда</h3>
+        <p class="plan__sum">от 180 000 ₽ / мес</p>
         <p class="plan__for">Продукт живёт и развивается, нужны руки на постоянно.</p>
         <p class="plan__inc">Выделенные часы разработки и дизайна, план на месяц и отчёт по задачам, присмотр за сервером и обновлениями, срочные правки вне очереди. Приостановить можно в любой месяц.</p>
-        <a class="btn btn--ghost plan__act" href="contacts">Обсудить</a>
+        <a class="btn btn--ghost" href="contacts">Обсудить</a>
       </li>
     </ul>
   </section>
 
-  <section class="section">
-    <div class="section__bar">
-      <span class="mono">02 · Из чего складывается цена</span>
-      <span class="mono">Три главных фактора</span>
+  <section class="sec">
+    <div class="sec__head">
+      <div>
+        <p class="cap">Из чего складывается цена</p>
+        <h2 class="display">Три главных фактора</h2>
+      </div>
     </div>
-    <ul class="factors">
-      <li class="factor rv">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16M3 9.5h6.5"/></svg>
-        <h3>Количество непохожих экранов</h3>
+    <ul class="grid grid--3">
+      <li class="card rv">
+        <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16M3 9.5h6.5"/></svg></span>
+        <h3>Непохожие экраны</h3>
         <p>Десять однотипных карточек товара считаются одним экраном. Десять непохожих разделов: десять. Считаем именно по различиям.</p>
       </li>
-      <li class="factor rv">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5V8M15 3.5V8M7 8h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5z"/><path d="M12 16v4.5"/></svg>
+      <li class="card rv">
+        <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5V8M15 3.5V8M7 8h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5z"/><path d="M12 16v4.5"/></svg></span>
         <h3>Интеграции</h3>
         <p>Оплаты, CRM, склад, доставка, календарь. Каждая связка: отдельная работа с чужим API, который ведёт себя по-своему.</p>
       </li>
-      <li class="factor rv">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3"/><circle cx="8.6" cy="9.4" r="1.6"/><path d="m5 17 4.4-4.2c.6-.6 1.5-.6 2.1 0l2 1.9 2.4-2.3c.6-.6 1.5-.6 2.1 0L21 15.2"/></svg>
+      <li class="card rv">
+        <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3"/><circle cx="8.6" cy="9.4" r="1.6"/><path d="m5 17 4.4-4.2c.6-.6 1.5-.6 2.1 0l2 1.9 2.4-2.3c.6-.6 1.5-.6 2.1 0L21 15.2"/></svg></span>
         <h3>Контент</h3>
         <p>Если тексты и фотографии на вас, выходит дешевле и быстрее. Если на нас, закладываем копирайтера и съёмку.</p>
       </li>
     </ul>
-    <p class="pricing__terms rv">
+    <p class="terms rv">
       Стоимость согласованных этапов зафиксирована и по ходу не растёт. Аванс только за первый этап,
       остальное по факту приёмки каждого. Месяц после запуска правим всё по нашей вине бесплатно.
       Подробнее в <a href="terms">условиях работы</a>.
     </p>
   </section>
 
-  <section class="section">
-    <div class="section__bar">
-      <span class="mono">03 · Частые вопросы о деньгах</span>
-      <a class="mono" href="faq" style="text-decoration:none">Все ответы →</a>
+  <section class="sec">
+    <div class="sec__head">
+      <div>
+        <p class="cap">Вопросы о деньгах</p>
+        <h2 class="display">Что спрашивают чаще всего</h2>
+      </div>
+      <a class="more" href="faq">Все ответы <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="faq">
       <details class="qa" name="faq" open>
@@ -151,51 +147,16 @@
     </div>
   </section>
 
-  <!-- ================= контакт ================= -->
-  <section class="contact" id="contact">
-    <div class="contact__inner">
+  <section class="sec">
+    <div class="cta-band rv">
       <div>
-        <h2 class="display contact__title">Обсудим <em>ваш</em> проект?</h2>
-        <p class="contact__note">Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
-        <p class="contact__mail"><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></p>
-        <p class="contact__tg"><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra в Telegram</a></p>
-        <ul class="contact__meta">
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Отвечаем в течение дня</li>
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5A1.5 1.5 0 0 1 6.5 3.5z"/><path d="M9 13.5l2 2 4-4.5"/></svg>Работаем по договору, с закрывающими документами</li>
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg>Смета по этапам до начала работы</li>
-        </ul>
+        <h2 class="display">Посчитаем ваш проект?</h2>
+        <p>Опишите задачу, и мы вернёмся со сметой по этапам и сроками. Это бесплатно и ни к чему не обязывает.</p>
       </div>
-      <form class="form" id="form" action="../marketing-site/send.php" method="post" novalidate>
-        <label class="field">
-          <span class="field__label">Как к вам обращаться</span>
-          <input class="field__input" type="text" name="name" autocomplete="name" required maxlength="80">
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <label class="field">
-          <span class="field__label">Куда ответить</span>
-          <input class="field__input" type="text" name="contact" autocomplete="email" placeholder="почта или @ник в Telegram" required maxlength="120">
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <label class="field">
-          <span class="field__label">Что нужно сделать</span>
-          <select class="field__input" name="kind">
-            <option value="site">Сайт</option>
-            <option value="bot">Телеграм-бот</option>
-            <option value="app">Веб-приложение</option>
-            <option value="game">Мобильная игра</option>
-            <option value="other">Не знаю, нужно обсудить</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="field__label">Опишите задачу</span>
-          <textarea class="field__input" name="task" rows="4" required maxlength="2000" placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
-        <button class="btn btn--bone btn--wide" type="submit">Отправить</button>
-        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="privacy">политикой конфиденциальности</a>.</p>
-        <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
-      </form>
+      <div class="cta-band__act">
+        <a class="btn btn--cta" href="contacts">Написать нам <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn--ghost" href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+      </div>
     </div>
   </section>
 
@@ -209,11 +170,11 @@
           <img src="assets/logo.png" alt="" width="512" height="512">
           <span>Vantegra</span>
         </a>
-        <p class="mono" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+        <p class="cap" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
       </div>
       <div>
-        <p class="foot__h">Разделы</p>
-        <ul class="foot__nav">
+        <h2>Разделы</h2>
+        <ul>
           <li><a href="services">Услуги</a></li>
           <li><a href="pricing">Цены</a></li>
           <li><a href="works">Работы</a></li>
@@ -222,32 +183,31 @@
         </ul>
       </div>
       <div>
-        <p class="foot__h">Связь</p>
-        <ul class="foot__nav">
+        <h2>Связь</h2>
+        <ul>
           <li><a href="contacts">Контакты</a></li>
           <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
           <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
         </ul>
       </div>
       <div>
-        <p class="foot__h">Документы</p>
-        <ul class="foot__nav">
+        <h2>Документы</h2>
+        <ul>
           <li><a href="privacy">Конфиденциальность</a></li>
           <li><a href="terms">Условия работы</a></li>
           <li><a href="cabinet">Кабинет клиента</a></li>
         </ul>
       </div>
     </div>
-    <p class="foot__mark" aria-hidden="true">Vantegra</p>
     <p class="foot__fine">
-      <span class="mono">© 2026 Vantegra</span>
-      <span class="mono">Сайты · Боты · Веб-приложения · Мобильные игры</span>
+      <span>© 2026 Vantegra</span>
+      <span>Сайты · Боты · Веб-приложения · Мобильные игры</span>
     </p>
   </div>
 </footer>
 
 <button class="totop" id="totop" type="button" aria-label="Наверх страницы">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+  <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>Наверх</span>
 </button>
 
 <script src="main.js" defer></script>

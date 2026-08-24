@@ -4,65 +4,66 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Страница не найдена — Vantegra</title>
+<meta name="description" content="Такой страницы нет.">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#ebe8e0">
+<meta name="theme-color" content="#ebe8e0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1310" media="(prefers-color-scheme: dark)">
 <script>(function(){try{var t=localStorage.getItem('vantegra-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})()</script>
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <a class="skip" href="#main">К содержимому</a>
-<header class="top">
-  <div class="top__in top__in--theme">
-    <a class="top__brand" href="./" aria-label="Vantegra, на главную">
+<header class="nav">
+  <div class="nav__in">
+    <a class="nav__brand" href="./" aria-label="Vantegra, на главную">
       <img src="assets/logo.png" alt="" width="512" height="512">
       <span>Vantegra</span>
     </a>
-    <nav class="top__nav" aria-label="Разделы">
-    <a href="services">Услуги</a>
-    <a href="pricing">Цены</a>
-    <a href="works">Работы</a>
-    <a href="about">О студии</a>
-    <a href="faq">Вопросы</a>
+    <nav class="nav__links" aria-label="Разделы">
+        <a href="services">Услуги</a>
+        <a href="pricing">Цены</a>
+        <a href="works">Работы</a>
+        <a href="about">О студии</a>
+        <a href="faq">Вопросы</a>
     </nav>
-    <div class="top__actions">
-      <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
-      <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
+    <div class="nav__side">
+      <a class="btn btn--ghost" href="cabinet">Кабинет</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Переключить тему">
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
+      </button>
+      <button class="icon-btn nav__burger" id="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+      <a class="btn btn--cta" href="contacts">Обсудить проект</a>
     </div>
-    <button class="top__theme" id="theme" type="button" aria-label="Переключить тему">
-      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
-      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
-    </button>
-    <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
-      <span></span><span></span>
-    </button>
   </div>
-  <span class="top__progress" aria-hidden="true"></span>
 </header>
 
 <nav class="drawer" id="drawer" aria-label="Разделы" hidden>
-  <a href="services"><span>Услуги</span><span class="mono">01</span></a>
-  <a href="pricing"><span>Цены</span><span class="mono">02</span></a>
-  <a href="works"><span>Работы</span><span class="mono">03</span></a>
-  <a href="about"><span>О студии</span><span class="mono">04</span></a>
-  <a href="faq"><span>Вопросы</span><span class="mono">05</span></a>
-  <a href="cabinet"><span>Кабинет</span><span class="mono">06</span></a>
-  <a href="contacts" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+  <a href="services"><span>Услуги</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="pricing"><span>Цены</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="works"><span>Работы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="about"><span>О студии</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="faq"><span>Вопросы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="cabinet"><span>Кабинет</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a class="btn btn--cta btn--wide" href="contacts">Обсудить проект</a>
 </nav>
 
 <main id="main" class="lost">
-  <figure class="lost__render">
+  <div class="win rv">
+    <div class="win__bar" aria-hidden="true"><i></i><i></i><i></i><span>404 · страница не найдена</span></div>
     <img src="assets/mascot-404.jpg" alt="Вант растерянно смотрит на объёмные цифры 404" width="1792" height="1008" fetchpriority="high">
-  </figure>
+  </div>
   <h1 class="display">Страница не нашлась</h1>
-  <p class="lost__note">Возможно, адрес набран с опечаткой или страницу переименовали.
-     Вант тоже её не нашёл, а он смотрел внимательно.</p>
-  <div class="lost__actions">
-    <a class="btn btn--dark" href="./">На главную</a>
+  <p class="lead">Возможно, адрес набран с опечаткой или страницу переименовали. Вант тоже её не нашёл, а он смотрел внимательно.</p>
+  <div class="lost__act">
+    <a class="btn btn--cta" href="./">На главную <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     <a class="btn btn--ghost" href="works">Смотреть работы</a>
   </div>
 </main>
@@ -75,11 +76,11 @@
           <img src="assets/logo.png" alt="" width="512" height="512">
           <span>Vantegra</span>
         </a>
-        <p class="mono" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+        <p class="cap" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
       </div>
       <div>
-        <p class="foot__h">Разделы</p>
-        <ul class="foot__nav">
+        <h2>Разделы</h2>
+        <ul>
           <li><a href="services">Услуги</a></li>
           <li><a href="pricing">Цены</a></li>
           <li><a href="works">Работы</a></li>
@@ -88,32 +89,31 @@
         </ul>
       </div>
       <div>
-        <p class="foot__h">Связь</p>
-        <ul class="foot__nav">
+        <h2>Связь</h2>
+        <ul>
           <li><a href="contacts">Контакты</a></li>
           <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
           <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
         </ul>
       </div>
       <div>
-        <p class="foot__h">Документы</p>
-        <ul class="foot__nav">
+        <h2>Документы</h2>
+        <ul>
           <li><a href="privacy">Конфиденциальность</a></li>
           <li><a href="terms">Условия работы</a></li>
           <li><a href="cabinet">Кабинет клиента</a></li>
         </ul>
       </div>
     </div>
-    <p class="foot__mark" aria-hidden="true">Vantegra</p>
     <p class="foot__fine">
-      <span class="mono">© 2026 Vantegra</span>
-      <span class="mono">Сайты · Боты · Веб-приложения · Мобильные игры</span>
+      <span>© 2026 Vantegra</span>
+      <span>Сайты · Боты · Веб-приложения · Мобильные игры</span>
     </p>
   </div>
 </footer>
 
 <button class="totop" id="totop" type="button" aria-label="Наверх страницы">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+  <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>Наверх</span>
 </button>
 
 <script src="main.js" defer></script>

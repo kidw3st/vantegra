@@ -5,176 +5,128 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Услуги — Vantegra: сайты, боты, веб-приложения, игры</title>
 <meta name="description" content="Что делает студия Vantegra: сайты, телеграм-боты, веб-приложения и мобильные игры. Состав работ и сроки по каждому направлению.">
-<meta name="theme-color" content="#ebe8e0">
+<meta name="theme-color" content="#ebe8e0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1310" media="(prefers-color-scheme: dark)">
 <script>(function(){try{var t=localStorage.getItem('vantegra-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})()</script>
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <a class="skip" href="#main">К содержимому</a>
-<header class="top">
-  <div class="top__in top__in--theme">
-    <a class="top__brand" href="./" aria-label="Vantegra, на главную">
+<header class="nav">
+  <div class="nav__in">
+    <a class="nav__brand" href="./" aria-label="Vantegra, на главную">
       <img src="assets/logo.png" alt="" width="512" height="512">
       <span>Vantegra</span>
     </a>
-    <nav class="top__nav" aria-label="Разделы">
-    <a href="services" aria-current="page">Услуги</a>
-    <a href="pricing">Цены</a>
-    <a href="works">Работы</a>
-    <a href="about">О студии</a>
-    <a href="faq">Вопросы</a>
+    <nav class="nav__links" aria-label="Разделы">
+        <a href="services" aria-current="page">Услуги</a>
+        <a href="pricing">Цены</a>
+        <a href="works">Работы</a>
+        <a href="about">О студии</a>
+        <a href="faq">Вопросы</a>
     </nav>
-    <div class="top__actions">
-      <a class="btn btn--ghost top__cab" href="cabinet"><svg class="ic ic--btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="12" r="4.5"/><path d="M13 12h7M17.5 12v3M20 12v2"/></svg>Кабинет</a>
-      <a class="btn btn--dark top__cta" href="contacts">Обсудить проект</a>
+    <div class="nav__side">
+      <a class="btn btn--ghost" href="cabinet">Кабинет</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Переключить тему">
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
+      </button>
+      <button class="icon-btn nav__burger" id="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+      <a class="btn btn--cta" href="contacts">Обсудить проект</a>
     </div>
-    <button class="top__theme" id="theme" type="button" aria-label="Переключить тему">
-      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
-      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
-    </button>
-    <button class="top__burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
-      <span></span><span></span>
-    </button>
   </div>
-  <span class="top__progress" aria-hidden="true"></span>
 </header>
 
 <nav class="drawer" id="drawer" aria-label="Разделы" hidden>
-  <a href="services"><span>Услуги</span><span class="mono">01</span></a>
-  <a href="pricing"><span>Цены</span><span class="mono">02</span></a>
-  <a href="works"><span>Работы</span><span class="mono">03</span></a>
-  <a href="about"><span>О студии</span><span class="mono">04</span></a>
-  <a href="faq"><span>Вопросы</span><span class="mono">05</span></a>
-  <a href="cabinet"><span>Кабинет</span><span class="mono">06</span></a>
-  <a href="contacts" class="drawer__cta"><span>Обсудить проект</span><span class="mono">→</span></a>
+  <a href="services"><span>Услуги</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="pricing"><span>Цены</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="works"><span>Работы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="about"><span>О студии</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="faq"><span>Вопросы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="cabinet"><span>Кабинет</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a class="btn btn--cta btn--wide" href="contacts">Обсудить проект</a>
 </nav>
 
 <main id="main">
 
-  <section class="phero">
-    <div class="phero__bar">
-      <span class="mono">Услуги</span>
-      <span class="mono">4 направления · одна команда</span>
-    </div>
-    <h1 class="phero__title">
-      <span class="phero__row"><span>Что мы делаем</span></span>
-      <span class="phero__row"><span><em>руками</em> и головой</span></span>
-    </h1>
-    <p class="phero__lead">
-      Каждое направление ведём от идеи до релиза: дизайн, код, интеграции,
-      запуск и поддержка остаются в одних руках.
-    </p>
+  <section class="phead">
+    <p class="cap">Услуги</p>
+    <h1 class="phead__title">Что мы делаем руками и головой</h1>
+    <p class="lead">Каждое направление ведём от идеи до релиза: дизайн, код, интеграции, запуск и поддержка остаются в одних руках.</p>
   </section>
 
-  <section class="section">
-    <article class="svc" id="site">
-      <div>
-        <span class="svc__idx mono">01</span>
-        <h2 class="svc__name rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18M6.6 6.9h.01M9.4 6.9h.01"/></svg>Сайты</h2>
-        <ul class="svc__chips"><li class="chip">Next.js</li><li class="chip">Astro</li><li class="chip">Tilda</li><li class="chip">WordPress</li><li class="chip">1С-Битрикс</li><li class="chip">Figma</li></ul>
+  <section class="sec">
+    <article class="svc rv" id="site">
+      <div class="svc__side">
+        <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18M6.6 6.9h.01M9.4 6.9h.01"/></svg></span>
+        <h2 class="svc__name">Сайты</h2>
+        <ul class="svc__tags"><li class="tag">Next.js</li><li class="tag">Astro</li><li class="tag">CMS</li><li class="tag">Аналитика</li></ul>
       </div>
       <div class="svc__body">
-        <p>Лендинги, корпоративные сайты и интернет-магазины. Начинаем не с макета, а с вопроса, что должен сделать посетитель, и дальше строим страницу вокруг этого действия.</p><p>Входит: структура и тексты, дизайн, вёрстка под телефон и планшет, подключение CMS, формы и заявки, аналитика, базовое SEO, перенос на ваш хостинг.</p><p class="muted">Сроки: лендинг обычно 1–2 недели, корпоративный сайт 3–6 недель, магазин от 6 недель.</p>
-        <figure class="svc__shot rv">
+        <p>Лендинги, корпоративные сайты и интернет-магазины. Начинаем не с макета, а с вопроса, что должен сделать посетитель, и дальше строим страницу вокруг этого действия.</p><p><strong>Входит:</strong> структура и тексты, дизайн, вёрстка под телефон и планшет, подключение CMS, формы и заявки, аналитика, базовое SEO, перенос на ваш хостинг.</p><p><strong>Сроки:</strong> лендинг обычно 1–2 недели, корпоративный сайт 3–6 недель, магазин от 6 недель.</p>
+        <figure class="svc__shot">
           <img src="assets/svc-site.jpg" alt="Вант красит витрину магазина валиком" width="1792" height="1008" loading="lazy">
-          <figcaption class="mono">Рендер 07 · витрина под ключ</figcaption>
         </figure>
       </div>
     </article>
-    <article class="svc" id="bot">
-      <div>
-        <span class="svc__idx mono">02</span>
-        <h2 class="svc__name rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.4c-.5.4-1.3 0-1.3-.6z"/><path d="M8.6 10h.01M12 10h.01M15.4 10h.01"/></svg>Телеграм-боты</h2>
-        <ul class="svc__chips"><li class="chip">Telegram Bot API</li><li class="chip">Mini Apps</li><li class="chip">Python</li><li class="chip">PostgreSQL</li><li class="chip">Оплаты</li></ul>
+    <article class="svc rv" id="bot">
+      <div class="svc__side">
+        <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.4c-.5.4-1.3 0-1.3-.6z"/><path d="M8.6 10h.01M12 10h.01M15.4 10h.01"/></svg></span>
+        <h2 class="svc__name">Телеграм-боты</h2>
+        <ul class="svc__tags"><li class="tag">Bot API</li><li class="tag">Mini Apps</li><li class="tag">Python</li><li class="tag">Оплаты</li></ul>
       </div>
       <div class="svc__body">
-        <p>Бот снимает с людей повторяющуюся работу: принимает заказы, отвечает на типовые вопросы, напоминает и собирает заявки, круглосуточно и без выходных.</p><p>Входит: сценарий диалога, подключение оплат и CRM, админка для управления, мини-приложения Telegram, уведомления и рассылки.</p><p class="muted">Сроки: простой бот-приёмщик заявок от нескольких дней, бот с оплатами и интеграциями от 2–4 недель.</p>
-        <figure class="svc__shot rv">
+        <p>Бот снимает с людей повторяющуюся работу: принимает заказы, отвечает на типовые вопросы, напоминает и собирает заявки, круглосуточно и без выходных.</p><p><strong>Входит:</strong> сценарий диалога, подключение оплат и CRM, админка для управления, мини-приложения Telegram, уведомления и рассылки.</p><p><strong>Сроки:</strong> простой бот-приёмщик заявок от нескольких дней, бот с оплатами и интеграциями от 2–4 недель.</p>
+        <figure class="svc__shot">
           <img src="assets/svc-bot.jpg" alt="Вант отправляет бумажный самолётик прямо из экрана телефона" width="1792" height="1008" loading="lazy">
-          <figcaption class="mono">Рендер 08 · сообщение улетело</figcaption>
         </figure>
       </div>
     </article>
-    <article class="svc" id="app">
-      <div>
-        <span class="svc__idx mono">03</span>
-        <h2 class="svc__name rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16M3 9.5h6.5"/></svg>Веб-приложения</h2>
-        <ul class="svc__chips"><li class="chip">React</li><li class="chip">TypeScript</li><li class="chip">Node.js</li><li class="chip">PostgreSQL</li><li class="chip">Docker</li></ul>
+    <article class="svc rv" id="app">
+      <div class="svc__side">
+        <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16M3 9.5h6.5"/></svg></span>
+        <h2 class="svc__name">Веб-приложения</h2>
+        <ul class="svc__tags"><li class="tag">React</li><li class="tag">TypeScript</li><li class="tag">Node.js</li><li class="tag">PostgreSQL</li></ul>
       </div>
       <div class="svc__body">
-        <p>Личные кабинеты, панели управления, внутренние сервисы и отраслевые системы: то, чем пользуются каждый день, поэтому скорость и понятность важнее украшений.</p><p>Входит: проектирование данных и ролей, бэкенд и API, интерфейс, интеграции с учётными системами, тесты, развёртывание и мониторинг.</p><p class="muted">Сроки: первая рабочая версия от 4–8 недель, дальше развиваем итерациями.</p>
-        <figure class="svc__shot rv">
+        <p>Личные кабинеты, панели управления, внутренние сервисы и отраслевые системы: то, чем пользуются каждый день, поэтому скорость и понятность важнее украшений.</p><p><strong>Входит:</strong> проектирование данных и ролей, бэкенд и API, интерфейс, интеграции с учётными системами, тесты, развёртывание и мониторинг.</p><p><strong>Сроки:</strong> первая рабочая версия от 4–8 недель, дальше развиваем итерациями.</p>
+        <figure class="svc__shot">
           <img src="assets/svc-app.jpg" alt="Вант крутит шестерёнки большого механизма" width="1792" height="1008" loading="lazy">
-          <figcaption class="mono">Рендер 09 · механизм под капотом</figcaption>
         </figure>
       </div>
     </article>
-    <article class="svc" id="game">
-      <div>
-        <span class="svc__idx mono">04</span>
-        <h2 class="svc__name rv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 7h10.4a4.3 4.3 0 0 1 4.2 5.1l-.8 4.2a2.9 2.9 0 0 1-5 1.4L14.3 16h-4.6l-1.3 1.7a2.9 2.9 0 0 1-5-1.4l-.8-4.2A4.3 4.3 0 0 1 6.8 7z"/><path d="M8 10.4v3M6.5 11.9h3M15.7 10.7h.01M17.7 12.7h.01"/></svg>Мобильные игры</h2>
-        <ul class="svc__chips"><li class="chip">Unity</li><li class="chip">C#</li><li class="chip">Godot</li><li class="chip">App Store</li><li class="chip">Google Play</li></ul>
+    <article class="svc rv" id="game">
+      <div class="svc__side">
+        <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 7h10.4a4.3 4.3 0 0 1 4.2 5.1l-.8 4.2a2.9 2.9 0 0 1-5 1.4L14.3 16h-4.6l-1.3 1.7a2.9 2.9 0 0 1-5-1.4l-.8-4.2A4.3 4.3 0 0 1 6.8 7z"/><path d="M8 10.4v3M6.5 11.9h3M15.7 10.7h.01M17.7 12.7h.01"/></svg></span>
+        <h2 class="svc__name">Мобильные игры</h2>
+        <ul class="svc__tags"><li class="tag">Unity</li><li class="tag">C#</li><li class="tag">App Store</li><li class="tag">Google Play</li></ul>
       </div>
       <div class="svc__body">
-        <p>Игры для iOS и Android: от казуальных аркад до проектов с прогрессом и внутриигровой валютой. Сначала собираем играбельный прототип, чтобы проверить механику, и только потом рисуем финальный арт.</p><p>Входит: геймдизайн, прототип, арт и анимации, звук, монетизация и аналитика, публикация в App Store и Google Play.</p><p class="muted">Сроки: прототип 2–3 недели, релизная версия от 3 месяцев.</p>
-        <figure class="svc__shot rv">
+        <p>Игры для iOS и Android: от казуальных аркад до проектов с прогрессом и внутриигровой валютой. Сначала собираем играбельный прототип, чтобы проверить механику, и только потом рисуем финальный арт.</p><p><strong>Входит:</strong> геймдизайн, прототип, арт и анимации, звук, монетизация и аналитика, публикация в App Store и Google Play.</p><p><strong>Сроки:</strong> прототип 2–3 недели, релизная версия от 3 месяцев.</p>
+        <figure class="svc__shot">
           <img src="assets/svc-game.jpg" alt="Вант с геймпадом сидит перед аркадным автоматом" width="1792" height="1008" loading="lazy">
-          <figcaption class="mono">Рендер 10 · плейтест механики</figcaption>
         </figure>
       </div>
     </article>
   </section>
 
-  <!-- ================= контакт ================= -->
-  <section class="contact" id="contact">
-    <div class="contact__inner">
+  <section class="sec">
+    <div class="cta-band rv">
       <div>
-        <h2 class="display contact__title">Обсудим <em>ваш</em> проект?</h2>
-        <p class="contact__note">Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
-        <p class="contact__mail"><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></p>
-        <p class="contact__tg"><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra в Telegram</a></p>
-        <ul class="contact__meta">
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Отвечаем в течение дня</li>
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 20V5A1.5 1.5 0 0 1 6.5 3.5z"/><path d="M9 13.5l2 2 4-4.5"/></svg>Работаем по договору, с закрывающими документами</li>
-          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg>Смета по этапам до начала работы</li>
-        </ul>
+        <h2 class="display">Не нашли своё направление?</h2>
+        <p>Напишите задачу как есть. Скажем честно, беремся мы за такое или нет, и подскажем, к кому идти, если нет.</p>
       </div>
-      <form class="form" id="form" action="../marketing-site/send.php" method="post" novalidate>
-        <label class="field">
-          <span class="field__label">Как к вам обращаться</span>
-          <input class="field__input" type="text" name="name" autocomplete="name" required maxlength="80">
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <label class="field">
-          <span class="field__label">Куда ответить</span>
-          <input class="field__input" type="text" name="contact" autocomplete="email" placeholder="почта или @ник в Telegram" required maxlength="120">
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <label class="field">
-          <span class="field__label">Что нужно сделать</span>
-          <select class="field__input" name="kind">
-            <option value="site">Сайт</option>
-            <option value="bot">Телеграм-бот</option>
-            <option value="app">Веб-приложение</option>
-            <option value="game">Мобильная игра</option>
-            <option value="other">Не знаю, нужно обсудить</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="field__label">Опишите задачу</span>
-          <textarea class="field__input" name="task" rows="4" required maxlength="2000" placeholder="Что за продукт, для кого и зачем. Двух-трёх предложений достаточно."></textarea>
-          <span class="field__err" aria-live="polite"></span>
-        </label>
-        <input type="text" name="website" tabindex="-1" autocomplete="off" class="hp" aria-hidden="true">
-        <button class="btn btn--bone btn--wide" type="submit">Отправить</button>
-        <p class="form__law">Нажимая «Отправить», вы соглашаетесь с <a href="privacy">политикой конфиденциальности</a>.</p>
-        <p class="form__ok" hidden>Получили. Ответим на почту или в Telegram в течение дня.</p>
-      </form>
+      <div class="cta-band__act">
+        <a class="btn btn--cta" href="contacts">Написать нам <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn--ghost" href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+      </div>
     </div>
   </section>
 
@@ -188,11 +140,11 @@
           <img src="assets/logo.png" alt="" width="512" height="512">
           <span>Vantegra</span>
         </a>
-        <p class="mono" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+        <p class="cap" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
       </div>
       <div>
-        <p class="foot__h">Разделы</p>
-        <ul class="foot__nav">
+        <h2>Разделы</h2>
+        <ul>
           <li><a href="services">Услуги</a></li>
           <li><a href="pricing">Цены</a></li>
           <li><a href="works">Работы</a></li>
@@ -201,32 +153,31 @@
         </ul>
       </div>
       <div>
-        <p class="foot__h">Связь</p>
-        <ul class="foot__nav">
+        <h2>Связь</h2>
+        <ul>
           <li><a href="contacts">Контакты</a></li>
           <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
           <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
         </ul>
       </div>
       <div>
-        <p class="foot__h">Документы</p>
-        <ul class="foot__nav">
+        <h2>Документы</h2>
+        <ul>
           <li><a href="privacy">Конфиденциальность</a></li>
           <li><a href="terms">Условия работы</a></li>
           <li><a href="cabinet">Кабинет клиента</a></li>
         </ul>
       </div>
     </div>
-    <p class="foot__mark" aria-hidden="true">Vantegra</p>
     <p class="foot__fine">
-      <span class="mono">© 2026 Vantegra</span>
-      <span class="mono">Сайты · Боты · Веб-приложения · Мобильные игры</span>
+      <span>© 2026 Vantegra</span>
+      <span>Сайты · Боты · Веб-приложения · Мобильные игры</span>
     </p>
   </div>
 </footer>
 
 <button class="totop" id="totop" type="button" aria-label="Наверх страницы">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+  <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>Наверх</span>
 </button>
 
 <script src="main.js" defer></script>

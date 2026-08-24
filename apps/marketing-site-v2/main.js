@@ -1,22 +1,11 @@
-/* Vantegra v2: шапка, меню, бегущая строка, форма. Появления и переходы делает CSS. */
+/* Vantegra v2: тема, меню, «наверх», форма. Появления и переходы делает CSS. */
 (() => {
   'use strict';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const calm = matchMedia('(prefers-reduced-motion: reduce)');
 
-  /* прогресс чтения: запасной путь для браузеров без scroll-timeline */
-  const progress = $('.top__progress');
-  if (progress && !CSS.supports('animation-timeline: scroll()')) {
-    const draw = () => {
-      const max = document.documentElement.scrollHeight - innerHeight;
-      progress.style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`;
-    };
-    addEventListener('scroll', draw, { passive: true });
-    draw();
-  }
-
-  /* ночная тема: тумблер главнее системной */
+  /* тема: выбор пользователя главнее системной */
   const themeBtn = $('#theme');
   if (themeBtn) {
     themeBtn.addEventListener('click', () => {
@@ -31,26 +20,17 @@
   /* наверх страницы */
   const totop = $('#totop');
   if (totop) {
-    const draw = () => totop.classList.toggle('is-on', scrollY > innerHeight * 0.9);
+    const draw = () => totop.classList.toggle('is-on', scrollY > innerHeight * 0.8);
     addEventListener('scroll', draw, { passive: true });
     draw();
     totop.addEventListener('click', () => scrollTo({ top: 0, behavior: calm.matches ? 'auto' : 'smooth' }));
   }
 
-  /* бегущая строка: добираем копий до бесшовного цикла */
-  const row = $('#marqueeRow');
-  if (row && !calm.matches) {
-    const set = row.firstElementChild;
-    let guard = 0;
-    while (row.scrollWidth < innerWidth * 2 && guard++ < 20) row.append(set.cloneNode(true));
-    [...row.children].forEach((n) => row.append(n.cloneNode(true)));
-  }
-
   /* мобильное меню */
-  const burger = $('.top__burger');
+  const burger = $('#burger');
   const drawer = $('#drawer');
   if (burger && drawer) {
-    const closeDrawer = () => {
+    const close = () => {
       drawer.hidden = true;
       burger.setAttribute('aria-expanded', 'false');
       document.documentElement.style.overflow = '';
@@ -61,13 +41,11 @@
       burger.setAttribute('aria-expanded', String(open));
       document.documentElement.style.overflow = open ? 'hidden' : '';
     });
-    $$('a', drawer).forEach((a) => a.addEventListener('click', closeDrawer));
-    addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) closeDrawer(); });
+    $$('a', drawer).forEach((a) => a.addEventListener('click', close));
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) close(); });
   }
 
-  /* вопросы: открытый закрывает соседа мягко (name= уже делает это в новых браузерах) */
-
-  /* форма: проверка на месте, отправка без перезагрузки, запасной путь: почта */
+  /* форма: проверка на месте, отправка без перезагрузки, запасной путь — почта */
   const form = $('#form');
   if (!form) return;
   const ok = $('.form__ok', form);
@@ -90,8 +68,7 @@
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const inputs = $$('.field__input', form);
-    const bad = inputs.filter((i) => !check(i));
+    const bad = $$('.field__input', form).filter((i) => !check(i));
     if (bad.length) { bad[0].focus(); return; }
 
     const btn = $('button[type="submit"]', form);
@@ -106,7 +83,7 @@
       const d = new FormData(form);
       location.href = 'mailto:hello@vantegra.ru?subject=' + encodeURIComponent('Заявка с сайта')
         + '&body=' + encodeURIComponent(`Имя: ${d.get('name')}\nКонтакт: ${d.get('contact')}\nЗадача: ${d.get('task')}`);
-      btn.disabled = false; btn.textContent = 'Отправить';
+      btn.disabled = false; btn.textContent = 'Отправить заявку';
     }
   });
 })();
