@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Разработка телеграм-ботов на заказ — Vantegra</title>
+<meta name="description" content="Разработка телеграм-ботов под ключ: приём заказов, запись, оплаты и мини-приложения. Заказать бота от нескольких дней, цена от 90 000 ₽.">
+<link rel="canonical" href="https://vantegracode.ru/bots">
+<meta name="theme-color" content="#ebe8e0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1310" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Vantegra">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Разработка телеграм-ботов на заказ — Vantegra">
+<meta property="og:description" content="Разработка телеграм-ботов под ключ: приём заказов, запись, оплаты и мини-приложения. Заказать бота от нескольких дней, цена от 90 000 ₽.">
+<meta property="og:url" content="https://vantegracode.ru/bots">
+<meta property="og:image" content="https://vantegracode.ru/assets/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Vantegra: собираем цифровые продукты целиком">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Разработка телеграм-ботов на заказ — Vantegra">
+<meta name="twitter:description" content="Разработка телеграм-ботов под ключ: приём заказов, запись, оплаты и мини-приложения. Заказать бота от нескольких дней, цена от 90 000 ₽.">
+<meta name="twitter:image" content="https://vantegracode.ru/assets/og-cover.jpg">
+<script>(function(){try{var t=localStorage.getItem('vantegra-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})()</script>
+<link rel="icon" href="assets/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"ProfessionalService","@id":"https://vantegracode.ru/#org","name":"Vantegra","url":"https://vantegracode.ru","image":"https://vantegracode.ru/assets/og-cover.jpg","logo":"https://vantegracode.ru/assets/logo.png","description":"Студия разработки: создание сайтов, телеграм-ботов, веб-приложений и мобильных игр.","email":"hello@vantegra.ru","address":{"@type":"PostalAddress","addressLocality":"Пермь","addressCountry":"RU"},"areaServed":[{"@type":"City","name":"Пермь"},{"@type":"Country","name":"Россия"}],"priceRange":"от 90 000 ₽","sameAs":["https://t.me/vantegra"],"knowsAbout":["разработка сайтов","телеграм-боты","веб-приложения","мобильные игры"]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","@id":"https://vantegracode.ru/#site","url":"https://vantegracode.ru","name":"Vantegra","inLanguage":"ru-RU","publisher":{"@id":"https://vantegracode.ru/#org"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Service","serviceType":"Разработка телеграм-ботов","name":"Разработка телеграм-ботов","description":"Разработка телеграм-ботов под ключ: приём заказов, запись, оплаты и мини-приложения. Заказать бота от нескольких дней, цена от 90 000 ₽.","url":"https://vantegracode.ru/bots","provider":{"@id":"https://vantegracode.ru/#org"},"areaServed":{"@type":"Country","name":"Россия"},"offers":{"@type":"Offer","price":"90000","priceCurrency":"RUB","availability":"https://schema.org/InStock"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Сколько стоит разработка телеграм-бота?","acceptedAnswer":{"@type":"Answer","text":"Простой бот, который принимает заявки и передаёт их менеджеру, — от 90 000 ₽. Бот с оплатами, интеграцией с CRM и админкой — от 180 000 ₽. Мини-приложение с каталогом и корзиной — от 350 000 ₽."}},{"@type":"Question","name":"Как быстро можно запустить бота?","acceptedAnswer":{"@type":"Answer","text":"Бот-приёмщик заявок собирается за несколько дней. Бот с оплатами и интеграциями — 2–4 недели. Мини-приложение — от четырёх недель."}},{"@type":"Question","name":"Можно ли принимать оплату прямо в боте?","acceptedAnswer":{"@type":"Answer","text":"Да. Подключаем платёжного провайдера, оплата проходит внутри диалога, клиенту приходит чек, а вам — уведомление и статус платежа. Деньги идут напрямую на ваш счёт."}},{"@type":"Question","name":"Где будет жить бот и кто его обслуживает?","acceptedAnswer":{"@type":"Answer","text":"Бот работает на сервере: можно на нашем в рамках поддержки, можно на вашем. Мы настраиваем мониторинг и резервные копии, чтобы падение заметили мы, а не ваши клиенты."}},{"@type":"Question","name":"Сможем ли мы сами менять тексты и товары в боте?","acceptedAnswer":{"@type":"Answer","text":"Да, для этого делаем админку: тексты, кнопки, товары и цены меняются без программиста. Рассылку по базе тоже можно отправить самостоятельно."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://vantegracode.ru"},{"@type":"ListItem","position":2,"name":"Услуги","item":"https://vantegracode.ru/services"},{"@type":"ListItem","position":3,"name":"Телеграм-боты","item":"https://vantegracode.ru/bots"}]}</script>
+</head>
+<body>
+
+<a class="skip" href="#main">К содержимому</a>
+<header class="nav">
+  <div class="nav__in">
+    <a class="nav__brand" href="./" aria-label="Vantegra, на главную">
+      <img src="assets/logo-96.png" alt="" width="96" height="96">
+      <span>Vantegra</span>
+    </a>
+    <nav class="nav__links" aria-label="Разделы">
+        <a href="services" aria-current="page">Услуги</a>
+        <a href="pricing">Цены</a>
+        <a href="works">Работы</a>
+        <a href="about">О студии</a>
+        <a href="faq">Вопросы</a>
+    </nav>
+    <div class="nav__side">
+      <a class="btn btn--ghost nav__cab" href="cabinet">Кабинет</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Переключить тему">
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
+      </button>
+      <button class="icon-btn nav__burger" id="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+      <a class="btn btn--cta" href="contacts">Обсудить проект</a>
+    </div>
+  </div>
+</header>
+
+<nav class="drawer" id="drawer" aria-label="Разделы" hidden>
+  <a href="services"><span>Услуги</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="pricing"><span>Цены</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="works"><span>Работы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="about"><span>О студии</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="faq"><span>Вопросы</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a href="cabinet"><span>Кабинет</span><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <a class="btn btn--cta btn--wide" href="contacts">Обсудить проект</a>
+</nav>
+
+<main id="main">
+
+  <section class="phead">
+    <nav class="crumbs" aria-label="Хлебные крошки"><a href="./">Главная</a><span class="crumbs__sep" aria-hidden="true">/</span><a href="services">Услуги</a><span class="crumbs__sep" aria-hidden="true">/</span><span aria-current="page">Телеграм-боты</span></nav>
+    <p class="cap">Разработка телеграм-ботов</p>
+    <h1 class="phead__title">Разработка телеграм-ботов на заказ</h1>
+    <p class="lead">Бот принимает заказы, записывает клиентов, отвечает на типовые вопросы и напоминает о визите — круглосуточно и без выходных.</p>
+    <div class="phead__act">
+      <a class="btn btn--cta" href="contacts">Обсудить проект <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="btn btn--ghost" href="pricing">Посмотреть цены</a>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="land">
+      <div class="land__text">
+        <p>Заказать телеграм-бота имеет смысл там, где люди тратят время на одно и то же: принять заявку, записать на приём, повторить условия доставки, напомнить о брони. Разработка чат-бота снимает эту рутину и при этом не требует от клиента ставить отдельное приложение — Telegram уже стоит у всех.</p>
+        <p>Мы делаем ботов для бизнеса под конкретный сценарий, а не «универсальные». Сначала пишем маршрут диалога: что человек хочет сделать, за сколько шагов он это получит и что произойдёт дальше в вашей системе. Только после этого начинается создание бота.</p>
+        <p>Отдельная возможность — мини-приложения Telegram: полноценный интерфейс с каталогом, корзиной и оплатой прямо внутри мессенджера. По ощущениям это приложение, но устанавливать ничего не нужно.</p>
+      </div>
+      <figure class="land__shot rv">
+        <picture><source srcset="assets/svc-bot.webp" type="image/webp"><img src="assets/svc-bot.jpg" alt="Вант отправляет бумажный самолётик прямо из экрана телефона" width="1792" height="1008" loading="lazy" decoding="async"></picture>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Состав работ</p><h2 class="display">Что входит в разработку</h2></div></div>
+    <ul class="checks">
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 19 6v5.4c0 4.3-2.9 7.6-7 9.4-4.1-1.8-7-5.1-7-9.4V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Сценарий диалога</b> — карта шагов и ответов, включая ошибки и тупики, чтобы человек не терялся.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 19 6v5.4c0 4.3-2.9 7.6-7 9.4-4.1-1.8-7-5.1-7-9.4V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Приём заказов и записи</b> — бот собирает данные, проверяет их и кладёт в вашу систему.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 19 6v5.4c0 4.3-2.9 7.6-7 9.4-4.1-1.8-7-5.1-7-9.4V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Онлайн-оплата</b> — оплата картой прямо в диалоге, чеки и статусы платежей.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 19 6v5.4c0 4.3-2.9 7.6-7 9.4-4.1-1.8-7-5.1-7-9.4V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Мини-приложение Telegram</b> — каталог, корзина и личный кабинет внутри мессенджера.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 19 6v5.4c0 4.3-2.9 7.6-7 9.4-4.1-1.8-7-5.1-7-9.4V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Интеграции</b> — CRM, склад, таблицы, календарь записи, уведомления менеджерам.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 19 6v5.4c0 4.3-2.9 7.6-7 9.4-4.1-1.8-7-5.1-7-9.4V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Админка и рассылки</b> — вы сами меняете тексты, товары и отправляете сообщения по базе.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2 19 6v5.4c0 4.3-2.9 7.6-7 9.4-4.1-1.8-7-5.1-7-9.4V6z"/><path d="m9 12 2 2 4-4"/></svg><span><b>Хостинг и мониторинг</b> — бот живёт на сервере, падения видим раньше, чем их заметят клиенты.</span></li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Кому подходит</p><h2 class="display">С какими задачами приходят</h2></div></div>
+    <ul class="grid grid--3">
+      <li class="card rv">
+          <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.4c-.5.4-1.3 0-1.3-.6z"/><path d="M8.6 10h.01M12 10h.01M15.4 10h.01"/></svg></span>
+          <h3>Приём заявок</h3>
+          <p>Бот задаёт вопросы вместо менеджера, собирает контакты и передаёт заявку в CRM или Telegram-чат команды.</p>
+        </li>
+      <li class="card rv">
+          <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+          <h3>Запись и напоминания</h3>
+          <p>Свободные слоты, запись в календарь, напоминание за сутки. Меньше неявок и звонков «уточнить время».</p>
+        </li>
+      <li class="card rv">
+          <span class="card__ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.6V5.5C4 4.7 4.7 4 5.5 4h5.1c.4 0 .8.2 1.1.4l7.4 7.4a1.5 1.5 0 0 1 0 2.2l-5.1 5.1a1.5 1.5 0 0 1-2.2 0l-7.4-7.4a1.5 1.5 0 0 1-.4-1.1z"/><path d="M8.3 8.3h.01"/></svg></span>
+          <h3>Продажи в мессенджере</h3>
+          <p>Каталог, корзина, оплата и статусы заказа без сайта: подходит для доставки, магазинов и услуг.</p>
+        </li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Сроки и стоимость</p><h2 class="display">Сколько это стоит и как долго</h2></div></div>
+    <div class="tablewrap">
+      <table class="tbl">
+        <thead><tr><th scope="col">Вариант</th><th scope="col">Срок</th><th scope="col">Стоимость</th></tr></thead>
+        <tbody>
+        <tr><th scope="row">Бот-приёмщик заявок</th><td>от нескольких дней</td><td>от 90 000 ₽</td></tr>
+        <tr><th scope="row">Бот с оплатами и CRM</th><td>2–4 недели</td><td>от 180 000 ₽</td></tr>
+        <tr><th scope="row">Мини-приложение Telegram</th><td>от 4 недель</td><td>от 350 000 ₽</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="terms">Цены ориентировочные: точную смету по этапам присылаем после короткого созвона.
+       Стоимость согласованных этапов фиксируется и по ходу работы не растёт.
+       <a href="pricing">Из чего складывается цена <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></p>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Процесс</p><h2 class="display">Как идёт работа</h2></div></div>
+    <ol class="flow">
+      <li class="rv"><span class="flow__n">1</span><h3>Разбираемся</h3><p>Что должен делать бот, какие данные собирает и куда они уходят. Фиксируем объём и цену.</p></li>
+      <li class="rv"><span class="flow__n">2</span><h3>Сценарий</h3><p>Пишем маршрут диалога и показываем его до кода: на этом этапе менять что угодно бесплатно.</p></li>
+      <li class="rv"><span class="flow__n">3</span><h3>Разработка</h3><p>Собираем бота, подключаем оплаты и интеграции, тестируем на живых сценариях.</p></li>
+      <li class="rv"><span class="flow__n">4</span><h3>Запуск</h3><p>Выкатываем на сервер, передаём доступы и админку, месяц исправляем всё по нашей вине бесплатно.</p></li>
+    </ol>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Подготовка</p><h2 class="display">Что стоит решить до старта</h2></div></div>
+    <ul class="checks">
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg><span><b>Что делает бот</b> — принимает заявки, записывает, продаёт или отвечает на вопросы. Один бот может всё сразу, но начинать лучше с главного сценария.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg><span><b>Куда уходят данные</b> — в чат менеджеру, в таблицу, в CRM или в вашу систему. Это решается до разработки, иначе придётся переделывать.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg><span><b>Нужна ли оплата</b> — если да, подберём платёжного провайдера и подключим чеки. Деньги идут напрямую на ваш счёт.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg><span><b>Кто отвечает людям</b> — бот закрывает типовые вопросы, но живой человек всё равно нужен: договоримся, как передавать сложные обращения.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg><span><b>Каталог и наличие</b> — если товары меняются, бот должен брать их из вашей базы, а не из захардкоженного списка.</span></li>
+        <li><svg class="ic ic--li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6.5h9M5 12h14M5 17.5h11"/><path d="M19.5 6.5h.01M21.5 12h.01M18.5 17.5h.01"/></svg><span><b>Как будете звать в бота</b> — ссылка на сайте, QR-код в заведении, рассылка или реклама. От этого зависит первый экран диалога.</span></li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Технологии</p><h2 class="display">На чём собираем</h2></div></div>
+    <ul class="taglist"><li class="tag">Telegram Bot API</li><li class="tag">Telegram Mini Apps</li><li class="tag">Python</li><li class="tag">aiogram</li><li class="tag">Node.js</li><li class="tag">PostgreSQL</li><li class="tag">Redis</li><li class="tag">ЮKassa</li><li class="tag">Docker</li></ul>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Вопросы</p><h2 class="display">Что спрашивают чаще всего</h2></div>
+      <a class="more" href="faq">Все ответы <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+    <div class="faq">
+      <details class="qa" name="faq" open>
+        <summary>Сколько стоит разработка телеграм-бота?</summary>
+        <div class="qa__body"><p>Простой бот, который принимает заявки и передаёт их менеджеру, — от 90 000 ₽. Бот с оплатами, интеграцией с CRM и админкой — от 180 000 ₽. Мини-приложение с каталогом и корзиной — от 350 000 ₽.</p></div>
+      </details>
+      <details class="qa" name="faq">
+        <summary>Как быстро можно запустить бота?</summary>
+        <div class="qa__body"><p>Бот-приёмщик заявок собирается за несколько дней. Бот с оплатами и интеграциями — 2–4 недели. Мини-приложение — от четырёх недель.</p></div>
+      </details>
+      <details class="qa" name="faq">
+        <summary>Можно ли принимать оплату прямо в боте?</summary>
+        <div class="qa__body"><p>Да. Подключаем платёжного провайдера, оплата проходит внутри диалога, клиенту приходит чек, а вам — уведомление и статус платежа. Деньги идут напрямую на ваш счёт.</p></div>
+      </details>
+      <details class="qa" name="faq">
+        <summary>Где будет жить бот и кто его обслуживает?</summary>
+        <div class="qa__body"><p>Бот работает на сервере: можно на нашем в рамках поддержки, можно на вашем. Мы настраиваем мониторинг и резервные копии, чтобы падение заметили мы, а не ваши клиенты.</p></div>
+      </details>
+      <details class="qa" name="faq">
+        <summary>Сможем ли мы сами менять тексты и товары в боте?</summary>
+        <div class="qa__body"><p>Да, для этого делаем админку: тексты, кнопки, товары и цены меняются без программиста. Рассылку по базе тоже можно отправить самостоятельно.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><div><p class="cap">Смотрите также</p><h2 class="display">Другие направления</h2></div></div>
+    <ul class="rellist">
+<li><a class="more" href="sites">Разработка сайтов <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+<li><a class="more" href="apps">Веб-приложения <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+<li><a class="more" href="games">Мобильные игры <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+<li><a class="more" href="perm">Разработка в Перми <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <div class="cta-band rv">
+      <div>
+        <h2 class="display">Обсудим ваш проект?</h2>
+        <p>Опишите задачу в двух словах, и мы вернёмся с вопросами и оценкой в течение дня. Это бесплатно и ни к чему не обязывает.</p>
+      </div>
+      <div class="cta-band__act">
+        <a class="btn btn--cta" href="contacts">Написать нам <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn--ghost" href="mailto:hello@vantegra.ru">hello@vantegra.ru</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot__in">
+    <div class="foot__cols">
+      <div>
+        <a class="foot__brand" href="./">
+          <img src="assets/logo-96.png" alt="" width="96" height="96">
+          <span>Vantegra</span>
+        </a>
+        <p class="cap" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
+      </div>
+      <div>
+        <h2>Услуги</h2>
+        <ul>
+          <li><a href="sites">Разработка сайтов</a></li>
+          <li><a href="bots">Телеграм-боты</a></li>
+          <li><a href="apps">Веб-приложения</a></li>
+          <li><a href="games">Мобильные игры</a></li>
+          <li><a href="perm">Разработка в Перми</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Студия</h2>
+        <ul>
+          <li><a href="works">Работы</a></li>
+          <li><a href="pricing">Цены</a></li>
+          <li><a href="about">О студии</a></li>
+          <li><a href="faq">Вопросы</a></li>
+          <li><a href="contacts">Контакты</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Документы</h2>
+        <ul>
+          <li><a href="privacy">Политика конфиденциальности</a></li>
+          <li><a href="consent">Согласие на обработку данных</a></li>
+          <li><a href="terms">Условия работы</a></li>
+          <li><a href="cabinet">Кабинет клиента</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot__legal">
+      <p>[ИП Фамилия Имя Отчество] · ИНН [ИНН] · ОГРНИП [ОГРНИП]</p>
+      <p>Информация на сайте не является публичной офертой. Цены указаны в рублях и уточняются в смете.</p>
+    </div>
+    <p class="foot__fine">
+      <span>© 2026 Vantegra</span>
+      <span>Разработка сайтов, телеграм-ботов, веб-приложений и мобильных игр</span>
+    </p>
+  </div>
+</footer>
+
+<button class="totop" id="totop" type="button" aria-label="Наверх страницы">
+  <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>Наверх</span>
+</button>
+
+<div class="cookie" id="cookie" hidden>
+  <p>Сайт использует только технические cookie: они хранят выбранную тему и сессию в кабинете.
+     Подробнее в <a href="privacy">политике конфиденциальности</a>.</p>
+  <button class="btn btn--cta" id="cookieOk" type="button">Понятно</button>
+</div>
+
+<script src="main.js" defer></script>
+</body>
+</html>

@@ -5,11 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Страница не найдена — Vantegra</title>
 <meta name="description" content="Такой страницы нет.">
-<meta name="robots" content="noindex">
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://vantegracode.ru/404">
 <meta name="theme-color" content="#ebe8e0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d1310" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Vantegra">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Страница не найдена — Vantegra">
+<meta property="og:description" content="Такой страницы нет.">
+<meta property="og:url" content="https://vantegracode.ru/404">
+<meta property="og:image" content="https://vantegracode.ru/assets/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Vantegra: собираем цифровые продукты целиком">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Страница не найдена — Vantegra">
+<meta name="twitter:description" content="Такой страницы нет.">
+<meta name="twitter:image" content="https://vantegracode.ru/assets/og-cover.jpg">
 <script>(function(){try{var t=localStorage.getItem('vantegra-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}})()</script>
-<link rel="icon" href="assets/favicon.png">
+<link rel="icon" href="assets/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&display=swap">
@@ -21,7 +38,7 @@
 <header class="nav">
   <div class="nav__in">
     <a class="nav__brand" href="./" aria-label="Vantegra, на главную">
-      <img src="assets/logo.png" alt="" width="512" height="512">
+      <img src="assets/logo-96.png" alt="" width="96" height="96">
       <span>Vantegra</span>
     </a>
     <nav class="nav__links" aria-label="Разделы">
@@ -32,7 +49,7 @@
         <a href="faq">Вопросы</a>
     </nav>
     <div class="nav__side">
-      <a class="btn btn--ghost" href="cabinet">Кабинет</a>
+      <a class="btn btn--ghost nav__cab" href="cabinet">Кабинет</a>
       <button class="icon-btn" id="theme" type="button" aria-label="Переключить тему">
         <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/></svg>
         <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3 17 7M7 17l-1.7 1.7"/></svg>
@@ -58,13 +75,14 @@
 <main id="main" class="lost">
   <div class="win rv">
     <div class="win__bar" aria-hidden="true"><i></i><i></i><i></i><span>404 · страница не найдена</span></div>
-    <img src="assets/mascot-404.jpg" alt="Вант растерянно смотрит на объёмные цифры 404" width="1792" height="1008" fetchpriority="high">
+    <picture><source srcset="assets/mascot-404.webp" type="image/webp"><img src="assets/mascot-404.jpg" alt="Вант растерянно смотрит на объёмные цифры 404" width="1792" height="1008" fetchpriority="high"></picture>
   </div>
   <h1 class="display">Страница не нашлась</h1>
   <p class="lead">Возможно, адрес набран с опечаткой или страницу переименовали. Вант тоже её не нашёл, а он смотрел внимательно.</p>
   <div class="lost__act">
     <a class="btn btn--cta" href="./">На главную <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    <a class="btn btn--ghost" href="works">Смотреть работы</a>
+    <a class="btn btn--ghost" href="services">Услуги</a>
+    <a class="btn btn--ghost" href="works">Работы</a>
   </div>
 </main>
 
@@ -73,41 +91,48 @@
     <div class="foot__cols">
       <div>
         <a class="foot__brand" href="./">
-          <img src="assets/logo.png" alt="" width="512" height="512">
+          <img src="assets/logo-96.png" alt="" width="96" height="96">
           <span>Vantegra</span>
         </a>
         <p class="cap" style="margin-top:12px">Студия разработки · Пермь и удалённо</p>
       </div>
       <div>
-        <h2>Разделы</h2>
+        <h2>Услуги</h2>
         <ul>
-          <li><a href="services">Услуги</a></li>
-          <li><a href="pricing">Цены</a></li>
-          <li><a href="works">Работы</a></li>
-          <li><a href="about">О студии</a></li>
-          <li><a href="faq">Вопросы</a></li>
+          <li><a href="sites">Разработка сайтов</a></li>
+          <li><a href="bots">Телеграм-боты</a></li>
+          <li><a href="apps">Веб-приложения</a></li>
+          <li><a href="games">Мобильные игры</a></li>
+          <li><a href="perm">Разработка в Перми</a></li>
         </ul>
       </div>
       <div>
-        <h2>Связь</h2>
+        <h2>Студия</h2>
         <ul>
+          <li><a href="works">Работы</a></li>
+          <li><a href="pricing">Цены</a></li>
+          <li><a href="about">О студии</a></li>
+          <li><a href="faq">Вопросы</a></li>
           <li><a href="contacts">Контакты</a></li>
-          <li><a href="mailto:hello@vantegra.ru">hello@vantegra.ru</a></li>
-          <li><a href="https://t.me/vantegra" target="_blank" rel="noopener">@vantegra</a></li>
         </ul>
       </div>
       <div>
         <h2>Документы</h2>
         <ul>
-          <li><a href="privacy">Конфиденциальность</a></li>
+          <li><a href="privacy">Политика конфиденциальности</a></li>
+          <li><a href="consent">Согласие на обработку данных</a></li>
           <li><a href="terms">Условия работы</a></li>
           <li><a href="cabinet">Кабинет клиента</a></li>
         </ul>
       </div>
     </div>
+    <div class="foot__legal">
+      <p>[ИП Фамилия Имя Отчество] · ИНН [ИНН] · ОГРНИП [ОГРНИП]</p>
+      <p>Информация на сайте не является публичной офертой. Цены указаны в рублях и уточняются в смете.</p>
+    </div>
     <p class="foot__fine">
       <span>© 2026 Vantegra</span>
-      <span>Сайты · Боты · Веб-приложения · Мобильные игры</span>
+      <span>Разработка сайтов, телеграм-ботов, веб-приложений и мобильных игр</span>
     </p>
   </div>
 </footer>
@@ -115,6 +140,12 @@
 <button class="totop" id="totop" type="button" aria-label="Наверх страницы">
   <svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>Наверх</span>
 </button>
+
+<div class="cookie" id="cookie" hidden>
+  <p>Сайт использует только технические cookie: они хранят выбранную тему и сессию в кабинете.
+     Подробнее в <a href="privacy">политике конфиденциальности</a>.</p>
+  <button class="btn btn--cta" id="cookieOk" type="button">Понятно</button>
+</div>
 
 <script src="main.js" defer></script>
 </body>

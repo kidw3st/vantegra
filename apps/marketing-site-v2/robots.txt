@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /cabinet
+Disallow: /c/
+Disallow: /send.php
+Disallow: /data/
+Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&gclid
+
+User-agent: Yandex
+Allow: /
+Disallow: /cabinet
+Disallow: /c/
+Disallow: /send.php
+Disallow: /data/
+Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&gclid
+
+Sitemap: https://vantegracode.ru/sitemap.xml

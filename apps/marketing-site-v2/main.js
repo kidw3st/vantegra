@@ -45,6 +45,20 @@
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) close(); });
   }
 
+  /* уведомление о cookie: показываем один раз */
+  const cookie = $('#cookie');
+  if (cookie) {
+    let seen = false;
+    try { seen = localStorage.getItem('vantegra-cookie') === '1'; } catch {}
+    if (!seen) {
+      cookie.hidden = false;
+      $('#cookieOk').addEventListener('click', () => {
+        cookie.hidden = true;
+        try { localStorage.setItem('vantegra-cookie', '1'); } catch {}
+      });
+    }
+  }
+
   /* форма: проверка на месте, отправка без перезагрузки, запасной путь — почта */
   const form = $('#form');
   if (!form) return;
@@ -66,10 +80,22 @@
   };
   $$('.field__input', form).forEach((i) => i.addEventListener('blur', () => check(i)));
 
+  const agree = $('.agree__box', form);
+  const agreeErr = $('#consentErr');
+  const checkAgree = () => {
+    const ok = !agree || agree.checked;
+    agree?.closest('.agree')?.classList.toggle('is-bad', !ok);
+    if (agreeErr) agreeErr.textContent = ok ? '' : 'Без согласия на обработку данных мы не сможем принять заявку.';
+    return ok;
+  };
+  agree?.addEventListener('change', checkAgree);
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const bad = $$('.field__input', form).filter((i) => !check(i));
+    const agreeOk = checkAgree();
     if (bad.length) { bad[0].focus(); return; }
+    if (!agreeOk) { agree.focus(); return; }
 
     const btn = $('button[type="submit"]', form);
     btn.disabled = true; btn.textContent = 'Отправляем…';

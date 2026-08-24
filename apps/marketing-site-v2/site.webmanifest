@@ -1,0 +1,24 @@
+{
+  "name": "Vantegra — студия разработки",
+  "short_name": "Vantegra",
+  "description": "Разработка сайтов, телеграм-ботов, веб-приложений и мобильных игр.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "lang": "ru",
+  "background_color": "#ebe8e0",
+  "theme_color": "#ebe8e0",
+  "icons": [
+    {
+      "src": "assets/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

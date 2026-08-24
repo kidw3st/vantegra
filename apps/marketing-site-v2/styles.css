@@ -769,3 +769,91 @@ textarea.field__input { resize: vertical; min-height: 104px; }
   .totop span { display: none; }
   .totop { padding: 0; width: 40px; justify-content: center; }
 }
+
+/* ================= хлебные крошки ================= */
+
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 13px; color: var(--ash); }
+.crumbs a { color: var(--smoke); text-decoration: none; }
+.crumbs a:hover { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
+.crumbs__sep { color: var(--ash); }
+.crumbs [aria-current] { color: var(--bone); }
+
+.phead__act { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+
+/* ================= посадочная: текст + кадр ================= */
+
+.land { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 28px 40px; align-items: start; }
+.land__text p { margin: 0 0 14px; color: var(--smoke); font-size: 15.5px; line-height: 1.7; max-width: 62ch; }
+.land__text p:last-child { margin-bottom: 0; }
+.land__shot { margin: 0; }
+.land__shot img { width: 100%; border: 1px solid var(--line); border-radius: var(--r-lg); }
+
+/* ================= список с галочками ================= */
+
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; margin: 0; padding: 0; list-style: none; }
+.checks li { display: flex; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line-2); }
+.checks li:first-child, .checks li:nth-child(2) { border-top: 0; }
+.checks .ic--li { width: 19px; height: 19px; flex: none; margin-top: 2px; color: var(--amber-deep); }
+.checks span { font-size: 14.5px; line-height: 1.55; color: var(--smoke); }
+.checks b { color: var(--bone); font-weight: 500; }
+
+/* ================= таблица ================= */
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); }
+.tbl { width: 100%; border-collapse: collapse; background: var(--slate); font-size: 14.5px; }
+.tbl th, .tbl td { padding: 13px 18px; text-align: left; border-top: 1px solid var(--line-2); }
+.tbl thead th { border-top: 0; font-size: 12px; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; color: var(--smoke); background: var(--carbon); }
+.tbl tbody th { font-weight: 500; color: var(--bone); }
+.tbl tbody th a { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-3); }
+.tbl tbody th a:hover { color: var(--amber-deep); }
+.tbl td { color: var(--smoke); white-space: nowrap; }
+
+/* ================= списки тегов и ссылок ================= */
+
+.taglist { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rellist { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 0; padding: 0; list-style: none; }
+
+/* ================= согласие в форме ================= */
+
+.agree { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; cursor: pointer; }
+.agree__box { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--amber); flex: none; }
+.agree span { font-size: 13px; line-height: 1.5; color: var(--smoke); }
+.agree a { color: var(--amber-deep); }
+.agree.is-bad span { color: #c85a3f; }
+:root[data-theme="dark"] .agree.is-bad span { color: #ef8f74; }
+
+/* ================= реквизиты и подвал ================= */
+
+.contact__req { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line-2); font-size: 12.5px; color: var(--ash); }
+.foot__legal { margin: 26px 0 0; padding-top: 16px; border-top: 1px solid var(--line-2); }
+.foot__legal p { margin: 0 0 6px; font-size: 12.5px; color: var(--ash); max-width: 90ch; }
+
+/* ================= уведомление о cookie ================= */
+
+.cookie {
+  position: fixed; left: var(--pad); right: var(--pad); bottom: 16px; z-index: 95;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  max-width: 720px; margin: 0 auto;
+  padding: 14px 16px 14px 20px;
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--nav-bg); backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 1px 10px rgba(8, 12, 9, .16);
+}
+.cookie[hidden] { display: none; }
+.cookie p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--smoke); }
+.cookie a { color: var(--amber-deep); }
+.cookie .btn { min-height: 38px; padding: 8px 18px; font-size: 14px; flex: none; }
+
+/* телефон в шапке */
+.nav__call { white-space: nowrap; }
+
+@media (max-width: 1080px) {
+  .land { grid-template-columns: minmax(0, 1fr); }
+  .checks { grid-template-columns: minmax(0, 1fr); }
+  .checks li:nth-child(2) { border-top: 1px solid var(--line-2); }
+  .nav__call { display: none; }
+}
+@media (max-width: 640px) {
+  .cookie { flex-direction: column; align-items: stretch; text-align: left; }
+  .cookie .btn { width: 100%; }
+}
