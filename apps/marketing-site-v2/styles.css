@@ -162,6 +162,14 @@ a { color: inherit; }
 @keyframes vt-out { to { opacity: 0; } }
 @keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
 
+/* переключение темы: волна из кнопки. Старый слой остаётся на месте,
+   новый раскрывается поверх — анимацию радиуса задаёт скрипт. */
+:root.theme-vt::view-transition-old(root),
+:root.theme-vt::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+:root.theme-vt::view-transition-group(root) { animation: none; }
+:root.theme-vt::view-transition-old(root) { z-index: 1; }
+:root.theme-vt::view-transition-new(root) { z-index: 2; }
+
 /* ================= голоса ================= */
 
 .display {
@@ -318,13 +326,24 @@ a { color: inherit; }
   transition: background-color .15s ease, border-color .15s ease;
 }
 .icon-btn:hover { background: var(--hover); }
-.icon-btn svg { width: 17px; height: 17px; }
-.icon-btn .ico-sun { display: none; }
-:root[data-theme="dark"] .icon-btn .ico-sun { display: block; }
-:root[data-theme="dark"] .icon-btn .ico-moon { display: none; }
+#theme { position: relative; overflow: hidden; }
+#theme svg { grid-area: 1 / 1; width: 17px; height: 17px; }
+#theme .ico-moon, #theme .ico-sun {
+  transition: opacity .28s var(--ease), transform .45s var(--ease);
+}
+#theme .ico-sun { opacity: 0; transform: rotate(-120deg) scale(.4); }
+#theme .ico-moon { opacity: 1; transform: none; }
+:root[data-theme="dark"] #theme .ico-sun { opacity: 1; transform: none; }
+:root[data-theme="dark"] #theme .ico-moon { opacity: 0; transform: rotate(120deg) scale(.4); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .icon-btn .ico-sun { display: block; }
-  :root:not([data-theme="light"]) .icon-btn .ico-moon { display: none; }
+  :root:not([data-theme="light"]) #theme .ico-sun { opacity: 1; transform: none; }
+  :root:not([data-theme="light"]) #theme .ico-moon { opacity: 0; transform: rotate(120deg) scale(.4); }
+}
+/* мягкий отклик самой кнопки на нажатие */
+#theme:active { transform: scale(.9); }
+#theme { transition: background-color .15s ease, border-color .15s ease, transform .18s var(--ease); }
+@media (prefers-reduced-motion: reduce) {
+  #theme .ico-moon, #theme .ico-sun { transition: none; }
 }
 
 .nav__burger { display: none; }

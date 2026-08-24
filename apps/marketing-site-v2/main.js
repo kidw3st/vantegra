@@ -65,15 +65,43 @@
     }, { passive: true });
   }
 
-  /* тема: выбор пользователя главнее системной */
+  /* Тема: выбор пользователя главнее системной.
+     Смена идёт круговой волной из самой кнопки — через View Transitions.
+     Где API нет (Firefox) или включён щадящий режим, тема меняется мгновенно. */
   const themeBtn = $('#theme');
   if (themeBtn) {
+    const root = document.documentElement;
+    const apply = (next) => {
+      root.dataset.theme = next;
+      try { localStorage.setItem('vantegra-theme', next); } catch {}
+      track('theme_switch', { to: next });
+    };
+
     themeBtn.addEventListener('click', () => {
       const sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
-      const cur = document.documentElement.dataset.theme || (sysDark ? 'dark' : 'light');
+      const cur = root.dataset.theme || (sysDark ? 'dark' : 'light');
       const next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem('vantegra-theme', next); } catch {}
+
+      if (!document.startViewTransition || calm.matches) { apply(next); return; }
+
+      // центр волны — центр кнопки, радиус — до самого дальнего угла экрана
+      const r = themeBtn.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+
+      root.classList.add('theme-vt');
+      const vt = document.startViewTransition(() => apply(next));
+
+      vt.ready.then(() => {
+        root.animate(
+          { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${reach}px at ${x}px ${y}px)`] },
+          { duration: 560, easing: 'cubic-bezier(.23, 1, .32, 1)',
+            pseudoElement: '::view-transition-new(root)' },
+        );
+      }).catch(() => {});
+
+      vt.finished.finally(() => root.classList.remove('theme-vt'));
     });
   }
 
