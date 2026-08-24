@@ -619,6 +619,10 @@ a { color: inherit; }
 .svc__body p.muted { color: var(--ink-60); font-size: 15px; }
 .svc__chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
 
+.svc__shot { margin: 24px 0 0; }
+.svc__shot img { width: 100%; border: 1.5px solid var(--line-strong); border-radius: var(--r); }
+.svc__shot figcaption { margin-top: 10px; }
+
 /* ---------- о студии ---------- */
 
 .about-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px 64px; align-items: start; }
