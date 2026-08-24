@@ -70,6 +70,8 @@ $contact = trim((string) ($_POST['contact'] ?? ''));
 $kind    = trim((string) ($_POST['kind'] ?? ''));
 $task    = trim((string) ($_POST['task'] ?? ''));
 $consent = (string) ($_POST['consent'] ?? '') === '1';
+$source  = mb_substr(trim((string) ($_POST['source'] ?? '')), 0, 500);
+$page    = mb_substr(trim((string) ($_POST['page'] ?? '')), 0, 120);
 
 $errors = [];
 if ($name === '' || mb_strlen($name) > 120) {
@@ -104,6 +106,8 @@ $record = [
     'task'       => $task,
     'consent'    => true,
     'consentDoc' => CONSENT_DOC,
+    'page'       => $page,          // страница, с которой пришла заявка
+    'source'     => $source,        // первое касание: utm, реферер, точка входа
 ];
 @file_put_contents(DATA_DIR . '/leads.jsonl',
     json_encode($record, JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
@@ -113,6 +117,8 @@ $subject = '=?UTF-8?B?' . base64_encode('Заявка с сайта: ' . $kindNa
 $body = "Заявка с сайта vantegracode.ru\n\n"
       . "Имя: {$name}\nКонтакт: {$contact}\nНаправление: {$kindName}\n\n"
       . "Задача:\n{$task}\n\n"
+      . "Страница заявки: " . ($page !== '' ? $page : '—') . "\n"
+      . "Источник: " . ($source !== '' ? $source : 'прямой заход') . "\n\n"
       . "Согласие: получено ({$record['consentDoc']})\n"
       . "IP: {$ip}\nВремя: {$record['at']}\n";
 $headers = "From: Vantegra <" . MAIL_FROM . ">\r\n"
