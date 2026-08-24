@@ -103,7 +103,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; scrollbar-color: var(--line-3) var(--canvas); }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 body {
@@ -119,10 +119,33 @@ a { color: inherit; }
 ::selection { background: var(--amber); color: #17130c; }
 :focus-visible { outline: 2px solid var(--amber-deep); outline-offset: 2px; }
 
-::-webkit-scrollbar { width: 11px; height: 11px; }
-::-webkit-scrollbar-track { background: var(--canvas); }
-::-webkit-scrollbar-thumb { background: var(--line-3); border-radius: 30px; border: 3px solid var(--canvas); }
-::-webkit-scrollbar-thumb:hover { background: var(--amber-deep); }
+/* Chromium и WebKit: свой скроллбар. В Firefox сюда не доходит,
+   поэтому для него отдельный блок ниже — если задать scrollbar-color
+   глобально, Chrome выключит эти правила и вернёт системный вид. */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track {
+  background: var(--canvas);
+  border-left: 1px solid var(--line-2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-3);
+  border-radius: var(--r-pill);
+  border: 3px solid var(--canvas);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--smoke); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:active { background: var(--amber); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: var(--canvas); }
+
+/* внутренние прокрутки (меню, длинные блоки) — тоньше и без линии трека */
+.drawer::-webkit-scrollbar { width: 8px; }
+.drawer::-webkit-scrollbar-track { border-left: 0; }
+.drawer::-webkit-scrollbar-thumb { border-width: 2px; }
+
+/* Firefox */
+@supports not selector(::-webkit-scrollbar) {
+  html { scrollbar-color: var(--line-3) var(--canvas); scrollbar-width: thin; }
+}
 
 .skip {
   position: absolute; left: 16px; top: -60px; z-index: 200;
