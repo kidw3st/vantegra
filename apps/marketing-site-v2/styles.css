@@ -656,17 +656,15 @@ a { color: inherit; }
 .contact__title em { color: #e2a44c; }
 .contact__note { margin: 20px 0 0; max-width: 42ch; color: var(--bone-60); font-size: 17px; line-height: 1.5; }
 .contact__mail { margin: 36px 0 0; }
-.contact__mail a {
+.contact__mail a, .contact__tg a {
   display: inline-block; padding: 4px 12px;
   background: var(--amber); color: #17130c;
   font: 600 clamp(19px, 2.2vw, 27px)/1.25 var(--grot); letter-spacing: -.02em;
   text-decoration: none; border-radius: 6px;
   transition: background-color .18s ease;
 }
-.contact__mail a:hover { background: var(--bone); }
+.contact__mail a:hover, .contact__tg a:hover { background: var(--bone); }
 .contact__tg { margin: 12px 0 0; }
-.contact__tg a { color: var(--bone); font: 500 17px/1.4 var(--grot); text-underline-offset: 4px; }
-.contact__tg a:hover { color: var(--amber); }
 .contact__meta { margin: 40px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .contact__meta li { font: 400 13px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .02em; color: var(--bone-60); }
 
